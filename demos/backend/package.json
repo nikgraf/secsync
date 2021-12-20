@@ -1,0 +1,41 @@
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "16.11.9",
+    "@types/uuid": "^8.3.3",
+    "@types/ws": "^8.2.1",
+    "@vercel/ncc": "^0.33.1",
+    "prettier": "^2.5.0",
+    "prisma": "3.5.0",
+    "ts-node": "10.4.0",
+    "ts-node-dev": "^1.1.8",
+    "typescript": "4.5.2"
+  },
+  "scripts": {
+    "test": "ts-node ./src/script.ts",
+    "dev": "ts-node-dev --transpile-only --no-notify ./src/index.ts",
+    "clean": "rm -rf build",
+    "build": "yarn && yarn clean && yarn prisma:prod:generate && yarn ncc build ./src/index.ts -o build",
+    "deploy": "yarn build && DOCKER_DEFAULT_PLATFORM=linux/amd64 heroku container:push web --app naisho && heroku container:release web --app naisho",
+    "prisma:prod:migrate": "POSTGRES_URL=$POSTGRES_URL prisma migrate deploy",
+    "prisma:prod:generate": "POSTGRES_URL=$POSTGRES_URL prisma generate",
+    "prisma:prod:studio": "POSTGRES_URL=$POSTGRES_URL prisma studio",
+    "start:prod": "PORT=$PORT POSTGRES_URL=$POSTGRES_URL NODE_ENV=production node ./build"
+  },
+  "dependencies": {
+    "@naisho/core": "0.0.1",
+    "@prisma/client": "3.5.0",
+    "apollo-server-express": "^3.5.0",
+    "express": "^4.17.1",
+    "graphql": "^16.0.1",
+    "make-promises-safe": "^5.1.0",
+    "nexus": "^1.1.0",
+    "uuid": "^8.3.2",
+    "ws": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=12.2.0"
+  }
+}

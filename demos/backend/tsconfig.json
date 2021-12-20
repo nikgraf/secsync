@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.json",
+
+  "compilerOptions": {
+    "sourceMap": true,
+    "outDir": "dist",
+    "strict": false,
+    "lib": ["esnext", "dom"],
+    "esModuleInterop": true
+  },
+
+  "include": ["src/**/*"]
+}

@@ -1,0 +1,45 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("POSTGRES_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
+  binaryTargets   = ["native", "debian-openssl-1.1.x"]
+  output          = "./generated/output"
+}
+
+model Document {
+  id               String     @id
+  activeSnapshot   Snapshot?  @relation(name: "activeSnapshot", fields: [activeSnapshotId], references: [id])
+  activeSnapshotId String?    @unique
+  snapshots        Snapshot[]
+  createdAt        DateTime   @default(now())
+}
+
+model Snapshot {
+  id                     String    @id @default(uuid())
+  latestVersion          Int
+  data                   String
+  preview                String // title & icon
+  document               Document  @relation(fields: [documentId], references: [id])
+  documentId             String
+  updates                Update[]
+  activeSnapshotDocument Document? @relation("activeSnapshot")
+  createdAt              DateTime  @default(now())
+  clocks                 Json
+}
+
+model Update {
+  id              String   @id @default(uuid())
+  version         Int
+  data            String
+  snapshot        Snapshot @relation(fields: [snapshotId], references: [id])
+  snapshotId      String
+  snapshotVersion Int
+  pubKey          String
+
+  @@unique([snapshotId, version])
+  @@unique([snapshotId, pubKey, snapshotVersion])
+}

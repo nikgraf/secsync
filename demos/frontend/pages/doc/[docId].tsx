@@ -1,0 +1,413 @@
+import Head from "next/head";
+import React, { useRef, useEffect, useReducer } from "react";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import * as Yjs from "yjs";
+import {
+  ySyncPlugin,
+  yUndoPlugin,
+  yCursorPlugin,
+  undo,
+  redo,
+} from "y-prosemirror";
+import { EditorState } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { schema } from "../../editor/schema";
+import { exampleSetup } from "prosemirror-example-setup";
+import { keymap } from "prosemirror-keymap";
+import {
+  createSnapshot,
+  createUpdate,
+  createAwarenessUpdate,
+  verifyAndDecryptSnapshot,
+  verifyAndDecryptUpdate,
+  verifyAndDecryptAwarenessUpdate,
+  createSignatureKeyPair,
+  addUpdateToInProgressQueue,
+  removeUpdateFromInProgressQueue,
+  getUpdateInProgress,
+} from "@naisho/core";
+import { v4 as uuidv4 } from "uuid";
+import sodium from "libsodium-wrappers";
+import {
+  Awareness,
+  encodeAwarenessUpdate,
+  applyAwarenessUpdate,
+  removeAwarenessStates,
+} from "y-protocols/awareness";
+
+type WebsocketState = {
+  connected: boolean;
+  connecting: boolean;
+  unsuccessfulReconnects: number;
+  lastMessageReceived: number;
+};
+
+type WebsocketActions =
+  | { type: "connected" }
+  | { type: "disconnected" }
+  | { type: "reconnecting" };
+
+const websocketInitialState = {
+  connected: false,
+  connecting: true,
+  unsuccessfulReconnects: 0,
+  lastMessageReceived: 0,
+};
+
+const reconnectTimeout = 2000;
+
+function websocketStateReducer(
+  state: WebsocketState,
+  action: WebsocketActions
+): WebsocketState {
+  switch (action.type) {
+    case "reconnecting":
+      return {
+        ...state,
+        connected: false,
+        connecting: true,
+        unsuccessfulReconnects: state.unsuccessfulReconnects + 1,
+      };
+    case "connected":
+      return {
+        ...state,
+        connected: true,
+        connecting: false,
+        unsuccessfulReconnects: 0,
+        lastMessageReceived: Date.now(),
+      };
+    case "disconnected":
+      return { ...state, connected: false, connecting: false };
+    default:
+      throw new Error();
+  }
+}
+
+export default function Document() {
+  const router = useRouter();
+  const docId = Array.isArray(router.query.docId)
+    ? router.query.docId[0]
+    : router.query.docId;
+  const editorRef = useRef<HTMLDivElement>(null);
+  const activeSnapshotIdRef = useRef<string>(null);
+  const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
+  const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
+  const websocketConnectionRef = useRef<WebSocket>(null);
+  const createSnapshotRef = useRef<boolean>(false);
+  const signatureKeyPairRef = useRef<sodium.KeyPair>(null);
+  const latestServerVersionRef = useRef<number>(null);
+
+  const [websocketState, dispatchWebsocketState] = useReducer(
+    websocketStateReducer,
+    websocketInitialState
+  );
+
+  const initiateEditor = () => {
+    const yXmlFragment = yDocRef.current.getXmlFragment("document");
+
+    editorRef.current.innerHTML = "";
+    const editor = editorRef.current;
+    new EditorView(editor, {
+      state: EditorState.create({
+        schema,
+        plugins: [
+          ySyncPlugin(yXmlFragment),
+          yCursorPlugin(yAwarenessRef.current),
+          yUndoPlugin(),
+          keymap({
+            "Mod-z": undo,
+            "Mod-y": redo,
+            "Mod-Shift-z": redo,
+          }),
+        ].concat(exampleSetup({ schema })),
+      }),
+    });
+  };
+
+  useEffect(() => {
+    if (!router.isReady) return;
+
+    // @ts-ignore
+    window.yDoc = yDocRef.current;
+    // @ts-ignore
+    window.yAwareness = yAwarenessRef.current;
+
+    async function initDocument() {
+      await sodium.ready;
+
+      // TODO ask Kevin why setting it to null is necessary
+      // https://github.com/yjs/y-websocket/blob/master/bin/utils.js#L104-L105
+      yAwarenessRef.current.setLocalStateField("user", {
+        name: `User ${yDocRef.current.clientID}`,
+      });
+
+      const key = sodium.from_base64(window.location.hash.slice(1));
+
+      signatureKeyPairRef.current = createSignatureKeyPair();
+
+      const onWebsocketMessage = (event) => {
+        const data = JSON.parse(event.data);
+        switch (data.type) {
+          case "document":
+            if (data.snapshot) {
+              activeSnapshotIdRef.current = data.snapshot.publicData.snapshotId;
+              const initialResult = verifyAndDecryptSnapshot(
+                data.snapshot,
+                key,
+                sodium.from_base64(data.snapshot.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+              );
+              Yjs.applyUpdate(yDocRef.current, initialResult, null);
+            }
+            data.updates.forEach((update) => {
+              console.log(
+                update.serverData.version,
+                update.publicData.pubKey,
+                update.publicData.clock
+              );
+              const updateResult = verifyAndDecryptUpdate(
+                update,
+                key,
+                sodium.from_base64(update.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+              );
+              // when reconnecting the server might send already processed data updates. these then are ignored
+              if (updateResult) {
+                Yjs.applyUpdate(yDocRef.current, updateResult, null);
+                latestServerVersionRef.current = update.serverData.version;
+              }
+            });
+            initiateEditor();
+            break;
+          case "snapshot":
+            console.log("apply snapshot");
+            const snapshotResult = verifyAndDecryptSnapshot(
+              data,
+              key,
+              sodium.from_base64(data.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+            );
+            activeSnapshotIdRef.current = data.publicData.snapshotId;
+            latestServerVersionRef.current = undefined;
+            Yjs.applyUpdate(yDocRef.current, snapshotResult, null);
+            break;
+          case "snapshotSaved":
+            console.log("snapshot saving confirmed");
+            activeSnapshotIdRef.current = data.snapshotId;
+            latestServerVersionRef.current = undefined;
+            break;
+          case "update":
+            const updateResult = verifyAndDecryptUpdate(
+              data,
+              key,
+              sodium.from_base64(data.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+            );
+            Yjs.applyUpdate(yDocRef.current, updateResult, null);
+            latestServerVersionRef.current = data.serverData.version;
+            break;
+          case "updateSaved":
+            console.log("update saving confirmed", data.snapshotId, data.clock);
+            latestServerVersionRef.current = data.serverVersion;
+            removeUpdateFromInProgressQueue(
+              data.docId,
+              data.snapshotId,
+              data.clock
+            );
+            break;
+          case "updateFailed":
+            console.log("update saving failed", data.snapshotId, data.clock);
+            // TODO retry with an increasing offset instead of just trying again
+            const rawUpdate = getUpdateInProgress(
+              data.docId,
+              data.snapshotId,
+              data.clock
+            );
+            const publicData = {
+              refSnapshotId: activeSnapshotIdRef.current,
+              docId,
+              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+            };
+            const updateToSend = createUpdate(
+              rawUpdate,
+              publicData,
+              key,
+              signatureKeyPairRef.current,
+              data.clock
+            );
+            websocketConnectionRef.current.send(JSON.stringify(updateToSend));
+            break;
+          case "awarenessUpdate":
+            const awarenessUpdateResult = verifyAndDecryptAwarenessUpdate(
+              data,
+              key,
+              sodium.from_base64(data.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+            );
+            applyAwarenessUpdate(
+              yAwarenessRef.current,
+              awarenessUpdateResult,
+              null
+            );
+            break;
+        }
+      };
+
+      const setupWebsocket = () => {
+        const host =
+          process.env.NODE_ENV === "development"
+            ? "ws://localhost:4000"
+            : "wss://api.naisho.org";
+        const connection = new WebSocket(`${host}/${docId}`);
+        websocketConnectionRef.current = connection;
+
+        // Listen for messages
+        connection.addEventListener("message", onWebsocketMessage);
+
+        connection.addEventListener("open", function (event) {
+          console.log("connection opened");
+          dispatchWebsocketState({ type: "connected" });
+        });
+
+        connection.addEventListener("close", function (event) {
+          console.log("connection closed");
+          dispatchWebsocketState({ type: "disconnected" });
+          // remove the awareness states of everyone else
+          removeAwarenessStates(
+            yAwarenessRef.current,
+            Array.from(yAwarenessRef.current.getStates().keys()).filter(
+              (client) => client !== yDocRef.current.clientID
+            ),
+            "TODOprovider"
+          );
+          // retry connecting
+          setTimeout(() => {
+            dispatchWebsocketState({ type: "reconnecting" });
+            setupWebsocket();
+          }, reconnectTimeout * (1 + websocketState.unsuccessfulReconnects));
+        });
+      };
+
+      setupWebsocket();
+
+      // remove awareness state when closing the window
+      window.addEventListener("beforeunload", () => {
+        removeAwarenessStates(
+          yAwarenessRef.current,
+          [yDocRef.current.clientID],
+          "window unload"
+        );
+      });
+
+      yAwarenessRef.current.on("update", ({ added, updated, removed }) => {
+        const changedClients = added.concat(updated).concat(removed);
+        const yAwarenessUpdate = encodeAwarenessUpdate(
+          yAwarenessRef.current,
+          changedClients
+        );
+        const publicData = {
+          docId,
+          pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+        };
+        const awarenessUpdate = createAwarenessUpdate(
+          yAwarenessUpdate,
+          publicData,
+          key,
+          signatureKeyPairRef.current
+        );
+        websocketConnectionRef.current.send(JSON.stringify(awarenessUpdate));
+      });
+
+      yDocRef.current.on("update", (update, origin) => {
+        // TODO gather changes in a queue to avoid creating multiple snapshots
+        // and merge changes together
+        if (origin?.key === "y-sync$") {
+          if (!activeSnapshotIdRef.current || createSnapshotRef.current) {
+            createSnapshotRef.current = false;
+
+            const yDocState = Yjs.encodeStateAsUpdate(yDocRef.current);
+            const publicData = {
+              snapshotId: uuidv4(),
+              docId,
+              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+            };
+            const snapshot = createSnapshot(
+              yDocState,
+              publicData,
+              key,
+              signatureKeyPairRef.current
+            );
+            websocketConnectionRef.current.send(
+              JSON.stringify({
+                ...snapshot,
+                latestServerVersion: latestServerVersionRef.current,
+              })
+            );
+          } else {
+            const publicData = {
+              refSnapshotId: activeSnapshotIdRef.current,
+              docId,
+              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+            };
+            const updateToSend = createUpdate(
+              update,
+              publicData,
+              key,
+              signatureKeyPairRef.current
+            );
+            addUpdateToInProgressQueue(updateToSend, update);
+            websocketConnectionRef.current.send(JSON.stringify(updateToSend));
+          }
+        }
+      });
+    }
+
+    initDocument();
+  }, [router.isReady]);
+
+  return (
+    <>
+      <Head>
+        <title>Naisho</title>
+        <meta name="description" content="Naisho" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
+
+      <main>
+        <Link href="/">
+          <a>Home</a>
+        </Link>
+        <div>{websocketState.connected ? "Connected" : "Disconnected"}</div>
+        <button
+          type="button"
+          onClick={() => {
+            websocketConnectionRef.current.close();
+          }}
+        >
+          Disconnect and reconnect
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            createSnapshotRef.current = true;
+          }}
+        >
+          Next doc change to create a snapshot
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            signatureKeyPairRef.current = {
+              privateKey: sodium.from_base64(
+                "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
+              ),
+              publicKey: sodium.from_base64(
+                "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM"
+              ),
+              keyType: "ed25519",
+            };
+          }}
+        >
+          Switch to user 1
+        </button>
+        <div ref={editorRef}>Loading</div>
+      </main>
+    </>
+  );
+}
