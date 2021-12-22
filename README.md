@@ -2,6 +2,10 @@
 
 Is an architecture for end-to-end encrypted CRDTs.
 
+## Demos
+
+- End-to-end encrypted document https://www.naisho.org/
+
 ## Background
 
 In architectures without end-to-end encryption a backend service can merge all updates together to one document and serve it to clients. In case a client already has a large part of the document the backend service can only send the missing updates.
@@ -57,10 +61,25 @@ TODO how can you trust the server with snapshots?
 
 TODO Idea: always have two active snapshots? easier to accept updates, it's not that simple and clear anymore
 
+### When to create a new Snapshot?
+
+- A user is removed from the document to enforce that no one can continue sharing updates with removed users.
+- A user is added to the document to make sure the new users only sees the current state from now on. The background is a privacy by default thinking.
+- The symmetric encryption is being rotated.
+
+Depending on the clients there can be different strategies:
+
+- When most clients don't store the state locally, but rather fetch the latest snapshot + updates, then snapshots should be produced more often.
+- When most clients store the state locally and regularily sync then regular snapshots are not desired.
+
 ## Benefits
 
 - When a collaborator leaves we can simply create a new snapshot we new key material.
 - When adding a collaborator and we create a new snapshot content of old changes are not revealed if the CRDT implementation supports tombstones e.g. Yjs.
+
+## Open Questions
+
+- Can the Poly1305 MAC be omitted since every message is anyway signed with the private key?
 
 ## Setup and Run the Demo
 
