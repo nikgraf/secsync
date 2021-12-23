@@ -1,9 +1,10 @@
+import { serializeSnapshot, serializeUpdates } from "../utils/serialize";
 import { prisma } from "./prisma";
 
 export async function getUpdatesForDocument(
   documentId: string,
   knownSnapshotId: string,
-  knownUpdateVersion: number
+  knownUpdateVersion?: number
 ) {
   const document = await prisma.document.findUnique({
     where: { id: documentId },
@@ -26,6 +27,18 @@ export async function getUpdatesForDocument(
     };
   } else if (
     document.activeSnapshot.id === knownSnapshotId &&
+    (knownUpdateVersion === undefined || knownUpdateVersion === null)
+  ) {
+    const updates = await prisma.update.findMany({
+      where: { snapshotId: knownSnapshotId },
+      orderBy: { version: "asc" },
+    });
+    return {
+      snapshot: null,
+      updates: serializeUpdates(updates),
+    };
+  } else if (
+    document.activeSnapshot.id === knownSnapshotId &&
     document.activeSnapshot.latestVersion > knownUpdateVersion
   ) {
     const updates = await prisma.update.findMany({
@@ -37,7 +50,7 @@ export async function getUpdatesForDocument(
     });
     return {
       snapshot: null,
-      updates,
+      updates: serializeUpdates(updates),
     };
   }
 
@@ -46,7 +59,7 @@ export async function getUpdatesForDocument(
     orderBy: { version: "asc" },
   });
   return {
-    snapshot: document.activeSnapshot,
-    updates,
+    snapshot: serializeSnapshot(document.activeSnapshot),
+    updates: serializeUpdates(updates),
   };
 }

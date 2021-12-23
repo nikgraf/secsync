@@ -125,6 +125,36 @@ export default function Document() {
     });
   };
 
+  const applySnapshot = (snapshot, key) => {
+    activeSnapshotIdRef.current = snapshot.publicData.snapshotId;
+    const initialResult = verifyAndDecryptSnapshot(
+      snapshot,
+      key,
+      sodium.from_base64(snapshot.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+    );
+    Yjs.applyUpdate(yDocRef.current, initialResult, null);
+  };
+
+  const applyUpdates = (updates, key) => {
+    updates.forEach((update) => {
+      console.log(
+        update.serverData.version,
+        update.publicData.pubKey,
+        update.publicData.clock
+      );
+      const updateResult = verifyAndDecryptUpdate(
+        update,
+        key,
+        sodium.from_base64(update.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
+      );
+      // when reconnecting the server might send already processed data updates. these then are ignored
+      if (updateResult) {
+        Yjs.applyUpdate(yDocRef.current, updateResult, null);
+        latestServerVersionRef.current = update.serverData.version;
+      }
+    });
+  };
+
   useEffect(() => {
     if (!router.isReady) return;
 
@@ -136,8 +166,6 @@ export default function Document() {
     async function initDocument() {
       await sodium.ready;
 
-      // TODO ask Kevin why setting it to null is necessary
-      // https://github.com/yjs/y-websocket/blob/master/bin/utils.js#L104-L105
       yAwarenessRef.current.setLocalStateField("user", {
         name: `User ${yDocRef.current.clientID}`,
       });
@@ -151,31 +179,9 @@ export default function Document() {
         switch (data.type) {
           case "document":
             if (data.snapshot) {
-              activeSnapshotIdRef.current = data.snapshot.publicData.snapshotId;
-              const initialResult = verifyAndDecryptSnapshot(
-                data.snapshot,
-                key,
-                sodium.from_base64(data.snapshot.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
-              );
-              Yjs.applyUpdate(yDocRef.current, initialResult, null);
+              applySnapshot(data.snapshot, key);
             }
-            data.updates.forEach((update) => {
-              console.log(
-                update.serverData.version,
-                update.publicData.pubKey,
-                update.publicData.clock
-              );
-              const updateResult = verifyAndDecryptUpdate(
-                update,
-                key,
-                sodium.from_base64(update.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
-              );
-              // when reconnecting the server might send already processed data updates. these then are ignored
-              if (updateResult) {
-                Yjs.applyUpdate(yDocRef.current, updateResult, null);
-                latestServerVersionRef.current = update.serverData.version;
-              }
-            });
+            applyUpdates(data.updates, key);
             initiateEditor();
             break;
           case "snapshot":
@@ -193,6 +199,36 @@ export default function Document() {
             console.log("snapshot saving confirmed");
             activeSnapshotIdRef.current = data.snapshotId;
             latestServerVersionRef.current = undefined;
+            break;
+          case "snapshotFailed":
+            console.log("snapshot saving failed", data);
+            if (data.snapshot) {
+              applySnapshot(data.snapshot, key);
+            }
+            if (data.updates) {
+              applyUpdates(data.updates, key);
+            }
+            // TODO add a backoff after multiple failed tries
+            const yDocState = Yjs.encodeStateAsUpdate(yDocRef.current);
+            const snapshotPublicData = {
+              snapshotId: uuidv4(),
+              docId,
+              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+            };
+            const snapshot = createSnapshot(
+              yDocState,
+              snapshotPublicData,
+              key,
+              signatureKeyPairRef.current
+            );
+            websocketConnectionRef.current.send(
+              JSON.stringify({
+                ...snapshot,
+                lastKnownSnapshotId: activeSnapshotIdRef.current,
+                latestServerVersion: latestServerVersionRef.current,
+              })
+            );
+
             break;
           case "update":
             const updateResult = verifyAndDecryptUpdate(
@@ -336,6 +372,7 @@ export default function Document() {
             websocketConnectionRef.current.send(
               JSON.stringify({
                 ...snapshot,
+                lastKnownSnapshotId: activeSnapshotIdRef.current,
                 latestServerVersion: latestServerVersionRef.current,
               })
             );

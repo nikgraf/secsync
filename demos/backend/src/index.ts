@@ -14,7 +14,12 @@ import { getDocument } from "./database/getDocument";
 import { createDocument } from "./database/createDocument";
 import { createSnapshot } from "./database/createSnapshot";
 import { createUpdate } from "./database/createUpdate";
+import { getUpdatesForDocument } from "./database/getUpdatesForDocument";
 import { retryAsyncFunction } from "./retryAsyncFunction";
+import {
+  NaishoSnapshotMissesUpdatesError,
+  NaishoSnapshotBasedOnOutdatedSnapshotError,
+} from "@naisho/core";
 
 async function main() {
   const apolloServer = new ApolloServer({
@@ -60,30 +65,69 @@ async function main() {
         console.log("created new doc");
       }
       addConnection(documentId, connection);
-      console.log("send");
       connection.send(JSON.stringify({ type: "document", ...doc }));
-      console.log("sent!");
 
       connection.on("message", async function message(messageContent) {
         const data = JSON.parse(messageContent.toString());
 
         if (data?.publicData?.snapshotId) {
-          const snapshot = await createSnapshot(data, data.latestServerVersion);
-          console.log("addUpdate snapshot");
-          connection.send(
-            JSON.stringify({ type: "snapshotSaved", snapshotId: snapshot.id })
-          );
-          addUpdate(
-            documentId,
-            {
-              ...data,
-              type: "snapshot",
-              serverData: {
-                latestVersion: snapshot.latestVersion,
+          try {
+            const activeSnapshotInfo =
+              data.lastKnownSnapshotId && data.latestServerVersion
+                ? {
+                    latestVersion: data.latestServerVersion,
+                    snapshotId: data.lastKnownSnapshotId,
+                  }
+                : undefined;
+            const snapshot = await createSnapshot(data, activeSnapshotInfo);
+            console.log("addUpdate snapshot");
+            connection.send(
+              JSON.stringify({ type: "snapshotSaved", snapshotId: snapshot.id })
+            );
+            addUpdate(
+              documentId,
+              {
+                ...data,
+                type: "snapshot",
+                serverData: {
+                  latestVersion: snapshot.latestVersion,
+                },
               },
-            },
-            connection
-          );
+              connection
+            );
+          } catch (error) {
+            if (error instanceof NaishoSnapshotBasedOnOutdatedSnapshotError) {
+              let doc = await getDocument(documentId);
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailed",
+                  docId: data.publicData.docId,
+                  snapshot: doc.snapshot,
+                  updates: doc.updates,
+                })
+              );
+            } else if (error instanceof NaishoSnapshotMissesUpdatesError) {
+              const result = await getUpdatesForDocument(
+                documentId,
+                data.lastKnownSnapshotId,
+                data.latestServerVersion
+              );
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailed",
+                  docId: data.publicData.docId,
+                  updates: result.updates,
+                })
+              );
+            } else {
+              console.error(error);
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailed",
+                })
+              );
+            }
+          }
         } else if (data?.publicData?.refSnapshotId) {
           let savedUpdate = null;
           try {

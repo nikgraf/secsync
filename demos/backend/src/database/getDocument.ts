@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { SnapshotWithServerData, UpdateWithServerData } from "@naisho/core";
+import { serializeSnapshot, serializeUpdates } from "../utils/serialize";
 
 export async function getDocument(documentId: string) {
   const doc = await prisma.document.findUnique({
@@ -12,22 +12,12 @@ export async function getDocument(documentId: string) {
   });
   if (!doc) return null;
 
-  const snapshot: SnapshotWithServerData = doc.activeSnapshot
-    ? {
-        ...JSON.parse(doc.activeSnapshot.data),
-        serverData: {
-          latestVersion: doc.activeSnapshot.latestVersion,
-        },
-      }
+  const snapshot = doc.activeSnapshot
+    ? serializeSnapshot(doc.activeSnapshot)
     : null;
 
-  const updates: UpdateWithServerData[] = doc.activeSnapshot
-    ? doc.activeSnapshot.updates.map((update) => {
-        return {
-          ...JSON.parse(update.data),
-          serverData: { version: update.version },
-        };
-      })
+  const updates = doc.activeSnapshot
+    ? serializeUpdates(doc.activeSnapshot.updates)
     : [];
 
   return {

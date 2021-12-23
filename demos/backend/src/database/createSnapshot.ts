@@ -1,9 +1,18 @@
 import { prisma } from "./prisma";
-import { Snapshot } from "@naisho/core";
+import {
+  Snapshot,
+  NaishoSnapshotMissesUpdatesError,
+  NaishoSnapshotBasedOnOutdatedSnapshotError,
+} from "@naisho/core";
+
+type ActiveSnapshotInfo = {
+  latestVersion: number;
+  snapshotId: string;
+};
 
 export async function createSnapshot(
   snapshot: Snapshot,
-  latestVersionFromPrevSnapshot?: number
+  activeSnapshotInfo?: ActiveSnapshotInfo
 ) {
   return await prisma.$transaction(async (prisma) => {
     const document = await prisma.document.findUnique({
@@ -15,11 +24,38 @@ export async function createSnapshot(
     if (!document) {
       throw new Error("Document doesn't exist.");
     }
+
+    // const random = Math.floor(Math.random() * 10);
+    // if (random < 8) {
+    //   throw new NaishoSnapshotBasedOnOutdatedSnapshotError(
+    //     "Snapshot is out of date."
+    //   );
+    // }
+
+    // const random = Math.floor(Math.random() * 10);
+    // if (random < 8) {
+    //   throw new NaishoSnapshotMissesUpdatesError(
+    //     "Snapshot does not include the latest changes."
+    //   );
+    // }
+
     if (
       document.activeSnapshot &&
-      document.activeSnapshot.latestVersion !== latestVersionFromPrevSnapshot
+      activeSnapshotInfo !== undefined &&
+      document.activeSnapshot.id !== activeSnapshotInfo.snapshotId
     ) {
-      throw new Error("Snapshot does not include the latest changes.");
+      throw new NaishoSnapshotBasedOnOutdatedSnapshotError(
+        "Snapshot is out of date."
+      );
+    }
+    if (
+      document.activeSnapshot &&
+      activeSnapshotInfo !== undefined &&
+      document.activeSnapshot.latestVersion !== activeSnapshotInfo.latestVersion
+    ) {
+      throw new NaishoSnapshotMissesUpdatesError(
+        "Snapshot does not include the latest changes."
+      );
     }
 
     return await prisma.snapshot.create({
