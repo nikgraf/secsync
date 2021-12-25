@@ -1,5 +1,5 @@
 import Head from "next/head";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import sodium from "libsodium-wrappers";
@@ -20,6 +20,8 @@ export default function Document() {
     : router.query.docId;
 
   const [newTodo, setNewTodo] = React.useState("");
+  const websocketConnectionRef = useRef<WebSocket>(null);
+  const createSnapshotRef = useRef<boolean>(false); // only used for the UI
 
   const [doc, setDoc] = React.useState(() => {
     let doc: Doc<{ todos: { [key: string]: TodoType } }> = automerge.init();
@@ -27,6 +29,14 @@ export default function Document() {
       doc.todos = {};
     });
   });
+
+  const change = (func) => {
+    const newDoc = automerge.change(doc, func);
+    setDoc(newDoc);
+    let changes = automerge.getChanges(doc, newDoc);
+    console.log("change", changes);
+    return doc;
+  };
 
   useEffect(() => {
     if (!router.isReady) return;
@@ -50,11 +60,31 @@ export default function Document() {
         <Link href="/">
           <a>Home</a>
         </Link>
+        <button
+          type="button"
+          onClick={() => {
+            websocketConnectionRef.current.close();
+          }}
+        >
+          Disconnect and reconnect
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            createSnapshotRef.current = true;
+            // const x = automerge.save(doc);
+            // automerge.load(x);
+            // console.log(x);
+          }}
+        >
+          Next doc change to create a snapshot
+        </button>
 
         <form
           onSubmit={(event) => {
             event.preventDefault();
-            const newDoc = automerge.change(doc, (doc) => {
+
+            change((doc) => {
               const id = uuidv4();
               doc.todos[id] = {
                 value: newTodo,
@@ -62,7 +92,6 @@ export default function Document() {
                 createdAt: new Date().getTime(),
               };
             });
-            setDoc(newDoc);
             setNewTodo("");
           }}
         >
@@ -97,20 +126,18 @@ export default function Document() {
                   type="checkbox"
                   checked={todo.completed}
                   onChange={(event) => {
-                    const newDoc = automerge.change(doc, (doc) => {
+                    change((doc) => {
                       doc.todos[todo.id].completed = event.target.checked;
                     });
-                    setDoc(newDoc);
                   }}
                 />
                 <button
                   type="button"
                   onClick={(event) => {
                     event.preventDefault();
-                    const newDoc = automerge.change(doc, (doc) => {
+                    change((doc) => {
                       delete doc.todos[todo.id];
                     });
-                    setDoc(newDoc);
                   }}
                 >
                   Remove
