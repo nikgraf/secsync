@@ -61,6 +61,7 @@ export default function Document() {
   const createSnapshotRef = useRef<boolean>(false); // only used for the UI
   const signatureKeyPairRef = useRef<sodium.KeyPair>(null);
   const latestServerVersionRef = useRef<number>(null);
+  const editorInitializedRef = useRef<boolean>(false);
   const websocketState = useWebsocketState();
 
   const initiateEditor = () => {
@@ -187,7 +188,23 @@ export default function Document() {
               applySnapshot(data.snapshot, key);
             }
             applyUpdates(data.updates, key);
-            initiateEditor();
+            if (editorInitializedRef.current === false) {
+              initiateEditor();
+              editorInitializedRef.current = true;
+            }
+
+            // check for pending snapshots or pending updates and run them
+            const pendingChanges = getPending(docId);
+            if (pendingChanges.type === "snapshot") {
+              createAndSendSnapshot(key);
+              removePending(docId);
+            } else if (pendingChanges.type === "updates") {
+              // TODO send multiple pending.rawUpdates as one update, this requires different applying as well
+              removePending(docId);
+              pendingChanges.rawUpdates.forEach((rawUpdate) => {
+                createAndSendUpdate(rawUpdate, key);
+              });
+            }
             break;
           case "snapshot":
             console.log("apply snapshot");
@@ -292,7 +309,6 @@ export default function Document() {
         connection.addEventListener("open", function (event) {
           console.log("connection opened");
           dispatchWebsocketState({ type: "connected" });
-          // TODO check for pending snapshots or pending updates and run them
         });
 
         connection.addEventListener("close", function (event) {
@@ -326,6 +342,10 @@ export default function Document() {
       });
 
       yAwarenessRef.current.on("update", ({ added, updated, removed }) => {
+        if (!getWebsocketState().connected) {
+          return;
+        }
+
         const changedClients = added.concat(updated).concat(removed);
         const yAwarenessUpdate = encodeAwarenessUpdate(
           yAwarenessRef.current,
@@ -345,21 +365,23 @@ export default function Document() {
       });
 
       yDocRef.current.on("update", (update, origin) => {
-        // TODO gather changes in a queue to avoid creating multiple snapshots
-        // and merge changes together
         if (origin?.key === "y-sync$") {
           if (!activeSnapshotIdRef.current || createSnapshotRef.current) {
             createSnapshotRef.current = false;
 
-            // TODO also check for the online state
-            if (getSnapshotInProgress(docId)) {
+            if (
+              getSnapshotInProgress(docId) ||
+              !getWebsocketState().connected
+            ) {
               addPendingSnapshot(docId);
             } else {
               createAndSendSnapshot(key);
             }
           } else {
-            // TODO also check for the online state
-            if (getSnapshotInProgress(docId)) {
+            if (
+              getSnapshotInProgress(docId) ||
+              !getWebsocketState().connected
+            ) {
               // don't send updates when a snapshot is in progress, because they
               // must be based on the new snapshot
               addPendingUpdate(docId, update);
