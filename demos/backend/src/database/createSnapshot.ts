@@ -25,6 +25,11 @@ export async function createSnapshot(
       throw new Error("Document doesn't exist.");
     }
 
+    // function sleep(ms) {
+    //   return new Promise((resolve) => setTimeout(resolve, ms));
+    // }
+    // await sleep(3000);
+
     // const random = Math.floor(Math.random() * 10);
     // if (random < 8) {
     //   throw new NaishoSnapshotBasedOnOutdatedSnapshotError(

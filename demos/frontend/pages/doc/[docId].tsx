@@ -26,6 +26,13 @@ import {
   addUpdateToInProgressQueue,
   removeUpdateFromInProgressQueue,
   getUpdateInProgress,
+  addSnapshotToInProgress,
+  removeSnapshotInProgress,
+  getSnapshotInProgress,
+  addPendingUpdate,
+  addPendingSnapshot,
+  getPending,
+  removePending,
 } from "@naisho/core";
 import { v4 as uuidv4 } from "uuid";
 import sodium from "libsodium-wrappers";
@@ -94,7 +101,7 @@ export default function Document() {
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
   const websocketConnectionRef = useRef<WebSocket>(null);
-  const createSnapshotRef = useRef<boolean>(false);
+  const createSnapshotRef = useRef<boolean>(false); // only used for the UI
   const signatureKeyPairRef = useRef<sodium.KeyPair>(null);
   const latestServerVersionRef = useRef<number>(null);
 
@@ -155,6 +162,50 @@ export default function Document() {
     });
   };
 
+  const createAndSendSnapshot = (key) => {
+    const yDocState = Yjs.encodeStateAsUpdate(yDocRef.current);
+    const publicData = {
+      snapshotId: uuidv4(),
+      docId,
+      pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+    };
+    const snapshot = createSnapshot(
+      yDocState,
+      publicData,
+      key,
+      signatureKeyPairRef.current
+    );
+
+    addSnapshotToInProgress(snapshot);
+
+    websocketConnectionRef.current.send(
+      JSON.stringify({
+        ...snapshot,
+        lastKnownSnapshotId: activeSnapshotIdRef.current,
+        latestServerVersion: latestServerVersionRef.current,
+      })
+    );
+  };
+
+  const createAndSendUpdate = (update, key, addToQueue: boolean) => {
+    const publicData = {
+      refSnapshotId: activeSnapshotIdRef.current,
+      docId,
+      pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
+    };
+    const updateToSend = createUpdate(
+      update,
+      publicData,
+      key,
+      signatureKeyPairRef.current
+    );
+
+    if (addToQueue) {
+      addUpdateToInProgressQueue(updateToSend, update);
+    }
+    websocketConnectionRef.current.send(JSON.stringify(updateToSend));
+  };
+
   useEffect(() => {
     if (!router.isReady) return;
 
@@ -199,6 +250,19 @@ export default function Document() {
             console.log("snapshot saving confirmed");
             activeSnapshotIdRef.current = data.snapshotId;
             latestServerVersionRef.current = undefined;
+            removeSnapshotInProgress(data.docId);
+
+            const pending = getPending(data.docId);
+            if (pending.type === "snapshot") {
+              createAndSendSnapshot(key);
+              removePending(data.docId);
+            } else if (pending.type === "updates") {
+              // TODO send multiple pending.rawUpdates as one update, this requires different applying as well
+              removePending(data.docId);
+              pending.rawUpdates.forEach((rawUpdate) => {
+                createAndSendUpdate(rawUpdate, key, true);
+              });
+            }
             break;
           case "snapshotFailed":
             console.log("snapshot saving failed", data);
@@ -208,27 +272,14 @@ export default function Document() {
             if (data.updates) {
               applyUpdates(data.updates, key);
             }
-            // TODO add a backoff after multiple failed tries
-            const yDocState = Yjs.encodeStateAsUpdate(yDocRef.current);
-            const snapshotPublicData = {
-              snapshotId: uuidv4(),
-              docId,
-              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
-            };
-            const snapshot = createSnapshot(
-              yDocState,
-              snapshotPublicData,
-              key,
-              signatureKeyPairRef.current
-            );
-            websocketConnectionRef.current.send(
-              JSON.stringify({
-                ...snapshot,
-                lastKnownSnapshotId: activeSnapshotIdRef.current,
-                latestServerVersion: latestServerVersionRef.current,
-              })
-            );
 
+            // TODO add a backoff after multiple failed tries
+
+            // removed here since again added in createAndSendSnapshot
+            removeSnapshotInProgress(data.docId);
+            // all pending can be removed since a new snapshot will include all local changes
+            removePending(data.docId);
+            createAndSendSnapshot(key);
             break;
           case "update":
             const updateResult = verifyAndDecryptUpdate(
@@ -256,19 +307,7 @@ export default function Document() {
               data.snapshotId,
               data.clock
             );
-            const publicData = {
-              refSnapshotId: activeSnapshotIdRef.current,
-              docId,
-              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
-            };
-            const updateToSend = createUpdate(
-              rawUpdate,
-              publicData,
-              key,
-              signatureKeyPairRef.current,
-              data.clock
-            );
-            websocketConnectionRef.current.send(JSON.stringify(updateToSend));
+            createAndSendUpdate(rawUpdate, key, false);
             break;
           case "awarenessUpdate":
             const awarenessUpdateResult = verifyAndDecryptAwarenessUpdate(
@@ -299,6 +338,7 @@ export default function Document() {
         connection.addEventListener("open", function (event) {
           console.log("connection opened");
           dispatchWebsocketState({ type: "connected" });
+          // TODO check for pending snapshots or pending updates and run them
         });
 
         connection.addEventListener("close", function (event) {
@@ -357,39 +397,21 @@ export default function Document() {
           if (!activeSnapshotIdRef.current || createSnapshotRef.current) {
             createSnapshotRef.current = false;
 
-            const yDocState = Yjs.encodeStateAsUpdate(yDocRef.current);
-            const publicData = {
-              snapshotId: uuidv4(),
-              docId,
-              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
-            };
-            const snapshot = createSnapshot(
-              yDocState,
-              publicData,
-              key,
-              signatureKeyPairRef.current
-            );
-            websocketConnectionRef.current.send(
-              JSON.stringify({
-                ...snapshot,
-                lastKnownSnapshotId: activeSnapshotIdRef.current,
-                latestServerVersion: latestServerVersionRef.current,
-              })
-            );
+            // TODO also check for the online state
+            if (getSnapshotInProgress(docId)) {
+              addPendingSnapshot(docId);
+            } else {
+              createAndSendSnapshot(key);
+            }
           } else {
-            const publicData = {
-              refSnapshotId: activeSnapshotIdRef.current,
-              docId,
-              pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
-            };
-            const updateToSend = createUpdate(
-              update,
-              publicData,
-              key,
-              signatureKeyPairRef.current
-            );
-            addUpdateToInProgressQueue(updateToSend, update);
-            websocketConnectionRef.current.send(JSON.stringify(updateToSend));
+            // TODO also check for the online state
+            if (getSnapshotInProgress(docId)) {
+              // don't send updates when a snapshot is in progress, because they
+              // must be based on the new snapshot
+              addPendingUpdate(docId, update);
+            } else {
+              createAndSendUpdate(update, key, true);
+            }
           }
         }
       });

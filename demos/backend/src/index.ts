@@ -82,7 +82,11 @@ async function main() {
             const snapshot = await createSnapshot(data, activeSnapshotInfo);
             console.log("addUpdate snapshot");
             connection.send(
-              JSON.stringify({ type: "snapshotSaved", snapshotId: snapshot.id })
+              JSON.stringify({
+                type: "snapshotSaved",
+                snapshotId: snapshot.id,
+                docId: snapshot.documentId,
+              })
             );
             addUpdate(
               documentId,
