@@ -22,7 +22,7 @@ export default function Home() {
         <a href="https://github.com/SerenityNotes/naisho">
           https://github.com/SerenityNotes/naisho
         </a>
-        <h2>Document Demo</h2>
+        <h2>Document Demo (Yjs + Prosemirror)</h2>
         <button
           onClick={() => {
             router.push(
@@ -33,6 +33,18 @@ export default function Home() {
           }}
         >
           Create new Document
+        </button>
+        <h2>Todos Demo (Automerge)</h2>
+        <button
+          onClick={() => {
+            router.push(
+              `/todos/${uuidv4()}#${sodium.to_base64(
+                sodium.crypto_secretbox_keygen()
+              )}`
+            );
+          }}
+        >
+          Create new List
         </button>
       </main>
     </>
