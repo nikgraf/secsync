@@ -140,7 +140,11 @@ async function main() {
             //   throw new Error("CUSTOM ERROR");
             // }
 
+            // TODO add a smart queue to create an offset based on the version?
             savedUpdate = await retryAsyncFunction(() => createUpdate(data));
+            if (!savedUpdate) {
+              throw new Error("Update could not be saved.");
+            }
 
             connection.send(
               JSON.stringify({
@@ -154,7 +158,7 @@ async function main() {
             console.log("addUpdate update");
             addUpdate(documentId, { ...data, type: "update" }, connection);
           } catch (err) {
-            if (savedUpdate === null) {
+            if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(
                 JSON.stringify({
                   type: "updateFailed",

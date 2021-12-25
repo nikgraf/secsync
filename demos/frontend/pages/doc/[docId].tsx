@@ -187,7 +187,7 @@ export default function Document() {
     );
   };
 
-  const createAndSendUpdate = (update, key, addToQueue: boolean) => {
+  const createAndSendUpdate = (update, key, clockOverwrite?: number) => {
     const publicData = {
       refSnapshotId: activeSnapshotIdRef.current,
       docId,
@@ -197,10 +197,11 @@ export default function Document() {
       update,
       publicData,
       key,
-      signatureKeyPairRef.current
+      signatureKeyPairRef.current,
+      clockOverwrite
     );
 
-    if (addToQueue) {
+    if (clockOverwrite === undefined) {
       addUpdateToInProgressQueue(updateToSend, update);
     }
     websocketConnectionRef.current.send(JSON.stringify(updateToSend));
@@ -260,7 +261,7 @@ export default function Document() {
               // TODO send multiple pending.rawUpdates as one update, this requires different applying as well
               removePending(data.docId);
               pending.rawUpdates.forEach((rawUpdate) => {
-                createAndSendUpdate(rawUpdate, key, true);
+                createAndSendUpdate(rawUpdate, key);
               });
             }
             break;
@@ -307,7 +308,7 @@ export default function Document() {
               data.snapshotId,
               data.clock
             );
-            createAndSendUpdate(rawUpdate, key, false);
+            createAndSendUpdate(rawUpdate, key, data.clock);
             break;
           case "awarenessUpdate":
             const awarenessUpdateResult = verifyAndDecryptAwarenessUpdate(
@@ -410,7 +411,7 @@ export default function Document() {
               // must be based on the new snapshot
               addPendingUpdate(docId, update);
             } else {
-              createAndSendUpdate(update, key, true);
+              createAndSendUpdate(update, key);
             }
           }
         }
