@@ -1,5 +1,5 @@
 import Head from "next/head";
-import React, { useRef, useEffect, useReducer } from "react";
+import React, { useRef, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import * as Yjs from "yjs";
@@ -33,6 +33,9 @@ import {
   addPendingSnapshot,
   getPending,
   removePending,
+  dispatchWebsocketState,
+  getWebsocketState,
+  useWebsocketState,
 } from "@naisho/core";
 import { v4 as uuidv4 } from "uuid";
 import sodium from "libsodium-wrappers";
@@ -43,53 +46,7 @@ import {
   removeAwarenessStates,
 } from "y-protocols/awareness";
 
-type WebsocketState = {
-  connected: boolean;
-  connecting: boolean;
-  unsuccessfulReconnects: number;
-  lastMessageReceived: number;
-};
-
-type WebsocketActions =
-  | { type: "connected" }
-  | { type: "disconnected" }
-  | { type: "reconnecting" };
-
-const websocketInitialState = {
-  connected: false,
-  connecting: true,
-  unsuccessfulReconnects: 0,
-  lastMessageReceived: 0,
-};
-
 const reconnectTimeout = 2000;
-
-function websocketStateReducer(
-  state: WebsocketState,
-  action: WebsocketActions
-): WebsocketState {
-  switch (action.type) {
-    case "reconnecting":
-      return {
-        ...state,
-        connected: false,
-        connecting: true,
-        unsuccessfulReconnects: state.unsuccessfulReconnects + 1,
-      };
-    case "connected":
-      return {
-        ...state,
-        connected: true,
-        connecting: false,
-        unsuccessfulReconnects: 0,
-        lastMessageReceived: Date.now(),
-      };
-    case "disconnected":
-      return { ...state, connected: false, connecting: false };
-    default:
-      throw new Error();
-  }
-}
 
 export default function Document() {
   const router = useRouter();
@@ -104,11 +61,7 @@ export default function Document() {
   const createSnapshotRef = useRef<boolean>(false); // only used for the UI
   const signatureKeyPairRef = useRef<sodium.KeyPair>(null);
   const latestServerVersionRef = useRef<number>(null);
-
-  const [websocketState, dispatchWebsocketState] = useReducer(
-    websocketStateReducer,
-    websocketInitialState
-  );
+  const websocketState = useWebsocketState();
 
   const initiateEditor = () => {
     const yXmlFragment = yDocRef.current.getXmlFragment("document");
@@ -357,7 +310,7 @@ export default function Document() {
           setTimeout(() => {
             dispatchWebsocketState({ type: "reconnecting" });
             setupWebsocket();
-          }, reconnectTimeout * (1 + websocketState.unsuccessfulReconnects));
+          }, reconnectTimeout * (1 + getWebsocketState().unsuccessfulReconnects));
         });
       };
 

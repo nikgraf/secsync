@@ -1,11 +1,5 @@
 import sodium from "libsodium-wrappers";
-import {
-  decryptAead,
-  Snapshot,
-  SnapshotPublicData,
-  Update,
-  verifySignature,
-} from ".";
+import { decryptAead, Snapshot, SnapshotPublicData, verifySignature } from ".";
 import { encryptAead, sign } from "./crypto";
 
 type PendingResult =
