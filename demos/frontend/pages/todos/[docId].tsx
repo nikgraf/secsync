@@ -10,6 +10,7 @@ import { v4 as uuidv4 } from "uuid";
 type TodoType = {
   value: string;
   completed: boolean;
+  createdAt: number;
 };
 
 export default function Document() {
@@ -58,6 +59,7 @@ export default function Document() {
               doc.todos[id] = {
                 value: newTodo,
                 completed: false,
+                createdAt: new Date().getTime(),
               };
             });
             setDoc(newDoc);
@@ -72,41 +74,49 @@ export default function Document() {
           <button>Add</button>
         </form>
         <ul>
-          {Object.keys(doc.todos).map((id) => (
-            <li key={id}>
-              <input
-                onChange={(event) => {
-                  const newDoc = automerge.change(doc, (doc) => {
-                    doc.todos[id].value = event.target.value;
-                  });
-                  setDoc(newDoc);
-                }}
-                value={doc.todos[id].value}
-              />
-              <input
-                type="checkbox"
-                checked={doc.todos[id].completed}
-                onChange={(event) => {
-                  const newDoc = automerge.change(doc, (doc) => {
-                    doc.todos[id].completed = event.target.checked;
-                  });
-                  setDoc(newDoc);
-                }}
-              />
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.preventDefault();
-                  const newDoc = automerge.change(doc, (doc) => {
-                    delete doc.todos[id];
-                  });
-                  setDoc(newDoc);
-                }}
-              >
-                Remove
-              </button>
-            </li>
-          ))}
+          {Object.keys(doc.todos)
+            .map((id) => {
+              return {
+                ...doc.todos[id],
+                id,
+              };
+            })
+            .sort((a, b) => b.createdAt - a.createdAt)
+            .map((todo) => (
+              <li key={todo.id}>
+                <input
+                  onChange={(event) => {
+                    const newDoc = automerge.change(doc, (doc) => {
+                      doc.todos[todo.id].value = event.target.value;
+                    });
+                    setDoc(newDoc);
+                  }}
+                  value={todo.value}
+                />
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={(event) => {
+                    const newDoc = automerge.change(doc, (doc) => {
+                      doc.todos[todo.id].completed = event.target.checked;
+                    });
+                    setDoc(newDoc);
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    const newDoc = automerge.change(doc, (doc) => {
+                      delete doc.todos[todo.id];
+                    });
+                    setDoc(newDoc);
+                  }}
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
         </ul>
       </main>
     </>
