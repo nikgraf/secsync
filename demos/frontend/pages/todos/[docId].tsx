@@ -206,6 +206,7 @@ export default function Document() {
                 doc.todos = {};
               });
               docRef.current = newDoc;
+              forceUpdate();
             }
             applyUpdates(data.updates, key);
 
