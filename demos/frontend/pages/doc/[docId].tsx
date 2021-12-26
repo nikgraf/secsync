@@ -164,11 +164,6 @@ export default function Document() {
   useEffect(() => {
     if (!router.isReady) return;
 
-    // @ts-ignore
-    window.yDoc = yDocRef.current;
-    // @ts-ignore
-    window.yAwareness = yAwarenessRef.current;
-
     async function initDocument() {
       await sodium.ready;
 

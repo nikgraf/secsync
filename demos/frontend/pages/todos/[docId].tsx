@@ -291,8 +291,7 @@ export default function Document() {
 
             docRef.current = newDocWithUpdate;
             forceUpdate();
-            // TODO fix it on the server
-            // latestServerVersionRef.current = data.serverData.version;
+            latestServerVersionRef.current = data.serverData.version;
             break;
           case "updateSaved":
             console.log("update saving confirmed", data.snapshotId, data.clock);

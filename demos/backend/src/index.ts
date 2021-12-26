@@ -156,7 +156,11 @@ async function main() {
               })
             );
             console.log("addUpdate update");
-            addUpdate(documentId, { ...data, type: "update" }, connection);
+            addUpdate(
+              documentId,
+              { ...savedUpdate, type: "update" },
+              connection
+            );
           } catch (err) {
             if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(

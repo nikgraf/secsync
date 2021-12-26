@@ -10,11 +10,15 @@ export function serializeSnapshot(snapshot: Snapshot): SnapshotWithServerData {
   };
 }
 
+export function serializeUpdate(update: Update): UpdateWithServerData {
+  return {
+    ...JSON.parse(update.data),
+    serverData: { version: update.version },
+  };
+}
+
 export function serializeUpdates(updates: Update[]): UpdateWithServerData[] {
   return updates.map((update) => {
-    return {
-      ...JSON.parse(update.data),
-      serverData: { version: update.version },
-    };
+    return serializeUpdate(update);
   });
 }

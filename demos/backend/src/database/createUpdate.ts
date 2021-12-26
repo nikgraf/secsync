@@ -1,6 +1,7 @@
 import { prisma } from "./prisma";
 import { Prisma } from "../../prisma/generated/output";
 import { Update } from "@naisho/core";
+import { serializeUpdate } from "../utils/serialize";
 
 export async function createUpdate(update: Update) {
   return await prisma.$transaction(async (prisma) => {
@@ -18,7 +19,6 @@ export async function createUpdate(update: Update) {
     if (
       snapshot.document.activeSnapshotId !== update.publicData.refSnapshotId
     ) {
-      console.log("weeeeee");
       throw new Error("Update referencing an out of date snapshot.");
     }
 
@@ -55,18 +55,20 @@ export async function createUpdate(update: Update) {
     });
 
     console.log(snapshot.latestVersion + 1);
-    return await prisma.update.create({
-      data: {
-        data: JSON.stringify(update),
-        version: snapshot.latestVersion + 1,
-        snapshot: {
-          connect: {
-            id: update.publicData.refSnapshotId,
+    return serializeUpdate(
+      await prisma.update.create({
+        data: {
+          data: JSON.stringify(update),
+          version: snapshot.latestVersion + 1,
+          snapshot: {
+            connect: {
+              id: update.publicData.refSnapshotId,
+            },
           },
+          snapshotVersion: update.publicData.clock,
+          pubKey: update.publicData.pubKey,
         },
-        snapshotVersion: update.publicData.clock,
-        pubKey: update.publicData.pubKey,
-      },
-    });
+      })
+    );
   });
 }
