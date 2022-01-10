@@ -95,3 +95,9 @@ yarn dev
 cd demos/frontend
 yarn dev
 ```
+
+## Credits
+
+Naisho is proudly sponsored by [NGI Assure](https://nlnet.nl/assure/) via [NLNet](https://nlnet.nl).
+
+<a href="https://nlnet.nl/assure/"><img src="https://nlnet.nl/image/logos/NGIAssure_tag.svg" alt="NLNet" width="100"></a>
