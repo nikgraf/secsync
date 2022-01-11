@@ -27,9 +27,13 @@ A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
 
 An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
 
-If look at it from a perspective what encompases the current state of one document it looks like this:
+If look at it from a perspective of the current state of one document it looks like this:
+
+<img src="./docs/naisho-document-representation.png?raw=true" width="323" height="339" alt="State of one document as snapshots and updates." />
 
 If you look at it over time it looks like a tree that that always comes together once a snapshot is created:
+
+<img src="./docs/naisho-time-representation.png?raw=true" width="309" height="521" alt="State of one document as snapshots and updates." />
 
 When the server service persists an update it stores it with an integer based version number which is returned to every client. This way clients efficiently can ask for only the updates they haven't received.
 
