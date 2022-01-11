@@ -2,7 +2,7 @@
   "name": "@naisho/core",
   "version": "0.0.1",
   "license": "Apache-2.0",
-  "main": "dist/index",
+  "main": "src/index",
   "types": "dist/index",
   "scripts": {
     "build": "rimraf -rf ./dist && tsc -p tsconfig.build.json",

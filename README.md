@@ -8,8 +8,8 @@ It was created out of the need to have an end-to-end encrypted protocol to allow
 
 ## Demos
 
-- End-to-end encrypted document using Yjs incl. Cursor Awareness
-- End-to-end encrypted todo list using Automerge
+- End-to-end encrypted document using [Yjs](https://github.com/yjs/yjs) incl. Cursor Awareness
+- End-to-end encrypted todo list using [Automerge](https://github.com/automerge/automerge)
 
 Try them out at [https://www.naisho.org/](https://www.naisho.org/)
 
@@ -22,7 +22,9 @@ The architecture is built upon 3 building blocks:
 3. Update
 
 A _Document_ is defined by an **ID** and the **active Snapshot**.
+
 A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
+
 An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
 
 If look at it from a perspective what encompases the current state of one document it looks like this:
