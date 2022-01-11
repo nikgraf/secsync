@@ -362,6 +362,19 @@ export default function Document() {
         <Link href="/">
           <a>Home</a>
         </Link>
+        <ul>
+          <li>
+            Any change that you make will be encrypted and uploaded to the
+            server.
+          </li>
+          <li>
+            You can refresh the page and the current state will be
+            reconstructred.
+          </li>
+          <li>
+            You can share the current URL and collaborate real-time with others.
+          </li>
+        </ul>
         <div>{websocketState.connected ? "Connected" : "Disconnected"}</div>
         <button
           type="button"
