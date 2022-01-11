@@ -362,6 +362,7 @@ export default function Document() {
         <Link href="/">
           <a>Home</a>
         </Link>
+        <h2>Instructions</h2>
         <ul>
           <li>
             Any change that you make will be encrypted and uploaded to the
