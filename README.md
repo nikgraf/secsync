@@ -1,85 +1,167 @@
 # Naisho
 
-Is an architecture for end-to-end encrypted CRDTs.
+Is an architecture to relay end-to-end encrypted CRDTs over a central service.
+
+It was created out of the need to have an end-to-end encrypted protocol to allow data synchronization/fetching incl. real-time updates to support [local-first](https://www.inkandswitch.com/local-first/) apps in combination with a web clients without locally storred data.
+
+**WARNING**: This is a rough prototype! A production ready implementation is planned after an initial round of feedback.
 
 ## Demos
 
-- End-to-end encrypted document https://www.naisho.org/
+- End-to-end encrypted document using Yjs incl. Cursor Awareness
+- End-to-end encrypted todo list using Automerge
 
-## Background
+Try them out at [https://www.naisho.org/](https://www.naisho.org/)
 
-In architectures without end-to-end encryption a backend service can merge all updates together to one document and serve it to clients. In case a client already has a large part of the document the backend service can only send the missing updates.
+## Concept
 
-In an end-to-end encrypted architecture the backend service does not have access to the data.
+The architecture is built upon 3 building blocks:
 
-## Goals
+1. Document
+2. Snapshot
+3. Update
 
-Goal of this project is an architecture that allows for an efficient data fetching/synchronisation for end-to-end encrypted CRDT documents using a single webservice to do so.
+A _Document_ is defined by an **ID** and the **active Snapshot**.
+A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
+An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
 
-Use-cases to cover:
+If look at it from a perspective what encompases the current state of one document it looks like this:
 
-- A client (e.g. web) with no local state must be able to retrieve a full document.
-- A client (e.g. mobile) with local state must be able to retrieve recent changes to a document.
+If you look at it over time it looks like a tree that that always comes together once a snapshot is created:
 
-Security goals
+When the server service persists an update it stores it with an integer based version number which is returned to every client. This way clients efficiently can ask for only the updates they haven't received.
 
-- The server can not inject any updates to a document.
-- The server can not withhold updates of a document and send others without being dedected.
+## Use Cases
 
-## Not in scope for now (but possibly for future version)
+### Local-first only app
 
-- Support for a federated or co-federated system
-- Support for decentralization
-- Support for existing/upcoming encryption protocols (MLS, Megolm, DCGKA)
-- Support for integrated forward secrecy using KDF ratchets
+In this case each client per document has to keep the
 
-## Assumptions
+- Document ID
+- CRDT document
+- Active Snapshot ID
+- Active Snapshot latest server version integer
 
-- Each client fully trusts each other client
-- Each client has a signature key pair and there is an established method to encrypt and decrypt messages between clients. (there will be a demo using lockboxes and/or Matrix's Olm/Megolm, but MLS or DCGKA should work as well)
+By sending the document ID, active Snapshot ID and the active Snapshot version integer the client will receive only the latest changes. This can be:
 
-## Why use a central server?
+- Updates
+- New active Snapshot + Updates
 
-- To store data so it can be retreived asynchronous (others don't have to be online).
+If all clients stay relatively up to date all the time new snapshots would be inefficient and not necessary. They might still be relevant e.g. when a collaborator is removed from the document and the encryption key is rotated.
+
+### Cloud based app
+
+In this case the client only needs to know the document ID and can fetch the latest snapshot incl. the referencing snapshots to construct the document. Here it makes sense to regularily create new snapshots to avoid longer loading times.
+
+### Mixed app (local first + cloud)
+
+Since it's the same API both can be supported. Creating snapshots regularily is probably the favourable way to go in this case.
+
+## Encryption
+
+Each Snapshot and Update is encrypted using an AEAD constructions. Specifically [XChaCha20-Poly1305-IETF](https://doc.libsodium.org/secret-key_cryptography/aead#availability-and-interoperability). Exchange incl. rotation of the secret key is not part of this protocol and could be done by using the Signal Protocol or lockboxes based on an existing Public key infrastructure (PKI).
+
+Each Snapshot also includes unencrypted but authenticated data so that the server and other clients can verify that authenticity of the Document & Snapshot ID relation. Unencrypted data:
+
+- Document ID
+- Snapshot ID
+- Public Key of the Client
+
+Each Update also includes unencrypted but authenticated data so that the server and other clients can verify that authenticity of the relationship to a Snapshot and Document.Unencrypted data:
+
+- Document ID
+- Snapshot ID
+- Public Key of the Client
+- Clock
+
+The clock property is an incrementing integer that serves multiple purposes:
+
+- That the central service does not persist an update if the previous one wasn't persistet.
+- Each client to verify that it receives all updates per snapshot per client.
+
+The data (encrypted and unencrypted) of each Snapshot and Update further is signed with the public key of the client. This ensures the authenticity of the data per client and is relevant to make sure to relate the incrementing clock to client.
+
+The public keys further could be use to verify that only collaborators with the authorization have to make changes to a document actually do so. Serenity will use a [signed hash chain](https://github.com/SerenityNotes/serenity-tools/tree/main/packages/trust-chain) that's currently in development to ensure the authenticity of all collaborators.
+
+There are use-cases where the public keys and signatures are only used to verify the updates per client, but .
+
+## Data Integrity
+
+It's the responsibility of the central service to ensure the data integrity based on the Snapshot ID and Update clocks. This means updates are only persisted when the previous update per snapshot per client is persisted and snapshot is only persistet if it references the previous snapshot incl. all it's related updates.
+
+The server can't verify if the encrypted data is corrupt. Clients have to trust each other or verify the changes. There are certain limitations to verifying the data integrity and if the central service cooperates with one participant the can be broken in various ways.
+
+## Near Real-time
+
+Updates can be sent immediatly when they happen (to reduce overhead for real-time communication), but will only be persisted in the right order and clients will only apply them in the right order.
+
+## Meta Data
+
+This protocol doesn't hide meta data from the server. This means the relay service is aware on which documents a client has access to and when and how roughly how much someone contributed to a document.
+
+## Thread Model & Trust Model
+
+- The central relay service can not inject any participants nor data into a document.
+- The server can completely cut out one user at any point without being dedected. We are thinking to mitigate this with read notifications in a future version of Naisho.
+- Clients have to trust each other.
+
+Note: Instantly removing access can also be seen as an advantage. In in a decentralized system you can have the issue that a collaborator is removed, but until this information is propagate all participants they will continue to share updates with the remove collaborator.
+
+## FAQ & Background
+
+### Why Snapshots and not only rely on encrypted Updates?
+
+Documents that are a couple of pages long can included several thousand changes. When loading a document this would mean downloading, decrypting and applying all of them to a CRDT document. This is an UX issue and here snapshots can help, because if downloading one Snapshot, decrypting it and loading the compressed CRDT document is way faster.
+
+Note: We plan to add benchmarks for comparison in the future.
+
+### Why use a central relay service?
+
+The main reason is to exchange data asynchronously. Meaning one client can create an update and another one retrieve it later when the first one is not online anymore.
+
+A second reason is that
+
 - To create a single stream of snapshots and updates for easier synchronisation. (avoids handling complex problems like topological sorting for DAGs … for now)
 
-## Architecture
+### Can I move my document to another central service?
 
-A document is represented by one entity on the server. Each document has one currently active snapshot and each conntected client can attach updates to a snapshot.
+Yes. You can fetch the essential data (document ID and CRDT document) and upload it to another service. Note: This functionality currently doesn't exist in the prototype.
 
-<img src="./docs/overview.png?raw=true" width="247" height="573" alt="Relationship between Snapshots and Updates" />
+### What happens when a client has an out of date Snapshot?
 
-TODO
+It will receive a new snapshot which will be merged into the local data.
 
-- Document
-- Snapshot
-- Update (signature chain per user per snapshot)
+- Automerge: `doc2 = Automerge.merge(doc2, doc1)`
+- Yjs: `Yjs.applyUpdate(yDocRef.current, snapshotResult, null);`
 
-There is a certain symbiosis between the server and the clients. That said there are clear boundaries in terms when it comes to authenticity of data to make it verifyable end-to-end.
+### Why not just use the Signal Protocol, MLS or Olm/MegOlm?
 
-TODO how can you trust the server with snapshots?
+All of them certainly have better security properties like Forward Secrecy and some have Post-Compromise Security.
 
-TODO Idea: always have two active snapshots? easier to accept updates, it's not that simple and clear anymore
+[MLS](https://messaginglayersecurity.rocks/) looks fantastic, but is still under development, but once ready it actually might be suitable candidate to built a variation or next version of Naisho on top of it.
+
+[Signal Protocol](https://en.wikipedia.org/wiki/Signal_Protocol) is fantastic as well. With the Signal protocol though you would need to send each change to every user and requires management of one-time keys and/or established sessions. This is tougher to scale and makes it harder to support use-cases like temporary having an external contributor via a web interface.
+
+[Olm/MegOlm](https://gitlab.matrix.org/matrix-org/olm) is also fantastic. Again the usage of one-time keys and/or established sessions make it tricky retrieve abitrary documents without retrieving all other message from another client first.
 
 ### When to create a new Snapshot?
 
-- A user is removed from the document to enforce that no one can continue sharing updates with removed users.
-- A user is added to the document to make sure the new users only sees the current state from now on. The background is a privacy by default thinking.
-- The symmetric encryption is being rotated.
+This highly depends on the use-case e.g. the amount of data per update and frequency. Apart from the there are
 
-Depending on the clients there can be different strategies:
-
-- When most clients don't store the state locally, but rather fetch the latest snapshot + updates, then snapshots should be produced more often.
-- When most clients store the state locally and regularily sync then regular snapshots are not desired.
-
-## Benefits
-
-- When a collaborator leaves we can simply create a new snapshot we new key material.
-- When adding a collaborator and we create a new snapshot content of old changes are not revealed if the CRDT implementation supports tombstones e.g. Yjs.
+- A collaborator is added to the document. When creating a new snapshot the new collaborator only sees the current state from now on. This only works if the CRDT implementation supports tombstones e.g. [Yjs Algorithm](https://github.com/yjs/yjs#yjs-crdt-algorithm).
+- The symmetric encryption is being rotated. Then the relay service can remove the previous snapshot and all related updates.
 
 ## Open Questions
 
 - Can the Poly1305 MAC be omitted since every message is anyway signed with the private key?
+
+## Possible Improvements in the Future
+
+- Add optional read notifications. From a UX perspective there can be value in being aware who has received which updates. From the perspective of the thread model it can be a tool to identify if the central relay service is excluding a collaborator.
+- Using a cryptographic ratchet based on a [key derivation function (KDF)](https://en.wikipedia.org/wiki/Key_derivation_function) for updates to ensure [Forward Secrecy](https://en.wikipedia.org/wiki/Forward_secrecy).
+- Leverage Zero-knowledge proofs to hide meta data. Inspired by [Signal's Private Group feature](https://signal.org/blog/private-groups/).
+
+If you have any further ideas or suggestions please let us know.
 
 ## Setup and Run the Demo
 
