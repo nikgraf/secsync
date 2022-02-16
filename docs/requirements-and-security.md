@@ -4,6 +4,15 @@ The goal is to develop an architecture and with it a protocol to allow multiple 
 
 ## Requirements
 
+### Business Requriements
+
+- The same user must be able to interact on the same document with multiple devices.
+- When adding a user to a document it must be possible to discard the complete content in the history (except for CRDT tombstones).
+- It must be possible to identify who wrote which content.
+- The content must be end-to-end encrypted.
+
+## System level Requirements
+
 ### Data exchange
 
 - Must support asynchronous exchange of data. This means participants don't have to be online at the same time, but still can exchange data.
