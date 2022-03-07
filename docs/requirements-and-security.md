@@ -4,12 +4,14 @@ The goal is to develop an architecture and with it a protocol to allow multiple 
 
 ## Requirements
 
-### Business Requriements
+### Business Requirements
 
 - The same user must be able to interact on the same document with multiple devices.
 - When adding a user to a document it must be possible to discard the complete content in the history (except for CRDT tombstones).
 - It must be possible to identify who wrote which content.
 - The content must be end-to-end encrypted.
+- The user must be able to activate a zen/focus mode and send updates batched later.
+- Clients must not see each others IP addresses.
 
 ## System level Requirements
 
