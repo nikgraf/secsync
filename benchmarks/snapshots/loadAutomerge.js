@@ -3,7 +3,7 @@ const automerge = require("automerge");
 const { Buffer } = require("buffer");
 
 async function snapshot() {
-  const fileResult = JSON.parse(fs.readFileSync("./snapshot.json"));
+  const fileResult = JSON.parse(fs.readFileSync("./automerge.snapshot.json"));
   const t0 = performance.now();
   const result = Buffer.from(fileResult.doc, "base64");
   const t1 = performance.now();
@@ -14,7 +14,9 @@ async function snapshot() {
 }
 
 async function changes() {
-  const result = JSON.parse(fs.readFileSync("./changes.json")).changes;
+  const result = JSON.parse(
+    fs.readFileSync("./automerge.changes.json")
+  ).changes;
   let doc = automerge.init();
   const t0 = performance.now();
   const changes = result.map((change) => {
@@ -28,7 +30,9 @@ async function changes() {
 }
 
 async function snapshotWithChanges() {
-  const result = JSON.parse(fs.readFileSync("./snapshot-with-changes.json"));
+  const result = JSON.parse(
+    fs.readFileSync("./automerge.snapshot-with-changes.json")
+  );
   const t0 = performance.now();
   const docBinary = Buffer.from(result.doc, "base64");
   const changes = result.changes.map((change) => {

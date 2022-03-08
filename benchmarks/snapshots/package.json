@@ -3,9 +3,12 @@
   "version": "0.0.1",
   "scripts": {
     "load:automerge": "node loadAutomerge.js",
+    "load:yjs": "node loadYjs.js",
+    "load:yjs2": "node loadYjs2.js",
     "init:data": "node initData.js"
   },
   "dependencies": {
-    "automerge": "^1.0.1-preview.7"
+    "automerge": "^1.0.1-preview.7",
+    "yjs": "^13.5.28"
   }
 }
