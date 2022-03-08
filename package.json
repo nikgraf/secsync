@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "demos/*",
-    "packages/*"
+    "packages/*",
+    "benchmarks/*"
   ],
   "devDependencies": {
     "ts-node": "^10.4.0",

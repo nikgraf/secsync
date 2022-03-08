@@ -1,0 +1,11 @@
+{
+  "name": "snapshots-benchmark",
+  "version": "0.0.1",
+  "scripts": {
+    "load:automerge": "node loadAutomerge.js",
+    "init:data": "node initData.js"
+  },
+  "dependencies": {
+    "automerge": "^1.0.1-preview.7"
+  }
+}
