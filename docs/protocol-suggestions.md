@@ -84,26 +84,26 @@ This results in a DAG.
 Example situations of snapshot references that can happen:
 
 ```mermaid
-graph TD;
+graph LR;
     A-->B;
     B-->C;
 ```
 
 ```mermaid
-graph TD;
+graph LR;
     A-->B;
     B-->C;
     A-->C;
 ```
 
 ```mermaid
-graph TD;
+graph LR;
     A-->C;
     B-->C;
 ```
 
 ```mermaid
-graph TD;
+graph LR;
     A-->B;
     A-->C;
     B-->D;
