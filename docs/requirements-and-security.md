@@ -18,9 +18,9 @@ The goal is to develop an architecture and with it a protocol to allow multiple 
 - When activated it must be possible to identify who wrote which content.
 - The user must be able to start or stop sending and/or receiving updates and be able to send updates batched later.
 
-## System level Requirements
+### System level Requirements
 
-### Data exchange
+#### Data exchange
 
 - Must support asynchronous exchange of data. This means participants don't have to be online at the same time, but still can exchange data.
 - Must support real-time exchange incl. awareness features e.g. cursor position.
@@ -29,12 +29,12 @@ The goal is to develop an architecture and with it a protocol to allow multiple 
 - The architecture must support multiple CRDT implementations. In detail this means Naisho is a layer on top of a data type, where the operations are commutative. In particular Yjs and automerge should be supported.
 - The architecture can, but must not be decentralized. Leveraging a centralized service is a viable option.
 
-### Security
+#### Security
 
 - The content of a document must only be accessible to the participants.
 - There are no limitations on meta data e.g. who created how many changes.
 
-### Authorization
+#### Authorization
 
 The architecture should support two main use-cases:
 
