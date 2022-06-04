@@ -320,7 +320,7 @@ export default function Document() {
         const host =
           process.env.NODE_ENV === "development"
             ? "ws://localhost:4000"
-            : "wss://api.naisho.org";
+            : "wss://naisho.herokuapp.com";
         const connection = new WebSocket(`${host}/${docId}`);
         websocketConnectionRef.current = connection;
 
