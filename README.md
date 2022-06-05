@@ -192,6 +192,13 @@ ngrok start --config=ngrok.yml --all --authtoken=<authtoken>
 # replace the localhost urls in the code with the ngrok urls
 ```
 
+## Useful Heroku Commands
+
+```sh
+heroku restart -a naisho
+heroku logs --tail --app naisho
+```
+
 ## Credits
 
 Naisho is proudly sponsored by [NGI Assure](https://nlnet.nl/assure/) via [NLNet](https://nlnet.nl).
