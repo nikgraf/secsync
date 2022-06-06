@@ -1,6 +1,6 @@
-import sodium from "libsodium-wrappers";
-import { decryptAead, Update, UpdatePublicData, verifySignature } from ".";
-import { encryptAead, sign } from "./crypto";
+import sodium, { KeyPair } from "@naisho/libsodium";
+import { Update, UpdatePublicData } from "./types";
+import { encryptAead, sign, verifySignature, decryptAead } from "./crypto";
 
 const clocksPerSnapshot = {};
 const updatesInProgress = {};
@@ -30,11 +30,11 @@ export function getUpdateInProgress(
   return updatesInProgress[documentId][`${snapshotId}-${clock}`];
 }
 
-export function createUpdate(
+export async function createUpdate(
   content,
   publicData: UpdatePublicData,
   key: Uint8Array,
-  signatureKeyPair: sodium.KeyPair,
+  signatureKeyPair: KeyPair,
   clockOverwrite?: number
 ) {
   // update the clock for the current keypair
@@ -65,37 +65,35 @@ export function createUpdate(
   const publicDataAsBase64 = sodium.to_base64(
     JSON.stringify(publicDataWithClock)
   );
-  const { ciphertext, publicNonce } = encryptAead(
+  const { ciphertext, publicNonce } = await encryptAead(
     content,
     publicDataAsBase64,
-    key
+    sodium.to_base64(key)
   );
-  const nonceBase64 = sodium.to_base64(publicNonce);
-  const ciphertextBase64 = sodium.to_base64(ciphertext);
+  const signature = await sign(
+    `${publicNonce}${ciphertext}${publicDataAsBase64}`,
+    sodium.to_base64(signatureKeyPair.privateKey)
+  );
+
   const update: Update = {
-    nonce: nonceBase64,
-    ciphertext: ciphertextBase64,
+    nonce: publicNonce,
+    ciphertext: ciphertext,
     publicData: publicDataWithClock,
-    signature: sodium.to_base64(
-      sign(
-        `${nonceBase64}${ciphertextBase64}${publicDataAsBase64}`,
-        signatureKeyPair.privateKey
-      )
-    ),
+    signature,
   };
 
   return update;
 }
 
-export function verifyAndDecryptUpdate(update: Update, key, publicKey) {
+export async function verifyAndDecryptUpdate(update: Update, key, publicKey) {
   const publicDataAsBase64 = sodium.to_base64(
     JSON.stringify(update.publicData)
   );
 
-  const isValid = verifySignature(
+  const isValid = await verifySignature(
     `${update.nonce}${update.ciphertext}${publicDataAsBase64}`,
-    sodium.from_base64(update.signature),
-    publicKey
+    update.signature,
+    sodium.to_base64(publicKey)
   );
   if (!isValid) {
     return null;
@@ -128,11 +126,19 @@ export function verifyAndDecryptUpdate(update: Update, key, publicKey) {
   const result = decryptAead(
     sodium.from_base64(update.ciphertext),
     sodium.to_base64(JSON.stringify(update.publicData)),
-    key,
-    sodium.from_base64(update.nonce)
+    sodium.to_base64(key),
+    update.nonce
   );
 
   clocksPerSnapshot[update.publicData.refSnapshotId][update.publicData.pubKey] =
     update.publicData.clock;
   return result;
+}
+
+// TODO snapshot refs should be stored per document to allow per document cleanup
+// and ideally the documents should be cached for quick access
+export async function cleanupUpdates() {
+  Object.keys(clocksPerSnapshot).forEach((snapshotId) => {
+    delete clocksPerSnapshot[snapshotId];
+  });
 }

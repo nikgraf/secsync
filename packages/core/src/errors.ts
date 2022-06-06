@@ -5,7 +5,8 @@ export class NaishoSnapshotBasedOnOutdatedSnapshotError extends Error {
     this.name = this.constructor.name;
 
     // capturing the stack trace keeps the reference to your error class
-    Error.captureStackTrace(this, this.constructor);
+    // https://github.com/microsoft/TypeScript/issues/1168#issuecomment-219296751
+    this.stack = new Error().stack;
   }
 }
 
@@ -16,6 +17,7 @@ export class NaishoSnapshotMissesUpdatesError extends Error {
     this.name = this.constructor.name;
 
     // capturing the stack trace keeps the reference to your error class
-    Error.captureStackTrace(this, this.constructor);
+    // https://github.com/microsoft/TypeScript/issues/1168#issuecomment-219296751
+    this.stack = new Error().stack;
   }
 }
