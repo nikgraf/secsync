@@ -1,6 +1,6 @@
-import sodium from "libsodium-wrappers";
-import { decryptAead, Snapshot, SnapshotPublicData, verifySignature } from ".";
-import { encryptAead, sign } from "./crypto";
+import sodium, { KeyPair } from "@naisho/libsodium";
+import { Snapshot, SnapshotPublicData } from "./types";
+import { encryptAead, sign, verifySignature, decryptAead } from "./crypto";
 
 type PendingResult =
   | { type: "snapshot" }
@@ -51,52 +51,53 @@ export function getPending(documentId): PendingResult {
   return { type: "none" };
 }
 
-export function createSnapshot(
+export async function createSnapshot(
   content,
   publicData: SnapshotPublicData,
   key: Uint8Array,
-  signatureKeyPair: sodium.KeyPair
+  signatureKeyPair: KeyPair
 ) {
   const publicDataAsBase64 = sodium.to_base64(JSON.stringify(publicData));
-  const { ciphertext, publicNonce } = encryptAead(
+  const { ciphertext, publicNonce } = await encryptAead(
     content,
     publicDataAsBase64,
-    key
+    sodium.to_base64(key)
   );
-  const nonceBase64 = sodium.to_base64(publicNonce);
-  const ciphertextBase64 = sodium.to_base64(ciphertext);
+  const signature = await sign(
+    `${publicNonce}${ciphertext}${publicDataAsBase64}`,
+    sodium.to_base64(signatureKeyPair.privateKey)
+  );
   const snapshot: Snapshot = {
-    nonce: nonceBase64,
-    ciphertext: ciphertextBase64,
+    nonce: publicNonce,
+    ciphertext,
     publicData,
-    signature: sodium.to_base64(
-      sign(
-        `${nonceBase64}${ciphertextBase64}${publicDataAsBase64}`,
-        signatureKeyPair.privateKey
-      )
-    ),
+    signature,
   };
 
   return snapshot;
 }
 
-export function verifyAndDecryptSnapshot(snapshot: Snapshot, key, publicKey) {
+export async function verifyAndDecryptSnapshot(
+  snapshot: Snapshot,
+  key: Uint8Array,
+  publicKey: Uint8Array
+) {
   const publicDataAsBase64 = sodium.to_base64(
     JSON.stringify(snapshot.publicData)
   );
 
-  const isValid = verifySignature(
+  const isValid = await verifySignature(
     `${snapshot.nonce}${snapshot.ciphertext}${publicDataAsBase64}`,
-    sodium.from_base64(snapshot.signature),
-    publicKey
+    snapshot.signature,
+    sodium.to_base64(publicKey)
   );
   if (!isValid) {
     return null;
   }
-  return decryptAead(
+  return await decryptAead(
     sodium.from_base64(snapshot.ciphertext),
     sodium.to_base64(JSON.stringify(snapshot.publicData)),
-    key,
-    sodium.from_base64(snapshot.nonce)
+    sodium.to_base64(key),
+    snapshot.nonce
   );
 }

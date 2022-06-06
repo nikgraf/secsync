@@ -1,0 +1,314 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		3828040D1D980AC000DD9014 /* RCTSodium.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 3828040C1D980AC000DD9014 /* RCTSodium.h */; };
+		3828040F1D980AC000DD9014 /* RCTSodium.m in Sources */ = {isa = PBXBuildFile; fileRef = 3828040E1D980AC000DD9014 /* RCTSodium.m */; };
+		387375C91D9ED0C300AE562A /* libsodium.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 387375C81D9ED0C300AE562A /* libsodium.a */; };
+		387375CB1D9ED0D600AE562A /* sodium.h in CopyFiles */ = {isa = PBXBuildFile; fileRef = 387375CA1D9ED0D600AE562A /* sodium.h */; };
+		387375CD1D9ED0E200AE562A /* sodium in CopyFiles */ = {isa = PBXBuildFile; fileRef = 387375CC1D9ED0E200AE562A /* sodium */; };
+		387375CF1D9ED48500AE562A /* libsodium.a in CopyFiles */ = {isa = PBXBuildFile; fileRef = 387375C81D9ED0C300AE562A /* libsodium.a */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		382804071D980AC000DD9014 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "include/$(PRODUCT_NAME)";
+			dstSubfolderSpec = 16;
+			files = (
+				3828040D1D980AC000DD9014 /* RCTSodium.h in CopyFiles */,
+				387375CB1D9ED0D600AE562A /* sodium.h in CopyFiles */,
+				387375CD1D9ED0E200AE562A /* sodium in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		387375CE1D9ED47A00AE562A /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 16;
+			files = (
+				387375CF1D9ED48500AE562A /* libsodium.a in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		382804091D980AC000DD9014 /* libRCTSodium.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libRCTSodium.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		3828040C1D980AC000DD9014 /* RCTSodium.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RCTSodium.h; sourceTree = "<group>"; };
+		3828040E1D980AC000DD9014 /* RCTSodium.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RCTSodium.m; sourceTree = "<group>"; };
+		387375C71D9ED09100AE562A /* libsodium-ios */ = {isa = PBXFileReference; lastKnownFileType = folder; name = "libsodium-ios"; path = "../libsodium/libsodium-ios"; sourceTree = "<group>"; };
+		387375C81D9ED0C300AE562A /* libsodium.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libsodium.a; path = "../libsodium/libsodium-ios/lib/libsodium.a"; sourceTree = "<group>"; };
+		387375CA1D9ED0D600AE562A /* sodium.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = sodium.h; path = "../libsodium/libsodium-ios/include/sodium.h"; sourceTree = "<group>"; };
+		387375CC1D9ED0E200AE562A /* sodium */ = {isa = PBXFileReference; lastKnownFileType = folder; name = sodium; path = "../libsodium/libsodium-ios/include/sodium"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		382804061D980AC000DD9014 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				387375C91D9ED0C300AE562A /* libsodium.a in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		382804001D980AC000DD9014 = {
+			isa = PBXGroup;
+			children = (
+				387375CC1D9ED0E200AE562A /* sodium */,
+				387375CA1D9ED0D600AE562A /* sodium.h */,
+				387375C81D9ED0C300AE562A /* libsodium.a */,
+				387375C71D9ED09100AE562A /* libsodium-ios */,
+				3828040B1D980AC000DD9014 /* RCTSodium */,
+				3828040A1D980AC000DD9014 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3828040A1D980AC000DD9014 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				382804091D980AC000DD9014 /* libRCTSodium.a */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3828040B1D980AC000DD9014 /* RCTSodium */ = {
+			isa = PBXGroup;
+			children = (
+				3828040C1D980AC000DD9014 /* RCTSodium.h */,
+				3828040E1D980AC000DD9014 /* RCTSodium.m */,
+			);
+			path = RCTSodium;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		382804081D980AC000DD9014 /* RCTSodium */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 382804121D980AC000DD9014 /* Build configuration list for PBXNativeTarget "RCTSodium" */;
+			buildPhases = (
+				382804051D980AC000DD9014 /* Sources */,
+				382804061D980AC000DD9014 /* Frameworks */,
+				382804071D980AC000DD9014 /* CopyFiles */,
+				387375CE1D9ED47A00AE562A /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RCTSodium;
+			productName = RCTSodium;
+			productReference = 382804091D980AC000DD9014 /* libRCTSodium.a */;
+			productType = "com.apple.product-type.library.static";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		382804011D980AC000DD9014 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0730;
+				ORGANIZATIONNAME = "Lyubomir Ivanov";
+				TargetAttributes = {
+					382804081D980AC000DD9014 = {
+						CreatedOnToolsVersion = 7.3.1;
+					};
+				};
+			};
+			buildConfigurationList = 382804041D980AC000DD9014 /* Build configuration list for PBXProject "RCTSodium" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 382804001D980AC000DD9014;
+			productRefGroup = 3828040A1D980AC000DD9014 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				382804081D980AC000DD9014 /* RCTSodium */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		382804051D980AC000DD9014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3828040F1D980AC000DD9014 /* RCTSodium.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		382804101D980AC000DD9014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/../../react-native/React/**",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		382804111D980AC000DD9014 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				FRAMEWORK_SEARCH_PATHS = "";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/../../react-native/React/**",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		382804131D980AC000DD9014 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/../../react-native/React/**",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)",
+					"../libsodium/libsodium-ios/lib",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Debug;
+		};
+		382804141D980AC000DD9014 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				FRAMEWORK_SEARCH_PATHS = "";
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
+					"$(SRCROOT)/../../react-native/React/**",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(PROJECT_DIR)",
+					"../libsodium/libsodium-ios/lib",
+				);
+				OTHER_LDFLAGS = "-ObjC";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		382804041D980AC000DD9014 /* Build configuration list for PBXProject "RCTSodium" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				382804101D980AC000DD9014 /* Debug */,
+				382804111D980AC000DD9014 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		382804121D980AC000DD9014 /* Build configuration list for PBXNativeTarget "RCTSodium" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				382804131D980AC000DD9014 /* Debug */,
+				382804141D980AC000DD9014 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 382804011D980AC000DD9014 /* Project object */;
+}

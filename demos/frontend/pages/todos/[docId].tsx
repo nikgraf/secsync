@@ -2,7 +2,8 @@ import Head from "next/head";
 import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import sodium from "libsodium-wrappers";
+import sodium, { KeyPair } from "@naisho/libsodium";
+import sodiumWrappers from "libsodium-wrappers";
 import * as automerge from "automerge";
 import type { Doc } from "automerge";
 import { v4 as uuidv4 } from "uuid";
@@ -45,7 +46,7 @@ const encodeChanges = (changes: Uint8Array[]) => {
 };
 
 const decodeChanges = (changes: Uint8Array) => {
-  const parsed = JSON.parse(sodium.to_string(changes));
+  const parsed = JSON.parse(sodiumWrappers.to_string(changes));
   const result = parsed.map((change) => sodium.from_base64(change));
   return result;
 };
@@ -59,7 +60,7 @@ export default function Document() {
   const [newTodo, setNewTodo] = React.useState("");
   const websocketConnectionRef = useRef<WebSocket>(null);
   const createSnapshotRef = useRef<boolean>(false); // only used for the UI
-  const signatureKeyPairRef = useRef<sodium.KeyPair>(null);
+  const signatureKeyPairRef = useRef<KeyPair>(null);
   const activeSnapshotIdRef = useRef<string>(null);
   const latestServerVersionRef = useRef<number>(null);
   const keyRef = useRef<Uint8Array>(null);
@@ -93,15 +94,15 @@ export default function Document() {
     }
   };
 
-  const applySnapshot = (snapshot, key) => {
+  const applySnapshot = async (snapshot, key) => {
     activeSnapshotIdRef.current = snapshot.publicData.snapshotId;
-    const initialResult = verifyAndDecryptSnapshot(
+    const initialResult = await verifyAndDecryptSnapshot(
       snapshot,
       key,
       sodium.from_base64(snapshot.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
     );
     // @ts-expect-error
-    const newDoc: TodosDoc = automerge.load(initialResult);
+    const newDoc: TodosDoc = automerge.load(sodium.from_base64(initialResult));
     if (docRef.current) {
       docRef.current = automerge.merge(docRef.current, newDoc);
     } else {
@@ -111,14 +112,14 @@ export default function Document() {
     forceUpdate();
   };
 
-  const applyUpdates = (updates, key) => {
-    updates.forEach((update) => {
+  const applyUpdates = async (updates, key) => {
+    updates.forEach(async (update) => {
       console.log(
         update.serverData.version,
         update.publicData.pubKey,
         update.publicData.clock
       );
-      const updateResult = verifyAndDecryptUpdate(
+      const updateResult = await verifyAndDecryptUpdate(
         update,
         key,
         sodium.from_base64(update.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
@@ -127,7 +128,7 @@ export default function Document() {
       if (updateResult) {
         let [newDoc] = automerge.applyChanges(
           docRef.current,
-          decodeChanges(updateResult)
+          decodeChanges(sodium.from_base64(updateResult))
         );
         latestServerVersionRef.current = update.serverData.version;
 
@@ -137,7 +138,7 @@ export default function Document() {
     });
   };
 
-  const createAndSendSnapshot = (newDoc, key) => {
+  const createAndSendSnapshot = async (newDoc, key) => {
     const docState = automerge.save(newDoc);
 
     const publicData = {
@@ -145,7 +146,7 @@ export default function Document() {
       docId,
       pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
     };
-    const snapshot = createSnapshot(
+    const snapshot = await createSnapshot(
       docState,
       publicData,
       key,
@@ -163,13 +164,13 @@ export default function Document() {
     );
   };
 
-  const createAndSendUpdate = (update, key, clockOverwrite?: number) => {
+  const createAndSendUpdate = async (update, key, clockOverwrite?: number) => {
     const publicData = {
       refSnapshotId: activeSnapshotIdRef.current,
       docId,
       pubKey: sodium.to_base64(signatureKeyPairRef.current.publicKey),
     };
-    const updateToSend = createUpdate(
+    const updateToSend = await createUpdate(
       encodeChanges(update),
       publicData,
       key,
@@ -192,9 +193,9 @@ export default function Document() {
       const key = sodium.from_base64(window.location.hash.slice(1));
       keyRef.current = key;
 
-      signatureKeyPairRef.current = createSignatureKeyPair();
+      signatureKeyPairRef.current = await createSignatureKeyPair();
 
-      const onWebsocketMessage = (event) => {
+      const onWebsocketMessage = async (event) => {
         const data = JSON.parse(event.data);
         switch (data.type) {
           case "document":
@@ -225,7 +226,7 @@ export default function Document() {
             break;
           case "snapshot":
             console.log("apply snapshot");
-            const snapshotResult = verifyAndDecryptSnapshot(
+            const snapshotResult = await verifyAndDecryptSnapshot(
               data,
               key,
               sodium.from_base64(data.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
@@ -275,7 +276,7 @@ export default function Document() {
             createAndSendSnapshot(docRef.current, key);
             break;
           case "update":
-            const updateResult = verifyAndDecryptUpdate(
+            const updateResult = await verifyAndDecryptUpdate(
               data,
               key,
               sodium.from_base64(data.publicData.pubKey) // TODO check if this pubkey is part of the allowed collaborators
@@ -283,11 +284,11 @@ export default function Document() {
             console.log(
               "UPDATE",
               typeof updateResult,
-              decodeChanges(updateResult)
+              decodeChanges(sodium.from_base64(updateResult))
             );
             const [newDocWithUpdate] = automerge.applyChanges(
               docRef.current,
-              decodeChanges(updateResult)
+              decodeChanges(sodium.from_base64(updateResult))
             );
 
             docRef.current = newDocWithUpdate;

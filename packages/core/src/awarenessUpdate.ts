@@ -1,62 +1,54 @@
-import sodium from "libsodium-wrappers";
-import {
-  decryptAead,
-  AwarenessUpdate,
-  AwarenessUpdatePublicData,
-  verifySignature,
-} from ".";
-import { encryptAead, sign } from "./crypto";
+import sodium, { KeyPair } from "@naisho/libsodium";
+import { AwarenessUpdate, AwarenessUpdatePublicData } from "./types";
+import { encryptAead, sign, decryptAead, verifySignature } from "./crypto";
 
-export function createAwarenessUpdate(
+export async function createAwarenessUpdate(
   content,
   publicData: AwarenessUpdatePublicData,
   key: Uint8Array,
-  signatureKeyPair: sodium.KeyPair
+  signatureKeyPair: KeyPair
 ) {
   const publicDataAsBase64 = sodium.to_base64(JSON.stringify(publicData));
-  const { ciphertext, publicNonce } = encryptAead(
+  const { ciphertext, publicNonce } = await encryptAead(
     content,
     publicDataAsBase64,
-    key
+    sodium.to_base64(key)
   );
-  const nonceBase64 = sodium.to_base64(publicNonce);
-  const ciphertextBase64 = sodium.to_base64(ciphertext);
+  const signature = await sign(
+    `${publicNonce}${ciphertext}${publicDataAsBase64}`,
+    sodium.to_base64(signatureKeyPair.privateKey)
+  );
   const awarenessUpdate: AwarenessUpdate = {
-    nonce: nonceBase64,
-    ciphertext: ciphertextBase64,
+    nonce: publicNonce,
+    ciphertext,
     publicData,
-    signature: sodium.to_base64(
-      sign(
-        `${nonceBase64}${ciphertextBase64}${publicDataAsBase64}`,
-        signatureKeyPair.privateKey
-      )
-    ),
+    signature,
   };
 
   return awarenessUpdate;
 }
 
-export function verifyAndDecryptAwarenessUpdate(
+export async function verifyAndDecryptAwarenessUpdate(
   update: AwarenessUpdate,
   key,
-  publicKey
+  publicKey: Uint8Array
 ) {
   const publicDataAsBase64 = sodium.to_base64(
     JSON.stringify(update.publicData)
   );
 
-  const isValid = verifySignature(
+  const isValid = await verifySignature(
     `${update.nonce}${update.ciphertext}${publicDataAsBase64}`,
-    sodium.from_base64(update.signature),
-    publicKey
+    update.signature,
+    sodium.to_base64(publicKey)
   );
   if (!isValid) {
     return null;
   }
-  return decryptAead(
+  return await decryptAead(
     sodium.from_base64(update.ciphertext),
     sodium.to_base64(JSON.stringify(update.publicData)),
-    key,
-    sodium.from_base64(update.nonce)
+    sodium.to_base64(key),
+    update.nonce
   );
 }

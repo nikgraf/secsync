@@ -85,11 +85,11 @@ The clock property is an incrementing integer that serves multiple purposes:
 - That the central service does not persist an update if the previous one wasn't persistet.
 - Each client to verify that it receives all updates per snapshot per client.
 
-The data (encrypted and unencrypted) of each Snapshot and Update further is signed with the public key of the client. This ensures the authenticity of the data per client and is relevant to make sure to relate the incrementing clock to client.
+The data (encrypted and unencrypted) of each Snapshot and Update further is signed with the public key of the client using a ED2559 Signature. This ensures the authenticity of the data per client and is relevant to make sure to relate the incrementing clock to client.
 
 The public keys further could be use to verify that only collaborators with the authorization have to make changes to a document actually do so. Serenity will use a [signed hash chain](https://github.com/SerenityNotes/serenity-tools/tree/main/packages/trust-chain) that's currently in development to ensure the authenticity of all collaborators.
 
-There are use-cases where the public keys and signatures are only used to verify the updates per client, but .
+There are use-cases where the public keys and signatures are only used to verify the updates per client e.g. a short term shared document in a video call.
 
 ## Data Integrity
 
