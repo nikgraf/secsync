@@ -157,10 +157,6 @@ This highly depends on the use-case e.g. the amount of data per update and frequ
 - A collaborator is added to the document. When creating a new snapshot the new collaborator only sees the current state from now on. This only works if the CRDT implementation supports tombstones e.g. [Yjs Algorithm](https://github.com/yjs/yjs#yjs-crdt-algorithm).
 - The symmetric encryption is being rotated. Then the relay service can remove the previous snapshot and all related updates.
 
-## Open Questions
-
-- Can the Poly1305 MAC be omitted since every message is anyway signed with the private key?
-
 ## Possible Improvements in the Future
 
 - Add optional read notifications. From a UX perspective there can be value in being aware who has received which updates. From the perspective of the thread model it can be a tool to identify if the central relay service is excluding a collaborator.
