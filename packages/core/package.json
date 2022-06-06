@@ -2,15 +2,15 @@
   "name": "@naisho/core",
   "version": "0.0.1",
   "license": "Apache-2.0",
-  "main": "dist/index",
-  "types": "dist/index",
+  "main": "src/index",
+  "types": "src/index",
   "scripts": {
     "build": "rimraf -rf ./dist && tsc -p tsconfig.build.json",
     "prepublishOnly": "yarn run build",
     "test": "jest"
   },
   "dependencies": {
-    "libsodium-wrappers": "^0.7.9",
+    "libsodium-wrappers": "^0.7.10",
     "uuid": "^8.3.2"
   },
   "devDependencies": {
