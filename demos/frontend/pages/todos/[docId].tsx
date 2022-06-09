@@ -234,8 +234,10 @@ export default function Document() {
             activeSnapshotIdRef.current = data.publicData.snapshotId;
             latestServerVersionRef.current = undefined;
 
-            // @ts-expect-error
-            const snapshotDoc: TodosDoc = automerge.load(snapshotResult);
+            const snapshotDoc: TodosDoc = automerge.load(
+              // @ts-expect-error
+              sodium.from_base64(snapshotResult)
+            );
             const newDoc = automerge.merge(docRef.current, snapshotDoc);
             docRef.current = newDoc;
             forceUpdate();
