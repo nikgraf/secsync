@@ -1,4 +1,4 @@
-name: "Deploy API to Heroku"
+name: "Deploy API"
 
 on:
   push:
@@ -11,10 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: cd demos/backend && yarn build
-      - uses: akhileshns/heroku-deploy@v3.12.12
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "naisho"
-          heroku_email: ${{secrets.HEROKU_EMAIL}}
-          usedocker: true
-          appdir: "demos/backend"
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only ./demos/backend
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

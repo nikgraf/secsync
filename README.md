@@ -188,11 +188,12 @@ ngrok start --config=ngrok.yml --all --authtoken=<authtoken>
 # replace the localhost urls in the code with the ngrok urls
 ```
 
-## Useful Heroku Commands
+## Run DB migration for production
 
 ```sh
-heroku restart -a naisho
-heroku logs --tail --app naisho
+flyctl proxy 5432 --app naisho-db
+# in another tab
+export DATABASE_URL=postgres://naisho:<password>@localhost:5432/naisho
 ```
 
 ## Credits
