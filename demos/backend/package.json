@@ -19,7 +19,7 @@
     "clean": "rm -rf build",
     "build": "yarn && yarn clean && yarn prisma:prod:generate && yarn ncc build ./src/index.ts -o build",
     "deploy": "yarn build && fly launch",
-    "prisma:prod:migrate": "DATABASE_URL=$DATABASE_URL prisma migrate deploy",
+    "prisma:prod:migrate": "yarn && DATABASE_URL=$DATABASE_URL prisma migrate deploy",
     "prisma:prod:generate": "DATABASE_URL=$DATABASE_URL prisma generate",
     "prisma:prod:studio": "DATABASE_URL=$DATABASE_URL prisma studio",
     "start:prod": "PORT=$PORT DATABASE_URL=$DATABASE_URL NODE_ENV=production node ./build"
