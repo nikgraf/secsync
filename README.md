@@ -188,20 +188,20 @@ ngrok start --config=ngrok.yml --all --authtoken=<authtoken>
 # replace the localhost urls in the code with the ngrok urls
 ```
 
-## Run DB migration for production
+## Setup fly.io deployment
+
+Update app name inside fly.toml
 
 ```sh
-flyctl proxy 5432 --app naisho-db
-# in another tab
-export DATABASE_URL=postgres://naisho:<password>@localhost:5432/naisho
+fly postgres create
+# store the connection string
+flyctl secrets set DATABASE_URL=<db_connection_url>/naisho
 ```
+
+Update DATABASE_URL in Github secrets with <db_connection_url>/naisho
 
 ## Credits
 
 Naisho is proudly sponsored by [NGI Assure](https://nlnet.nl/assure/) via [NLNet](https://nlnet.nl).
 
 <a href="https://nlnet.nl/assure/"><img src="https://nlnet.nl/image/logos/NGIAssure_tag.svg" alt="NLNet" width="100"></a>
-
-```
-
-```
