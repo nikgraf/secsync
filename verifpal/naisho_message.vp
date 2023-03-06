@@ -1,0 +1,42 @@
+attacker[active]
+
+principal Alice[
+	knows private enc_key
+	knows public document_id
+	knows private alice_privatekey
+	alice_publickey = G^alice_privatekey
+]
+
+principal Bob[
+	knows private enc_key
+	knows public document_id
+	knows private bob_privatekey
+]
+
+Alice -> Bob: [alice_publickey]
+
+principal Alice[
+	knows private msg
+	generates snapshot_or_update_id
+	additonal_data = CONCAT(alice_publickey, snapshot_or_update_id)
+	ciphertext = AEAD_ENC(enc_key, msg, additonal_data)
+	sig = SIGN(alice_privatekey, HASH(ciphertext, additonal_data))
+]
+
+Alice -> Bob: ciphertext, sig, additonal_data
+
+principal Bob[
+	sig_valid = SIGNVERIF(alice_publickey, HASH(ciphertext, additonal_data), sig)?
+	ciphertext_dec = AEAD_DEC(enc_key, ciphertext, additonal_data)?
+	alice_publickey_1b, snapshot_or_update_id_b = SPLIT(additonal_data)
+	_ = ASSERT(alice_publickey, alice_publickey_1b)?
+]
+
+queries[
+	confidentiality? msg
+	authentication? Alice -> Bob: ciphertext
+	authentication? Alice -> Bob: additonal_data
+	freshness? ciphertext
+	freshness? additonal_data
+	freshness? sig
+]
