@@ -38,31 +38,9 @@ The goal is to develop an architecture and with it a protocol to allow multiple 
 
 The architecture should support two main use-cases:
 
-- A: Everyone with access to the document ID can retrieve data and only with the shared secret can decrypt it e.g. `www.example.com/doc/{id}#{pake of the shared key}` would allow multiple anonymous participants to collaborate.
-- B: Everyone is verifiable through a private-public keypair. The keypairs could come from any kind of Public-Key Infrastructure or Web of Trust system. The scenario here is close groups where the public keys are verified.
+- Every client is verifiable through a private-public keypair. The keypairs could come from any kind of Public-Key Infrastructure or Web of Trust system. The scenario here is close groups where the public keys are verified.
+- Every client with access to the document ID can retrieve data and only with the shared secret can decrypt it e.g. `www.example.com/doc/{id}#{pake of the shared key}` would allow multiple anonymous participants to collaborate.
 
-## Threat Model
-
-### Confidentiality
-
-In content change sent by a user can only be decrypted by users with access to the shared secret.
-
-### Integrity
-
-Content updated cannot be undetectably modified by anyone but the client which created it.
-
-### Authentication
-
-The sender of a content update cannot be forged.
-
-In use-case A every client aware of the document ID can send a content update, but won't be accepted by the other clients in case the shared secret doesn't match.
-In use-case B every client aware of the document ID can send a content update, but won't be accepted by the other clients in case it came from a non verifable client (via the signing key) as well as in case the shared secret doesn't match.
-
-### Eventual consistency
+#### Eventual consistency
 
 All clients receive the same set of content updates (possibly in different orders), and all clients converge to the same view of the document state as they receive the same set of control content updates.
-
-### Network
-
-Adversaries may access data sent over the network.
-Adversaries may access data that is stored at the service that relays the data.
