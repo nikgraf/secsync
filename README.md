@@ -107,13 +107,22 @@ Updates can be sent immediatly when they happen (to reduce overhead for real-tim
 
 This protocol doesn't hide meta data from the server. This means the relay service is aware on which documents a client has access to and when and how roughly how much someone contributed to a document.
 
-## Threat Model & Trust Model
+## High level threat model & trust odel
 
 - The central relay service can not inject any participants nor data into a document.
 - The server can completely cut out one user at any point without being dedected. We are thinking to mitigate this with read notifications in a future version of Naisho.
 - Clients have to trust each other.
 
 Note: Instantly removing access can also be seen as an advantage. In in a decentralized system you can have the issue that a collaborator is removed, but until this information is propagate all participants they will continue to share updates with the remove collaborator.
+
+## Further Reading
+
+More documentation can be found in the [docs](./docs) folder.
+
+- [Requirements](./docs/requirements.md)
+- [Specification](./docs/specification.md)
+- [Security & Privacy Considerations](./docs/security_and_privacy_considerations.md)
+- [Threat Library](./docs/threat-library.md)
 
 ## FAQ & Background
 
