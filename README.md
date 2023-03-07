@@ -27,6 +27,8 @@ A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
 
 An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
 
+An _Ephemeral Update_ includes one or multiple **encrypted entries** referencing a snapshot and if available update.
+
 If look at it from a perspective of the current state of one document it looks like this:
 
 <img src="./docs/naisho-document-representation.png?raw=true" width="323" height="339" alt="State of one document as snapshots and updates." />
@@ -144,7 +146,7 @@ It will receive a new snapshot which will be merged into the local data.
 
 All of them certainly have better security properties like Forward Secrecy and some have Post-Compromise Security.
 
-[MLS](https://messaginglayersecurity.rocks/) looks fantastic, but is still under development, but once ready it actually might be suitable candidate to built a variation or next version of Naisho on top of it.
+[MLS](https://messaginglayersecurity.rocks/) looks fantastic, but is still under development, but once ready it actually might be suitable candidate to built a variation or next version of Naisho on top of it. In addition it's specification was used as inspiration e.g. security and privacy considerations.
 
 [Signal Protocol](https://en.wikipedia.org/wiki/Signal_Protocol) is fantastic as well. With the Signal protocol though you would need to send each change to every user and requires management of one-time keys and/or established sessions. This is tougher to scale and makes it harder to support use-cases like temporary having an external contributor via a web interface.
 

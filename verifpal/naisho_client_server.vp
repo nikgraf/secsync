@@ -1,0 +1,35 @@
+attacker[active]
+
+principal Alice[
+	knows private enc_key
+	knows private document_id
+	knows private alice_privatekey
+	alice_publickey = G^alice_privatekey
+]
+
+principal Server[
+	knows private document_id
+]
+
+principal Alice[
+	knows private msg
+	generates snapshot_or_update_id
+	additonal_data = CONCAT(alice_publickey, document_id, snapshot_or_update_id)
+	ciphertext = AEAD_ENC(enc_key, msg, additonal_data)
+	sig = SIGN(alice_privatekey, HASH(ciphertext, additonal_data))
+]
+
+Alice -> Server: ciphertext, sig, additonal_data
+
+principal Server[
+	alice_publickey_s, document_id_s, snapshot_or_update_id_s = SPLIT(additonal_data)
+	_ = ASSERT(document_id, document_id_s)?
+]
+
+queries[
+	confidentiality? enc_key
+	confidentiality? alice_privatekey
+	confidentiality? msg
+	freshness? ciphertext
+	freshness? sig
+]

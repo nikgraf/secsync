@@ -7,13 +7,11 @@ principal Alice[
 	alice_publickey = G^alice_privatekey
 ]
 
-principal Bob[
-	knows private enc_key
+principal Server[
 	knows public document_id
-	knows private bob_privatekey
 ]
 
-Alice -> Bob: [alice_publickey]
+Alice -> Server: [alice_publickey]
 
 principal Alice[
 	knows private msg
@@ -23,19 +21,20 @@ principal Alice[
 	sig = SIGN(alice_privatekey, HASH(ciphertext, additonal_data))
 ]
 
-Alice -> Bob: ciphertext, sig, additonal_data
+Alice -> Server: ciphertext, sig, additonal_data
 
-principal Bob[
+principal Server[
 	sig_valid = SIGNVERIF(alice_publickey, HASH(ciphertext, additonal_data), sig)?
-	ciphertext_dec = AEAD_DEC(enc_key, ciphertext, additonal_data)?
 	alice_publickey_1b, snapshot_or_update_id_b = SPLIT(additonal_data)
 	_ = ASSERT(alice_publickey, alice_publickey_1b)?
 ]
 
 queries[
+	confidentiality? enc_key
+	confidentiality? alice_privatekey
 	confidentiality? msg
-	authentication? Alice -> Bob: ciphertext
-	authentication? Alice -> Bob: additonal_data
+	authentication? Alice -> Server: ciphertext
+	authentication? Alice -> Server: additonal_data
 	freshness? ciphertext
 	freshness? additonal_data
 	freshness? sig
