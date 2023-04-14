@@ -29,7 +29,7 @@ A Snapshot consists of the
   - pubKey
   - snapshotId
   - parentSnapshotProof
-  - includedUpdates: { [clientPublicKey]: clock }
+  - parentSnapshotClocks: { [clientPublicKey]: clock }
 - signature
 
 The `parentSnapshotProof` is a hash of the parent's `ciphertext` and the parents `parentSnapshotProof`. This allows to create a chain
@@ -73,7 +73,7 @@ In case d matches the hash of the current snapshot D the client verified that th
 
 The main purpose is to verify that the server relayed my updates to the user that created the snapshot.
 
-When creating a snapshot the publicData must contain a `includedUpdates`. In there the client should store the clocks it has been aware of, for others to verify later.
+When creating a snapshot the publicData must contain a `parentSnapshotClocks`. In there the client should store the clocks it has been aware of, for others to verify later.
 
 ## Updates
 
