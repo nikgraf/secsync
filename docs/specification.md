@@ -28,18 +28,18 @@ A Snapshot consists of the
   - documentId
   - pubKey
   - snapshotId
-  - hash
+  - parentSnapshotProof
 - signature
 
-The `hash` is a hash of the ciphertexts of the current snapshot and all its updates and the parents hash.
+The `parentSnapshotProof` is a hash of the parent's `ciphertext` and the parents `parentSnapshotProof`. This allows to create a chain
+and verify if one snapshot is based on a previous one even if multiple snapshots have been in between.
 
-The `signature` is a sigature of the concatinated `nonce` string, `ciphertext` string and `publicData` encoded as URL safe base64 string.
+The `signature` is a sigature of the canonicalize `nonce` string, `ciphertext` string and `publicData` encoded as URL safe base64 string.
 
 ### Hash
 
 ```
-ciphertextHash = hash(snapshot ciphertext) + hash([...update ciphertext hashes])
-hash = hash(prevHash, ciphertextHash)
+parentSnapshotProof = hash(parentSnapshotProof of the prev snapshot, snapshotCiphertextHash)
 ```
 
 ### Verify Snapshots
