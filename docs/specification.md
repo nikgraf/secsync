@@ -48,16 +48,16 @@ The ciphertext
 
 #### Verifying if the snapshot is based on a previous snapshot
 
-In order to verify that a snapshot is based on a previous snapshot we need to know the hash of the current snapshot and all the hashes of the previous snapshots up until the one we want to verify.
+In order to verify that a snapshot is based on a previous snapshot the following information is required:
+- ciphertext hash and parentSnapshotProof of all past snapshots to and including the known one (snapshotProofChain)
+- the new snapshot
 
-The server stores the list of snapshot hashes per document and once a client request the latest snapshot and at the same time provides the latest known snapshot the server must provide all the hashes including the hashes of the ciphertext of each snapshot up until the current snapshot.
+It's the responsibility of the server to store the necessary information and allow a client to query the snapshotProofChain. 
 
 ##### Example
 
-1. client sends a server hash `a` of snapshot A
-2. server returns snapshot D and returns the hash verification structure
-
-- [ciphertextHash of B, ciphertextHash of C]
+1. client requests the document and provides the last known snapshot id
+2. server returns snapshot D and snapshotProofChain
 
 To verify the hashes the client runs
 
@@ -72,43 +72,7 @@ In case d matches the hash of the current snapshot D the client verified that th
 
 #### Verifying that an update has been included in a snapshot
 
-##### Example
-
-1. client sends a server hash `a` of snapshot A
-   and the known update `x`
-2. server returns snapshot D and returns the hash verification structure
-
-- [hashes of the update ciphertexts]
-- [ciphertextHash of B, ciphertextHash of C, ciphertextHash of D]
-
-To verify the hashes the client runs
-
-```
-assert(x included in updates hashes of B)
-ciphertextHashB = hash(snapshot ciphertext hash, updates ciphertext hashes of B)
-assert(ciphertextHashB, ciphertextHash of B)
-```
-
-#### Combined verification example
-
-1. client sends a server hash `a` of snapshot A
-   and the known update `x`
-2. server returns snapshot D and returns the hash verification structure
-
-- [hashes of the update ciphertexts]
-- [ciphertextHash of B, ciphertextHash of C, ciphertextHash of D]
-
-To verify the hashes the client runs
-
-```
-assert(x included in updates hashes of B)
-ciphertextHashB = hash(snapshot ciphertext hash, updates ciphertext hashes of B)
-assert(ciphertextHashB, ciphertextHash of B)
-b = hash(a, hash(ciphertextHash of B))
-c = hash(b, hash(ciphertextHash of C))
-d = hash(c, hash(ciphertextHash of D))
-assert(d, hash of D)
-```
+TODO
 
 ## Updates
 
