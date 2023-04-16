@@ -9,6 +9,11 @@ The public data of a message always contains the document ID in order to be able
 ## Encryption
 
 All messages use the AEAD xchacha20poly1305_ietf construction. The nonce is always public and must be included along with the ciphertext.
+In order to commit to one (plaintext, AAD) pair matching only one (ciphertext, authentication tag) pair every message to be encrypted is prefixed with 4 NUL bytes. After every decryption the prefix is verified and an error thrown in case it's not valid.
+
+**TODO**: still needs to verified with a cryptographer if this technique and especially if 4 NUL bytes are sufficient
+read more here https://soatok.blog/2023/04/03/asymmetric-cryptographic-commitments/#what-is-commitment and
+here https://eprint.iacr.org/2019/016
 
 While the AEAD construction already includes a MAC we additionally sign the data to verify its author. This is redundant and would not be necessary, but has been chosen to be able to rely on established constructions instead of implementing our own Signcryption like https://github.com/jedisct1/libsodium-signcryption.
 
