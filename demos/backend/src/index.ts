@@ -1,25 +1,25 @@
 require("make-promises-safe"); // installs an 'unhandledRejection' handler
-import { ApolloServer } from "apollo-server-express";
 import {
-  ApolloServerPluginLandingPageGraphQLPlayground,
+  SecSyncSnapshotBasedOnOutdatedSnapshotError,
+  SecSyncSnapshotMissesUpdatesError,
+} from "@naisho/core";
+import {
   ApolloServerPluginLandingPageDisabled,
+  ApolloServerPluginLandingPageGraphQLPlayground,
 } from "apollo-server-core";
-import express from "express";
+import { ApolloServer } from "apollo-server-express";
 import cors from "cors";
-import { WebSocketServer } from "ws";
+import express from "express";
 import { createServer } from "http";
-import { schema } from "./schema";
-import { addUpdate, addConnection, removeConnection } from "./store";
-import { getDocument } from "./database/getDocument";
+import { WebSocketServer } from "ws";
 import { createDocument } from "./database/createDocument";
 import { createSnapshot } from "./database/createSnapshot";
 import { createUpdate } from "./database/createUpdate";
+import { getDocument } from "./database/getDocument";
 import { getUpdatesForDocument } from "./database/getUpdatesForDocument";
 import { retryAsyncFunction } from "./retryAsyncFunction";
-import {
-  NaishoSnapshotMissesUpdatesError,
-  NaishoSnapshotBasedOnOutdatedSnapshotError,
-} from "@naisho/core";
+import { schema } from "./schema";
+import { addConnection, addUpdate, removeConnection } from "./store";
 
 async function main() {
   const apolloServer = new ApolloServer({
@@ -36,7 +36,7 @@ async function main() {
   const allowedOrigin =
     process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
       ? "http://localhost:3000"
-      : "https://www.naisho.org";
+      : "https://www.secsync.com";
   const corsOptions = { credentials: true, origin: allowedOrigin };
 
   const app = express();
@@ -100,7 +100,7 @@ async function main() {
               connection
             );
           } catch (error) {
-            if (error instanceof NaishoSnapshotBasedOnOutdatedSnapshotError) {
+            if (error instanceof SecSyncSnapshotBasedOnOutdatedSnapshotError) {
               let doc = await getDocument(documentId);
               connection.send(
                 JSON.stringify({
@@ -110,7 +110,7 @@ async function main() {
                   updates: doc.updates,
                 })
               );
-            } else if (error instanceof NaishoSnapshotMissesUpdatesError) {
+            } else if (error instanceof SecSyncSnapshotMissesUpdatesError) {
               const result = await getUpdatesForDocument(
                 documentId,
                 data.lastKnownSnapshotId,

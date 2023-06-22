@@ -1,6 +1,5 @@
-import Head from "next/head";
-import React from "react";
 import sodium from "libsodium-wrappers";
+import Head from "next/head";
 import { useRouter } from "next/router";
 import { v4 as uuidv4 } from "uuid";
 
@@ -10,13 +9,13 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Naisho</title>
+        <title>SecSync</title>
         <meta name="description" content="" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
-        <h1>Naisho</h1>
+        <h1>SecSync</h1>
         <p>Architecture for end-to-end encrypted CRDTs</p>
         <h2>Documentation & Source Code</h2>
         <a href="https://github.com/SerenityNotes/naisho">

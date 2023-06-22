@@ -1,5 +1,5 @@
 {
-  "name": "naisho",
+  "name": "secsync-monorepo",
   "private": true,
   "workspaces": [
     "demos/*",

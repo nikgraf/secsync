@@ -1,32 +1,32 @@
-import Head from "next/head";
-import React, { useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import sodium, { KeyPair } from "@naisho/libsodium";
-import sodiumWrappers from "libsodium-wrappers";
-import * as automerge from "automerge";
-import type { Doc } from "automerge";
-import { v4 as uuidv4 } from "uuid";
 import {
+  addPendingSnapshot,
+  addPendingUpdate,
+  addSnapshotToInProgress,
+  addUpdateToInProgressQueue,
+  createSignatureKeyPair,
   createSnapshot,
   createUpdate,
+  dispatchWebsocketState,
+  getPending,
+  getSnapshotInProgress,
+  getUpdateInProgress,
+  getWebsocketState,
+  removePending,
+  removeSnapshotInProgress,
+  removeUpdateFromInProgressQueue,
+  useWebsocketState,
   verifyAndDecryptSnapshot,
   verifyAndDecryptUpdate,
-  createSignatureKeyPair,
-  addUpdateToInProgressQueue,
-  removeUpdateFromInProgressQueue,
-  getUpdateInProgress,
-  addSnapshotToInProgress,
-  removeSnapshotInProgress,
-  getSnapshotInProgress,
-  addPendingUpdate,
-  addPendingSnapshot,
-  getPending,
-  removePending,
-  dispatchWebsocketState,
-  getWebsocketState,
-  useWebsocketState,
 } from "@naisho/core";
+import sodium, { KeyPair } from "@naisho/libsodium";
+import type { Doc } from "automerge";
+import * as automerge from "automerge";
+import sodiumWrappers from "libsodium-wrappers";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import React, { useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 
 type TodoType = {
   value: string;
@@ -356,8 +356,8 @@ export default function Document() {
   return (
     <>
       <Head>
-        <title>Naisho</title>
-        <meta name="description" content="Naisho" />
+        <title>SecSync</title>
+        <meta name="description" content="SecSync" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

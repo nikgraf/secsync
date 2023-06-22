@@ -1,22 +1,22 @@
 # Security & Privacy Considerations
 
-Naisho adopts the Internet threat model [RFC3552](https://www.rfc-editor.org/rfc/rfc3552). It assumes that the attacker has complete control of the network. This means that:
+SecSync adopts the Internet threat model [RFC3552](https://www.rfc-editor.org/rfc/rfc3552). It assumes that the attacker has complete control of the network. This means that:
 
 - The attacker can monitor the entire network.
 - The attacker can read unprotected messages.
 - The attacker can generate, inject and delete any message in the unprotected transport layer.
 
-Naisho is designed under the assumption that the transport layer is present to protect metadata and privacy in general, while Naisho is providing stronger guarantees such as confidentiality and integrity. Authentication between clients is guaranteed by the use of the shared secret and the use of AEAD (Authenticated encryption) cryptography. Stronger guarantees can be achieved by verfying the signature of each message and checking if the source is a authorized client. This on the other hand removes the ability to send anonymous messages. Any Deniability gurnatees are out of scope for Naisho.
+SecSync is designed under the assumption that the transport layer is present to protect metadata and privacy in general, while SecSync is providing stronger guarantees such as confidentiality and integrity. Authentication between clients is guaranteed by the use of the shared secret and the use of AEAD (Authenticated encryption) cryptography. Stronger guarantees can be achieved by verfying the signature of each message and checking if the source is a authorized client. This on the other hand removes the ability to send anonymous messages. Any Deniability gurnatees are out of scope for SecSync.
 
 ## Authentication
 
-Naisho uses a shared secret to authenticate clients.
+SecSync uses a shared secret to authenticate clients.
 
 **RECOMMENDATION**: The application should use a out-of-band verification to validate the public key of a client that produced the signature of a message. This helps to prevent attacks in case only the shared secret has been compromised. In addition it allows for access control to be implemented. For example only certain clients could be allowed to create a new snapshot. In addition it allows the relaying service to verify the authenticity of the messages leveraging the signature verification and therefor only store relevant messages in the database.
 
 ## Integrity
 
-Naisho provides integrity guarantees for all messages of one document. This means that the receiver can verify that no message has been tampered with or deleted.
+SecSync provides integrity guarantees for all messages of one document. This means that the receiver can verify that no message has been tampered with or deleted.
 
 In general invalid injected messages are just ignored and won't have any effect on the resulting document.
 
@@ -28,25 +28,25 @@ In case the attacker removes an ephemeral update message, the client misses the 
 
 ## Replay Attacks
 
-Naisho is designed reccilient to replay attacks for snapshot and update messages. Ephemeral updates messages are only protected against replay attacks if the receiving client is aware of the last ephemeral update message for a specific snapshot and update from the sender. This is the case during an active session.
+SecSync is designed reccilient to replay attacks for snapshot and update messages. Ephemeral updates messages are only protected against replay attacks if the receiving client is aware of the last ephemeral update message for a specific snapshot and update from the sender. This is the case during an active session.
 
-In case the receiving client is not aware of the last ephemeral update message, the attacker can replay the ephemeral update message once and the receiving client will accept it as a valid ephemeral update message. For Naisho's current use cases this is an acceptable threat, since ephemeral updates are only used to indicated presence or cursor position.
+In case the receiving client is not aware of the last ephemeral update message, the attacker can replay the ephemeral update message once and the receiving client will accept it as a valid ephemeral update message. For SecSync's current use cases this is an acceptable threat, since ephemeral updates are only used to indicated presence or cursor position.
 
 ## Forward and Post-Compromise Security
 
-Naisho itself does not provide any guarantees regarding forward and post-compromise security. This means that if a client is compromised, the attacker can read all messages sent to and from the client. The attacker can also send messages on behalf of the client.
+SecSync itself does not provide any guarantees regarding forward and post-compromise security. This means that if a client is compromised, the attacker can read all messages sent to and from the client. The attacker can also send messages on behalf of the client.
 
 **RECOMMENDATION**: It's recommended to regularily rotate the shared secret to provide post-compromise security.
 
 ### Transport Layer
 
-While Naisho in theory can be used over any transport layer, it's implementation is currently limited to secure WebSockets. This means that Naisho is designed to be used over a secure transport layer.
+While SecSync in theory can be used over any transport layer, it's implementation is currently limited to secure WebSockets. This means that SecSync is designed to be used over a secure transport layer.
 
-Naisho still provides it's guarantees even if the transport layer is not secure and an attacker can read, write, and delete arbitrary messages. The model also includes the service to relay the messages as a potential attacker.
+SecSync still provides it's guarantees even if the transport layer is not secure and an attacker can read, write, and delete arbitrary messages. The model also includes the service to relay the messages as a potential attacker.
 
 ### Metadata Protection
 
-Naisho does not provide any metadata protection guarantees.
+SecSync does not provide any metadata protection guarantees.
 
 **RECCOMENDATION**: Use a secure transport layer to protect metadata between client and server.
 

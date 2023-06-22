@@ -1,51 +1,51 @@
-import Head from "next/head";
-import React, { useRef, useEffect } from "react";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import * as Yjs from "yjs";
 import {
-  ySyncPlugin,
-  yUndoPlugin,
-  yCursorPlugin,
-  undo,
-  redo,
-} from "y-prosemirror";
-import { EditorState } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import { schema } from "../../editor/schema";
-import { exampleSetup } from "prosemirror-example-setup";
-import { keymap } from "prosemirror-keymap";
-import {
+  addPendingSnapshot,
+  addPendingUpdate,
+  addSnapshotToInProgress,
+  addUpdateToInProgressQueue,
+  cleanupUpdates,
+  createAwarenessUpdate,
+  createSignatureKeyPair,
   createSnapshot,
   createUpdate,
-  createAwarenessUpdate,
+  dispatchWebsocketState,
+  getPending,
+  getSnapshotInProgress,
+  getUpdateInProgress,
+  getWebsocketState,
+  removePending,
+  removeSnapshotInProgress,
+  removeUpdateFromInProgressQueue,
+  useWebsocketState,
+  verifyAndDecryptAwarenessUpdate,
   verifyAndDecryptSnapshot,
   verifyAndDecryptUpdate,
-  verifyAndDecryptAwarenessUpdate,
-  createSignatureKeyPair,
-  addUpdateToInProgressQueue,
-  removeUpdateFromInProgressQueue,
-  getUpdateInProgress,
-  addSnapshotToInProgress,
-  removeSnapshotInProgress,
-  getSnapshotInProgress,
-  addPendingUpdate,
-  addPendingSnapshot,
-  getPending,
-  removePending,
-  dispatchWebsocketState,
-  getWebsocketState,
-  useWebsocketState,
-  cleanupUpdates,
 } from "@naisho/core";
-import { v4 as uuidv4 } from "uuid";
 import sodium, { KeyPair } from "@naisho/libsodium";
+import Head from "next/head";
+import Link from "next/link";
+import { useRouter } from "next/router";
+import { exampleSetup } from "prosemirror-example-setup";
+import { keymap } from "prosemirror-keymap";
+import { EditorState } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
+import { useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
+import {
+  redo,
+  undo,
+  yCursorPlugin,
+  ySyncPlugin,
+  yUndoPlugin,
+} from "y-prosemirror";
 import {
   Awareness,
-  encodeAwarenessUpdate,
   applyAwarenessUpdate,
+  encodeAwarenessUpdate,
   removeAwarenessStates,
 } from "y-protocols/awareness";
+import * as Yjs from "yjs";
+import { schema } from "../../editor/schema";
 
 const reconnectTimeout = 2000;
 
@@ -441,8 +441,8 @@ export default function Document() {
   return (
     <>
       <Head>
-        <title>Naisho</title>
-        <meta name="description" content="Naisho" />
+        <title>SecSync</title>
+        <meta name="description" content="SecSync" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
