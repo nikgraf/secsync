@@ -42,9 +42,8 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
-  const signatureKeyPairRef = useRef<KeyPair>(null);
 
-  const [state] = useYjsSyncMachine({
+  const [state, send] = useYjsSyncMachine({
     yDoc: yDocRef.current,
     yAwareness: yAwarenessRef.current,
     documentId: docId,
@@ -155,6 +154,29 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
             When doing so you can see the cursor position of every collaborator.
           </li>
         </ul>
+        <div>
+          {state.matches("connected") && "Connected"}
+          {state.matches("connecting") && "Connecting …"}
+          {state.matches("disconnected") && "Disconnected"}
+          {state.matches("failed") && "Error in loading or sending data"}
+
+          <button
+            disabled={!state.matches("connected")}
+            onClick={() => {
+              send({ type: "DISCONNECT" });
+            }}
+          >
+            Disconnect WebSocket
+          </button>
+          <button
+            disabled={!state.matches("disconnected")}
+            onClick={() => {
+              send({ type: "CONNECT" });
+            }}
+          >
+            Connect WebSocket
+          </button>
+        </div>
         <div ref={editorRef}>Loading</div>
       </main>
     </>

@@ -65,7 +65,12 @@ export interface Typegen0 {
       | "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE"
       | "WEBSOCKET_ADD_TO_INCOMING_QUEUE"
       | "xstate.after(0)#syncMachine.connected.checkingForMoreQueueItems";
-    scheduleRetry: "" | "DISCONNECT" | "WEBSOCKET_DISCONNECTED" | "xstate.init";
+    scheduleRetry:
+      | ""
+      | "CONNECT"
+      | "DISCONNECT"
+      | "WEBSOCKET_DISCONNECTED"
+      | "xstate.init";
   };
   matchesStates:
     | "connected"

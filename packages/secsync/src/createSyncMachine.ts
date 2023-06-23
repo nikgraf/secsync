@@ -186,6 +186,7 @@ export const createSyncMachine = () =>
           | { type: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE"; data: any }
           | { type: "WEBSOCKET_RETRY" }
           | { type: "DISCONNECT" }
+          | { type: "CONNECT" }
           | { type: "ADD_CHANGE"; data: any }
           | { type: "ADD_EPHEMERAL_UPDATE"; data: any }
           | {
@@ -375,6 +376,9 @@ export const createSyncMachine = () =>
           on: {
             ADD_CHANGE: {
               actions: ["addToPendingUpdatesQueue"],
+            },
+            CONNECT: {
+              target: "connecting",
             },
           },
         },
