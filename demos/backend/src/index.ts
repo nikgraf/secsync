@@ -8,8 +8,12 @@ import cors from "cors";
 import express from "express";
 import { createServer } from "http";
 import {
+  SecsyncNewSnapshotRequiredError,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
   SecsyncSnapshotMissesUpdatesError,
+  SnapshotWithServerData,
+  UpdateWithServerData,
+  parseSnapshotWithClientData,
 } from "secsync";
 import { WebSocketServer } from "ws";
 import { createDocument } from "./database/createDocument";
@@ -70,44 +74,55 @@ async function main() {
       connection.on("message", async function message(messageContent) {
         const data = JSON.parse(messageContent.toString());
 
+        // new snapshot
         if (data?.publicData?.snapshotId) {
+          const snapshotMessage = parseSnapshotWithClientData(data);
+          console.log("new snapshot", snapshotMessage);
           try {
             const activeSnapshotInfo =
-              data.lastKnownSnapshotId && data.latestServerVersion
+              snapshotMessage.lastKnownSnapshotId &&
+              snapshotMessage.latestServerVersion
                 ? {
-                    latestVersion: data.latestServerVersion,
-                    snapshotId: data.lastKnownSnapshotId,
+                    latestVersion: snapshotMessage.latestServerVersion,
+                    snapshotId: snapshotMessage.lastKnownSnapshotId,
                   }
                 : undefined;
-            const snapshot = await createSnapshot(data, activeSnapshotInfo);
-            console.log("addUpdate snapshot");
+            const snapshot = await createSnapshot({
+              snapshot: snapshotMessage,
+              activeSnapshotInfo,
+            });
+            console.log("add snapshot");
             connection.send(
               JSON.stringify({
                 type: "snapshotSaved",
                 snapshotId: snapshot.id,
-                docId: snapshot.documentId,
               })
             );
+            const snapshotMsgForOtherClients: SnapshotWithServerData = {
+              ciphertext: snapshotMessage.ciphertext,
+              nonce: snapshotMessage.nonce,
+              publicData: snapshotMessage.publicData,
+              signature: snapshotMessage.signature,
+              serverData: {
+                latestVersion: snapshot.latestVersion,
+              },
+            };
             addUpdate(
               documentId,
-              {
-                ...data,
-                type: "snapshot",
-                serverData: {
-                  latestVersion: snapshot.latestVersion,
-                },
-              },
+              { type: "snapshot", snapshot: snapshotMsgForOtherClients },
               connection
             );
           } catch (error) {
+            console.log("SNAPSHOT FAILED ERROR:", error);
             if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
-              let doc = await getDocument(documentId);
+              let doc = await getDocument(documentId, data.lastKnownSnapshotId);
+              if (!doc) return; // should never be the case?
               connection.send(
                 JSON.stringify({
                   type: "snapshotFailed",
-                  docId: data.publicData.docId,
                   snapshot: doc.snapshot,
                   updates: doc.updates,
+                  snapshotProofChain: doc.snapshotProofChain,
                 })
               );
             } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
@@ -119,11 +134,17 @@ async function main() {
               connection.send(
                 JSON.stringify({
                   type: "snapshotFailed",
-                  docId: data.publicData.docId,
                   updates: result.updates,
                 })
               );
+            } else if (error instanceof SecsyncNewSnapshotRequiredError) {
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailed",
+                })
+              );
             } else {
+              // log since it's an unexpected error
               console.error(error);
               connection.send(
                 JSON.stringify({
@@ -132,8 +153,9 @@ async function main() {
               );
             }
           }
+          // new update
         } else if (data?.publicData?.refSnapshotId) {
-          let savedUpdate = null;
+          let savedUpdate: undefined | UpdateWithServerData = undefined;
           try {
             // const random = Math.floor(Math.random() * 10);
             // if (random < 8) {
@@ -141,43 +163,52 @@ async function main() {
             // }
 
             // TODO add a smart queue to create an offset based on the version?
-            savedUpdate = await retryAsyncFunction(() => createUpdate(data));
-            if (!savedUpdate) {
+            savedUpdate = await retryAsyncFunction(
+              () =>
+                createUpdate({
+                  update: data,
+                }),
+              [SecsyncNewSnapshotRequiredError]
+            );
+            if (savedUpdate === undefined) {
               throw new Error("Update could not be saved.");
             }
 
             connection.send(
               JSON.stringify({
                 type: "updateSaved",
-                docId: data.publicData.docId,
                 snapshotId: data.publicData.refSnapshotId,
                 clock: data.publicData.clock,
-                serverVersion: savedUpdate.version,
+                serverVersion: savedUpdate.serverData.version,
               })
             );
-            console.log("addUpdate update");
+            console.log("add update");
             addUpdate(
               documentId,
               { ...savedUpdate, type: "update" },
               connection
             );
           } catch (err) {
+            console.log("update failed", err);
             if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(
                 JSON.stringify({
                   type: "updateFailed",
-                  docId: data.publicData.docId,
                   snapshotId: data.publicData.refSnapshotId,
                   clock: data.publicData.clock,
+                  requiresNewSnapshot:
+                    err instanceof SecsyncNewSnapshotRequiredError,
                 })
               );
             }
           }
+          // new ephemeral update
         } else {
-          console.log("addUpdate awarenessUpdate");
+          console.log("add ephemeralUpdate");
+          // TODO check if user still has access to the document
           addUpdate(
             documentId,
-            { ...data, type: "awarenessUpdate" },
+            { ...data, type: "ephemeralUpdate" },
             connection
           );
         }

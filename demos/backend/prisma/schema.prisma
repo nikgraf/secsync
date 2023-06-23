@@ -22,13 +22,15 @@ model Snapshot {
   id                     String    @id @default(uuid())
   latestVersion          Int
   data                   String
-  preview                String // title & icon
+  ciphertextHash         String
   document               Document  @relation(fields: [documentId], references: [id])
   documentId             String
   updates                Update[]
   activeSnapshotDocument Document? @relation("activeSnapshot")
   createdAt              DateTime  @default(now())
   clocks                 Json
+  parentSnapshotClocks   Json
+  parentSnapshotProof    String
 }
 
 model Update {

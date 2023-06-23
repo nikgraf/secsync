@@ -3,7 +3,7 @@ import { parseUpdateWithServerData } from "./parseUpdateWithServerData";
 
 export const parseUpdatesWithServerData = (
   updates: any[],
-  AdditionalValidation: SomeZodObject
+  AdditionalValidation?: SomeZodObject
 ) => {
   return updates.map((update) => {
     return parseUpdateWithServerData(update, AdditionalValidation);

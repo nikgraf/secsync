@@ -1,7 +1,9 @@
+import sodium from "libsodium-wrappers";
 import {
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
   SecsyncSnapshotMissesUpdatesError,
   Snapshot,
+  hash,
 } from "secsync";
 import { prisma } from "./prisma";
 
@@ -10,10 +12,15 @@ type ActiveSnapshotInfo = {
   snapshotId: string;
 };
 
-export async function createSnapshot(
-  snapshot: Snapshot,
-  activeSnapshotInfo?: ActiveSnapshotInfo
-) {
+type CreateSnapshotParams = {
+  snapshot: Snapshot;
+  activeSnapshotInfo?: ActiveSnapshotInfo;
+};
+
+export async function createSnapshot({
+  snapshot,
+  activeSnapshotInfo,
+}: CreateSnapshotParams) {
   return await prisma.$transaction(async (prisma) => {
     const document = await prisma.document.findUnique({
       where: { id: snapshot.publicData.docId },
@@ -67,13 +74,16 @@ export async function createSnapshot(
       data: {
         id: snapshot.publicData.snapshotId,
         latestVersion: 0,
-        preview: "",
         data: JSON.stringify(snapshot),
+        ciphertextHash: hash(snapshot.ciphertext, sodium),
         activeSnapshotDocument: {
           connect: { id: snapshot.publicData.docId },
         },
         document: { connect: { id: snapshot.publicData.docId } },
         clocks: {},
+        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        // TODO additionally could verify that the parentSnapshotClocks of the saved parent snapshot
+        parentSnapshotClocks: snapshot.publicData.parentSnapshotClocks,
       },
     });
   });

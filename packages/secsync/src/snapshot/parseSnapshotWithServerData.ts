@@ -3,9 +3,10 @@ import { SnapshotWithServerData } from "../types";
 
 export const parseSnapshotWithServerData = (
   snapshot: any,
-  AdditionalValidation: SomeZodObject
+  AdditionalValidation?: SomeZodObject
 ) => {
   const rawSnapshot = SnapshotWithServerData.parse(snapshot);
+  if (AdditionalValidation === undefined) return rawSnapshot;
   const additionalData = AdditionalValidation.parse(snapshot.publicData);
   return {
     ...rawSnapshot,

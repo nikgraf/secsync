@@ -11,10 +11,10 @@ export async function getUpdatesForDocument(
     include: { activeSnapshot: true },
   });
   if (document === null) {
-    throw "Document not found.";
+    throw new Error("Document not found.");
   }
   if (document.activeSnapshot === null) {
-    throw "Document has no active snapshot.";
+    throw new Error("Document has no active snapshot.");
   }
 
   if (

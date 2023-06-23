@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "es2015",
+    "target": "es2022",
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,

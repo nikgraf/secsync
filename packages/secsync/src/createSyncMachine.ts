@@ -507,6 +507,7 @@ export const createSyncMachine = () =>
           }, delay);
         },
         processQueues: (context, event) => async (send) => {
+          console.debug("clocks", JSON.stringify(context._updateClocks));
           console.debug("processQueues event", event);
           console.debug("_incomingQueue", context._incomingQueue.length);
           console.debug(

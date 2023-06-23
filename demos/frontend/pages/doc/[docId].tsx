@@ -25,16 +25,16 @@ const websocketHost =
 
 const Document: React.FC<{ docId: string }> = ({ docId }) => {
   const [authorKeyPair] = useState<KeyPair>(() => {
-    return {
-      privateKey: sodium.from_base64(
-        "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
-      ),
-      publicKey: sodium.from_base64(
-        "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM"
-      ),
-      keyType: "ed25519",
-    };
-    // return sodium.crypto_sign_keypair();
+    // return {
+    //   privateKey: sodium.from_base64(
+    //     "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
+    //   ),
+    //   publicKey: sodium.from_base64(
+    //     "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM"
+    //   ),
+    //   keyType: "ed25519",
+    // };
+    return sodium.crypto_sign_keypair();
   });
 
   const documentKey = sodium.from_base64(window.location.hash.slice(1));
@@ -72,7 +72,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     },
     shouldSendSnapshot: ({ latestServerVersion }) => {
       // create a new snapshot if the active snapshot has more than 100 updates
-      return latestServerVersion !== null && latestServerVersion > 100;
+      return latestServerVersion !== null && latestServerVersion > 10;
     },
     getEphemeralUpdateKey: async () => {
       return documentKey;
