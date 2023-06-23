@@ -9,17 +9,17 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>SecSync</title>
+        <title>Secsync</title>
         <meta name="description" content="" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
-        <h1>SecSync</h1>
+        <h1>Secsync</h1>
         <p>Architecture for end-to-end encrypted CRDTs</p>
         <h2>Documentation & Source Code</h2>
-        <a href="https://github.com/SerenityNotes/naisho">
-          https://github.com/SerenityNotes/naisho
+        <a href="https://github.com/serenity-kit/secsync">
+          https://github.com/serenity-kit/secsync
         </a>
         <h2>Document Demo (Yjs + Prosemirror)</h2>
         <button

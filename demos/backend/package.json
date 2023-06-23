@@ -25,7 +25,7 @@
     "start:prod": "PORT=$PORT DATABASE_URL=$DATABASE_URL NODE_ENV=production node ./build"
   },
   "dependencies": {
-    "@naisho/core": "0.0.1",
+    "secsync": "*",
     "@prisma/client": "3.5.0",
     "apollo-server-express": "^3.5.0",
     "express": "^4.17.1",

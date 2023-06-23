@@ -1,4 +1,4 @@
-# SecSync
+# Secsync
 
 Is an architecture to relay end-to-end encrypted CRDTs over a central service.
 
@@ -89,7 +89,7 @@ The clock property is an incrementing integer that serves multiple purposes:
 
 The data (encrypted and unencrypted) of each Snapshot and Update further is signed with the public key of the client using a ED2559 Signature. This ensures the authenticity of the data per client and is relevant to make sure to relate the incrementing clock to client.
 
-The public keys further could be use to verify that only collaborators with the authorization have to make changes to a document actually do so. Serenity will use a [signed hash chain](https://github.com/SerenityNotes/serenity-tools/tree/main/packages/trust-chain) that's currently in development to ensure the authenticity of all collaborators.
+The public keys further could be use to verify that only collaborators with the authorization have to make changes to a document actually do so. Serenity will use a [signed hash chain](https://github.com/serenity-kit/Serenity/tree/main/packages/workspace-chain) that's currently in development to ensure the authenticity of all collaborators.
 
 There are use-cases where the public keys and signatures are only used to verify the updates per client e.g. a short term shared document in a video call.
 
@@ -110,7 +110,7 @@ This protocol doesn't hide meta data from the server. This means the relay servi
 ## High level threat model & trust model
 
 - The central relay service can not inject any participants nor data into a document.
-- The server can completely cut out one user at any point without being detected. We are thinking to mitigate this with read notifications in a future version of SecSync.
+- The server can completely cut out one user at any point without being detected. We are thinking to mitigate this with read notifications in a future version of Secsync.
 - Clients have to trust each other.
 
 Note: Instantly removing access can also be seen as an advantage. In in a decentralized system you can have the issue that a collaborator is removed, but until this information is propagate all participants they will continue to share updates with the remove collaborator.
@@ -155,7 +155,7 @@ It will receive a new snapshot which will be merged into the local data.
 
 All of them certainly have better security properties like Forward Secrecy and some have Post-Compromise Security.
 
-[MLS](https://messaginglayersecurity.rocks/) looks fantastic, but is still under development, but once ready it actually might be suitable candidate to built a variation or next version of SecSync on top of it. In addition it's specification was used as inspiration e.g. security and privacy considerations.
+[MLS](https://messaginglayersecurity.rocks/) looks fantastic, but is still under development, but once ready it actually might be suitable candidate to built a variation or next version of Secsync on top of it. In addition it's specification was used as inspiration e.g. security and privacy considerations.
 
 [Signal Protocol](https://en.wikipedia.org/wiki/Signal_Protocol) is fantastic as well. With the Signal protocol though you would need to send each change to every user and requires management of one-time keys and/or established sessions. This is tougher to scale and makes it harder to support use-cases like temporary having an external contributor via a web interface.
 
@@ -213,6 +213,6 @@ Update DATABASE_URL in Github secrets with <db_connection_url>/secsync
 
 ## Credits
 
-SecSync is proudly sponsored by [NGI Assure](https://nlnet.nl/assure/) via [NLNet](https://nlnet.nl).
+Secsync is proudly sponsored by [NGI Assure](https://nlnet.nl/assure/) via [NLNet](https://nlnet.nl).
 
 <a href="https://nlnet.nl/assure/"><img src="https://nlnet.nl/image/logos/NGIAssure_tag.svg" alt="NLNet" width="100"></a>

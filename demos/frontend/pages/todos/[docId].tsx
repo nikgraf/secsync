@@ -1,3 +1,13 @@
+import type { Doc } from "automerge";
+import * as automerge from "automerge";
+import {
+  KeyPair,
+  default as sodium,
+  default as sodiumWrappers,
+} from "libsodium-wrappers";
+import Head from "next/head";
+import { useRouter } from "next/router";
+import React, { useEffect, useRef } from "react";
 import {
   addPendingSnapshot,
   addPendingUpdate,
@@ -17,15 +27,7 @@ import {
   useWebsocketState,
   verifyAndDecryptSnapshot,
   verifyAndDecryptUpdate,
-} from "@naisho/core";
-import sodium, { KeyPair } from "@naisho/libsodium";
-import type { Doc } from "automerge";
-import * as automerge from "automerge";
-import sodiumWrappers from "libsodium-wrappers";
-import Head from "next/head";
-import Link from "next/link";
-import { useRouter } from "next/router";
-import React, { useEffect, useRef } from "react";
+} from "secsync";
 import { v4 as uuidv4 } from "uuid";
 
 type TodoType = {
@@ -323,7 +325,7 @@ export default function Document() {
         const host =
           process.env.NODE_ENV === "development"
             ? "ws://localhost:4000"
-            : "wss://naisho.fly.dev";
+            : "wss://secsync.fly.dev";
         const connection = new WebSocket(`${host}/${docId}`);
         websocketConnectionRef.current = connection;
 
@@ -356,15 +358,13 @@ export default function Document() {
   return (
     <>
       <Head>
-        <title>SecSync</title>
-        <meta name="description" content="SecSync" />
+        <title>Secsync</title>
+        <meta name="description" content="Secsync" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <main>
-        <Link href="/">
-          <a>Home</a>
-        </Link>
+        <a href="/"></a>
         <h2>Instructions</h2>
         <ul>
           <li>

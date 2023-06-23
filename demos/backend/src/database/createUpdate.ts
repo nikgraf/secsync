@@ -1,7 +1,7 @@
-import { prisma } from "./prisma";
+import { Update } from "secsync";
 import { Prisma } from "../../prisma/generated/output";
-import { Update } from "@naisho/core";
 import { serializeUpdate } from "../utils/serialize";
+import { prisma } from "./prisma";
 
 export async function createUpdate(update: Update) {
   return await prisma.$transaction(async (prisma) => {

@@ -1,8 +1,8 @@
 import {
-  SecSyncSnapshotBasedOnOutdatedSnapshotError,
-  SecSyncSnapshotMissesUpdatesError,
+  SecsyncSnapshotBasedOnOutdatedSnapshotError,
+  SecsyncSnapshotMissesUpdatesError,
   Snapshot,
-} from "@naisho/core";
+} from "secsync";
 import { prisma } from "./prisma";
 
 type ActiveSnapshotInfo = {
@@ -32,14 +32,14 @@ export async function createSnapshot(
 
     // const random = Math.floor(Math.random() * 10);
     // if (random < 8) {
-    //   throw new SecSyncSnapshotBasedOnOutdatedSnapshotError(
+    //   throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
     //     "Snapshot is out of date."
     //   );
     // }
 
     // const random = Math.floor(Math.random() * 10);
     // if (random < 8) {
-    //   throw new SecSyncSnapshotMissesUpdatesError(
+    //   throw new SecsyncSnapshotMissesUpdatesError(
     //     "Snapshot does not include the latest changes."
     //   );
     // }
@@ -49,7 +49,7 @@ export async function createSnapshot(
       activeSnapshotInfo !== undefined &&
       document.activeSnapshot.id !== activeSnapshotInfo.snapshotId
     ) {
-      throw new SecSyncSnapshotBasedOnOutdatedSnapshotError(
+      throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
         "Snapshot is out of date."
       );
     }
@@ -58,7 +58,7 @@ export async function createSnapshot(
       activeSnapshotInfo !== undefined &&
       document.activeSnapshot.latestVersion !== activeSnapshotInfo.latestVersion
     ) {
-      throw new SecSyncSnapshotMissesUpdatesError(
+      throw new SecsyncSnapshotMissesUpdatesError(
         "Snapshot does not include the latest changes."
       );
     }

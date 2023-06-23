@@ -1,9 +1,5 @@
 require("make-promises-safe"); // installs an 'unhandledRejection' handler
 import {
-  SecSyncSnapshotBasedOnOutdatedSnapshotError,
-  SecSyncSnapshotMissesUpdatesError,
-} from "@naisho/core";
-import {
   ApolloServerPluginLandingPageDisabled,
   ApolloServerPluginLandingPageGraphQLPlayground,
 } from "apollo-server-core";
@@ -11,6 +7,10 @@ import { ApolloServer } from "apollo-server-express";
 import cors from "cors";
 import express from "express";
 import { createServer } from "http";
+import {
+  SecsyncSnapshotBasedOnOutdatedSnapshotError,
+  SecsyncSnapshotMissesUpdatesError,
+} from "secsync";
 import { WebSocketServer } from "ws";
 import { createDocument } from "./database/createDocument";
 import { createSnapshot } from "./database/createSnapshot";
@@ -100,7 +100,7 @@ async function main() {
               connection
             );
           } catch (error) {
-            if (error instanceof SecSyncSnapshotBasedOnOutdatedSnapshotError) {
+            if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
               let doc = await getDocument(documentId);
               connection.send(
                 JSON.stringify({
@@ -110,7 +110,7 @@ async function main() {
                   updates: doc.updates,
                 })
               );
-            } else if (error instanceof SecSyncSnapshotMissesUpdatesError) {
+            } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
               const result = await getUpdatesForDocument(
                 documentId,
                 data.lastKnownSnapshotId,

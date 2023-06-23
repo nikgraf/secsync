@@ -26,7 +26,7 @@ The goal is to develop an architecture and with it a protocol to allow multiple 
 - Must support real-time exchange incl. awareness features e.g. cursor position.
 - The architecture must support clients that have to rebuild the CRDT based data structure from ground up.
 - The architecture must support local-first clients. These clients can be offline for a while and only sync later once they are connected again.
-- The architecture must support multiple CRDT implementations. In detail this means SecSync is a layer on top of a data type, where the operations are commutative. In particular Yjs and automerge should be supported.
+- The architecture must support multiple CRDT implementations. In detail this means Secsync is a layer on top of a data type, where the operations are commutative. In particular Yjs and automerge should be supported.
 - The architecture can, but must not be decentralized. Leveraging a centralized service is a viable option.
 
 #### Security
