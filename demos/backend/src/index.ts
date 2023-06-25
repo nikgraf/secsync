@@ -53,10 +53,6 @@ async function main() {
   webSocketServer.on(
     "connection",
     async function connection(connection, request) {
-      // unique id for each client connection
-
-      console.log("connected");
-
       const documentId = request.url?.slice(1)?.split("?")[0] || "";
 
       let doc = await getDocument(documentId);
@@ -66,7 +62,6 @@ async function main() {
         // return;
         await createDocument(documentId);
         doc = await getDocument(documentId);
-        console.log("created new doc");
       }
       addConnection(documentId, connection);
       connection.send(JSON.stringify({ type: "document", ...doc }));
@@ -77,7 +72,6 @@ async function main() {
         // new snapshot
         if (data?.publicData?.snapshotId) {
           const snapshotMessage = parseSnapshotWithClientData(data);
-          console.log("new snapshot", snapshotMessage);
           try {
             const activeSnapshotInfo =
               snapshotMessage.lastKnownSnapshotId &&
@@ -91,7 +85,6 @@ async function main() {
               snapshot: snapshotMessage,
               activeSnapshotInfo,
             });
-            console.log("add snapshot");
             connection.send(
               JSON.stringify({
                 type: "snapshotSaved",
@@ -113,7 +106,7 @@ async function main() {
               connection
             );
           } catch (error) {
-            console.log("SNAPSHOT FAILED ERROR:", error);
+            console.error("SNAPSHOT FAILED ERROR:", error);
             if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
               let doc = await getDocument(documentId, data.lastKnownSnapshotId);
               if (!doc) return; // should never be the case?
@@ -182,14 +175,13 @@ async function main() {
                 serverVersion: savedUpdate.serverData.version,
               })
             );
-            console.log("add update");
             addUpdate(
               documentId,
               { ...savedUpdate, type: "update" },
               connection
             );
           } catch (err) {
-            console.log("update failed", err);
+            console.error("update failed", err);
             if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(
                 JSON.stringify({
@@ -204,7 +196,6 @@ async function main() {
           }
           // new ephemeral update
         } else {
-          console.log("add ephemeralUpdate");
           // TODO check if user still has access to the document
           addUpdate(
             documentId,
@@ -215,7 +206,6 @@ async function main() {
       });
 
       connection.on("close", function () {
-        console.log("close connection");
         removeConnection(documentId, connection);
       });
     }
