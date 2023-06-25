@@ -8,7 +8,7 @@
     "@types/ws": "^8.2.1",
     "@vercel/ncc": "^0.33.1",
     "prettier": "^2.5.0",
-    "prisma": "3.5.0",
+    "prisma": "^4.16.1",
     "ts-node": "10.4.0",
     "ts-node-dev": "^1.1.8",
     "typescript": "4.5.2"
@@ -25,13 +25,13 @@
     "start:prod": "PORT=$PORT DATABASE_URL=$DATABASE_URL NODE_ENV=production node ./build"
   },
   "dependencies": {
-    "secsync": "*",
-    "@prisma/client": "3.5.0",
+    "@prisma/client": "^4.16.1",
     "apollo-server-express": "^3.5.0",
     "express": "^4.17.1",
     "graphql": "^16.0.1",
     "make-promises-safe": "^5.1.0",
     "nexus": "^1.1.0",
+    "secsync": "*",
     "uuid": "^8.3.2",
     "ws": "^8.3.0"
   },
