@@ -1,5 +1,5 @@
 {
-  "name": "naisho",
+  "name": "secsync-monorepo",
   "private": true,
   "workspaces": [
     "demos/*",
@@ -8,6 +8,17 @@
   ],
   "devDependencies": {
     "ts-node": "^10.4.0",
-    "typescript": "^4.5.2"
+    "typescript": "^5.1.3"
+  },
+  "scripts": {
+    "ts:check": "yarn && yarn workspaces run ts:check",
+    "test": "yarn && yarn workspaces run test",
+    "lint": "yarn && yarn workspaces run lint"
+  },
+  "resolutions": {
+    "prosemirror-state": "^1.4.3",
+    "prosemirror-view": "^1.31.5",
+    "prosemirror-model": "^1.13.3",
+    "prosemirror-transform": "^1.7.3"
   }
 }

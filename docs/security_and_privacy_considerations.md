@@ -1,63 +1,63 @@
 # Security & Privacy Considerations
 
-Naisho adopts the Internet threat model [RFC3552](https://www.rfc-editor.org/rfc/rfc3552). It assumes that the attacker has complete control of the network. This means that:
+Secsync adopts the Internet threat model [RFC3552](https://www.rfc-editor.org/rfc/rfc3552). It assumes that the attacker has complete control of the network. This means that:
 
 - The attacker can monitor the entire network.
 - The attacker can read unprotected messages.
 - The attacker can generate, inject and delete any message in the unprotected transport layer.
 
-Naisho is designed under the assumption that the transport layer is present to protect metadata and privacy in general, while Naisho is providing stronger guarantees such as confidentiality and integrity. Authentication between clients is guaranteed by the use of the shared secret and the use of AEAD (Authenticated encryption) cryptography. Stronger guarantees can be achieved by verfying the signature of each message and checking if the source is a authorized client. This on the other hand removes the ability to send anonymous messages. Any Deniability gurnatees are out of scope for Naisho.
+Secsync is designed under the assumption that the transport layer is present to protect metadata and privacy in general, while Secsync is providing stronger guarantees such as confidentiality and integrity. Authentication between clients is guaranteed by the use of the shared secret and the use of AEAD (Authenticated encryption) cryptography. Stronger guarantees can be achieved by verifying the signature of each message and checking if the source is a authorized client. This on the other hand removes the ability to send anonymous messages. Any Deniability guarantees are out of scope for Secsync.
 
 ## Authentication
 
-Naisho uses a shared secret to authenticate clients.
+Secsync uses a shared secret to authenticate clients.
 
 **RECOMMENDATION**: The application should use a out-of-band verification to validate the public key of a client that produced the signature of a message. This helps to prevent attacks in case only the shared secret has been compromised. In addition it allows for access control to be implemented. For example only certain clients could be allowed to create a new snapshot. In addition it allows the relaying service to verify the authenticity of the messages leveraging the signature verification and therefor only store relevant messages in the database.
 
 ## Integrity
 
-Naisho provides integrity guarantees for all messages of one document. This means that the receiver can verify that no message has been tampered with or deleted.
+Secsync provides integrity guarantees for all messages of one document. This means that the receiver can verify that no message has been tampered with or deleted.
 
 In general invalid injected messages are just ignored and won't have any effect on the resulting document.
 
-In case the attacker removes a snapshot message, the client can’t resolve the latest state of the document and any further update or ephemeral update will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualising when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral update for an unknown snapshot is received the user should be informed that the document is likely out of date.
+In case the attacker removes a snapshot message, the client can’t resolve the latest state of the document and any further update or ephemeral update will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualizing when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral update for an unknown snapshot is received the user should be informed that the document is likely out of date.
 
-In case the attacker removes an update message, the client can’t resolve the latest state of the document and any further update or ephemeral update will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualising when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral update referencing an unknown update is received the user should be informed that the document is out of date.
+In case the attacker removes an update message, the client can’t resolve the latest state of the document and any further update or ephemeral update will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualizing when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral update referencing an unknown update is received the user should be informed that the document is out of date.
 
 In case the attacker removes an ephemeral update message, the client misses the ephemeral updates. Since these updates are not supposed to be persistent a downgrade in the user-experience e.g. not seeing other users cursor’s might be the result, but document changes that should be persisted are lost.
 
 ## Replay Attacks
 
-Naisho is designed reccilient to replay attacks for snapshot and update messages. Ephemeral updates messages are only protected against replay attacks if the receiving client is aware of the last ephemeral update message for a specific snapshot and update from the sender. This is the case during an active session.
+Secsync is designed resilient to replay attacks for snapshot and update messages. Ephemeral updates messages are only protected against replay attacks if the receiving client is aware of the last ephemeral update message for a specific snapshot and update from the sender. This is the case during an active session.
 
-In case the receiving client is not aware of the last ephemeral update message, the attacker can replay the ephemeral update message once and the receiving client will accept it as a valid ephemeral update message. For Naisho's current use cases this is an acceptable threat, since ephemeral updates are only used to indicated presence or cursor position.
+In case the receiving client is not aware of the last ephemeral update message, the attacker can replay the ephemeral update message once and the receiving client will accept it as a valid ephemeral update message. For Secsync's current use cases this is an acceptable threat, since ephemeral updates are only used to indicated presence or cursor position.
 
 ## Forward and Post-Compromise Security
 
-Naisho itself does not provide any guarantees regarding forward and post-compromise security. This means that if a client is compromised, the attacker can read all messages sent to and from the client. The attacker can also send messages on behalf of the client.
+Secsync itself does not provide any guarantees regarding forward and post-compromise security. This means that if a client is compromised, the attacker can read all messages sent to and from the client. The attacker can also send messages on behalf of the client.
 
-**RECOMMENDATION**: It's recommended to regularily rotate the shared secret to provide post-compromise security.
+**RECOMMENDATION**: It's recommended to regularly rotate the shared secret to provide post-compromise security.
 
 ### Transport Layer
 
-While Naisho in theory can be used over any transport layer, it's implementation is currently limited to secure WebSockets. This means that Naisho is designed to be used over a secure transport layer.
+While Secsync in theory can be used over any transport layer, it's implementation is currently limited to secure WebSockets. This means that Secsync is designed to be used over a secure transport layer.
 
-Naisho still provides it's guarantees even if the transport layer is not secure and an attacker can read, write, and delete arbitrary messages. The model also includes the service to relay the messages as a potential attacker.
+Secsync still provides it's guarantees even if the transport layer is not secure and an attacker can read, write, and delete arbitrary messages. The model also includes the service to relay the messages as a potential attacker.
 
 ### Metadata Protection
 
-Naisho does not provide any metadata protection guarantees.
+Secsync does not provide any metadata protection guarantees.
 
-**RECCOMENDATION**: Use a secure transport layer to protect metadata between client and server.
+**RECOMMENDATION**: Use a secure transport layer to protect metadata between client and server.
 
 ## Cryptographic Analysis
 
-Security guarantees have been analyzed using [Verifpal](https://verifpal.com/) and can be found at [https://github.com/serenity-kit/naisho/tree/main/verifpal](https://github.com/serenity-kit/naisho/tree/main/verifpal). The proofs show the confidentiality and freshness between clients in two scenarios:
+Security guarantees have been analyzed using [Verifpal](https://verifpal.com/) and can be found at [https://github.com/serenity-kit/secsync/tree/main/verifpal](https://github.com/serenity-kit/secsync/tree/main/verifpal). The proofs show the confidentiality and freshness between clients in two scenarios:
 
 1. Client A sends a message to client B and the public key of each message is NOT verified to belong to a known client with access to the document.
 1. Client A sends a message to client B and the public key of each message is verified to belong to a known client with access to the document.
 
-Additioanlly, the proofs show the confidentiality and freshness between a cleint and the server in two scenarios:
+Additionally, the proofs show the confidentiality and freshness between a client and the server in two scenarios:
 
 1. Client A sends a message to the server and the public key of each message is NOT verified to belong to a known client with access to the document.
 1. Client A sends a message to the server and the public key of each message is verified to belong to a known client with access to the document.

@@ -241,4 +241,5 @@ export const marks = {
 //
 // To reuse elements from this schema, extend or read from its
 // `spec.nodes` and `spec.marks` [properties](#model.Schema.spec).
+// @ts-expect-error
 export const schema = new Schema({ nodes, marks });

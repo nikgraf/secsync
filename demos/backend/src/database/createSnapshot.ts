@@ -1,19 +1,26 @@
-import { prisma } from "./prisma";
+import sodium from "libsodium-wrappers";
 import {
+  SecsyncSnapshotBasedOnOutdatedSnapshotError,
+  SecsyncSnapshotMissesUpdatesError,
   Snapshot,
-  NaishoSnapshotMissesUpdatesError,
-  NaishoSnapshotBasedOnOutdatedSnapshotError,
-} from "@naisho/core";
+  hash,
+} from "secsync";
+import { prisma } from "./prisma";
 
 type ActiveSnapshotInfo = {
   latestVersion: number;
   snapshotId: string;
 };
 
-export async function createSnapshot(
-  snapshot: Snapshot,
-  activeSnapshotInfo?: ActiveSnapshotInfo
-) {
+type CreateSnapshotParams = {
+  snapshot: Snapshot;
+  activeSnapshotInfo?: ActiveSnapshotInfo;
+};
+
+export async function createSnapshot({
+  snapshot,
+  activeSnapshotInfo,
+}: CreateSnapshotParams) {
   return await prisma.$transaction(async (prisma) => {
     const document = await prisma.document.findUnique({
       where: { id: snapshot.publicData.docId },
@@ -32,14 +39,14 @@ export async function createSnapshot(
 
     // const random = Math.floor(Math.random() * 10);
     // if (random < 8) {
-    //   throw new NaishoSnapshotBasedOnOutdatedSnapshotError(
+    //   throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
     //     "Snapshot is out of date."
     //   );
     // }
 
     // const random = Math.floor(Math.random() * 10);
     // if (random < 8) {
-    //   throw new NaishoSnapshotMissesUpdatesError(
+    //   throw new SecsyncSnapshotMissesUpdatesError(
     //     "Snapshot does not include the latest changes."
     //   );
     // }
@@ -49,7 +56,7 @@ export async function createSnapshot(
       activeSnapshotInfo !== undefined &&
       document.activeSnapshot.id !== activeSnapshotInfo.snapshotId
     ) {
-      throw new NaishoSnapshotBasedOnOutdatedSnapshotError(
+      throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
         "Snapshot is out of date."
       );
     }
@@ -58,7 +65,7 @@ export async function createSnapshot(
       activeSnapshotInfo !== undefined &&
       document.activeSnapshot.latestVersion !== activeSnapshotInfo.latestVersion
     ) {
-      throw new NaishoSnapshotMissesUpdatesError(
+      throw new SecsyncSnapshotMissesUpdatesError(
         "Snapshot does not include the latest changes."
       );
     }
@@ -67,13 +74,16 @@ export async function createSnapshot(
       data: {
         id: snapshot.publicData.snapshotId,
         latestVersion: 0,
-        preview: "",
         data: JSON.stringify(snapshot),
+        ciphertextHash: hash(snapshot.ciphertext, sodium),
         activeSnapshotDocument: {
           connect: { id: snapshot.publicData.docId },
         },
         document: { connect: { id: snapshot.publicData.docId } },
         clocks: {},
+        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        // TODO additionally could verify that the parentSnapshotClocks of the saved parent snapshot
+        parentSnapshotClocks: snapshot.publicData.parentSnapshotClocks,
       },
     });
   });

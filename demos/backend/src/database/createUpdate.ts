@@ -1,9 +1,13 @@
-import { prisma } from "./prisma";
+import { Update } from "secsync";
 import { Prisma } from "../../prisma/generated/output";
-import { Update } from "@naisho/core";
 import { serializeUpdate } from "../utils/serialize";
+import { prisma } from "./prisma";
 
-export async function createUpdate(update: Update) {
+type CreateUpdateParams = {
+  update: Update;
+};
+
+export async function createUpdate({ update }: CreateUpdateParams) {
   return await prisma.$transaction(async (prisma) => {
     const snapshot = await prisma.snapshot.findUnique({
       where: { id: update.publicData.refSnapshotId },
@@ -54,7 +58,6 @@ export async function createUpdate(update: Update) {
       },
     });
 
-    console.log(snapshot.latestVersion + 1);
     return serializeUpdate(
       await prisma.update.create({
         data: {

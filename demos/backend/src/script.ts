@@ -1,6 +1,5 @@
 // import { createUpdate } from "./database/createUpdate";
 // import { getDocument } from "./database/getDocument";
-// import { getDocumentPreviewsByIds } from "./database/getDocumentPreviewsByIds";
 // import { getUpdatesForDocument } from "./database/getUpdatesForDocument";
 import { prisma } from "./database/prisma";
 
@@ -35,10 +34,6 @@ async function main() {
   //   "ea94bbf3-2876-42e4-afaa-5dda408a22c0"
   // );
   // console.log(documentResult);
-  // const documentPreviews = await getDocumentPreviewsByIds([
-  //   "ea94bbf3-2876-42e4-afaa-5dda408a22c0",
-  // ]);
-  // console.log(documentPreviews);
   // const updatesA = await getUpdatesForDocument(
   //   "ea94bbf3-2876-42e4-afaa-5dda408a22c0",
   //   snapshot.id,
