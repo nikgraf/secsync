@@ -1,6 +1,6 @@
-# fly.toml file generated for secsync on 2022-11-12T20:59:21+01:00
+# fly.toml file generated for naisho on 2022-11-12T20:59:21+01:00
 
-app = "secsync"
+app = "naisho"
 kill_signal = "SIGINT"
 kill_timeout = 5
 processes = []
