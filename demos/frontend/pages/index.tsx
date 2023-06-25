@@ -33,6 +33,18 @@ export default function Home() {
         >
           Create new Document
         </button>
+        <h2>Document Demo (Yjs + Tiptap)</h2>
+        <button
+          onClick={() => {
+            router.push(
+              `/tiptap/${uuidv4()}#${sodium.to_base64(
+                sodium.crypto_secretbox_keygen()
+              )}`
+            );
+          }}
+        >
+          Create new Document
+        </button>
         <h2>Todos Demo (Automerge)</h2>
         <button
           onClick={() => {
