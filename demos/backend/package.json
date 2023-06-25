@@ -14,7 +14,9 @@
     "typescript": "4.5.2"
   },
   "scripts": {
+    "ts:check": "yarn tsc --noEmit",
     "test": "ts-node ./src/script.ts",
+    "lint": "echo \"No linting setup\"",
     "dev": "ts-node-dev --transpile-only --no-notify ./src/index.ts",
     "clean": "rm -rf build",
     "build": "yarn && yarn clean && yarn prisma:prod:generate && yarn ncc build ./src/index.ts -o build",

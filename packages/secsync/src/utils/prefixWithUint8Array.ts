@@ -4,6 +4,7 @@ export function prefixWithUint8Array(
 ): string | Uint8Array {
   if (typeof value === "string") {
     const valueUint8Array = new Uint8Array(
+      // @ts-ignore doesn't work with older ES targets
       [...value].map((char) => char.charCodeAt(0))
     );
     const result = new Uint8Array(prefix.length + valueUint8Array.length);

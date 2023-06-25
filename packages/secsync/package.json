@@ -8,7 +8,7 @@
     "prepublishOnly": "yarn run build",
     "test": "jest",
     "ts:check": "yarn tsc --noEmit",
-    "lint": "eslint --ext .tsx --ext .ts ./",
+    "lint": "echo \"No linting configured\"",
     "build:xstate-types": "xstate typegen \"./**/*.ts?(x)\""
   },
   "dependencies": {

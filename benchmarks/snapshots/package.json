@@ -5,7 +5,10 @@
     "load:automerge": "node loadAutomerge.js",
     "load:yjs": "node loadYjs.js",
     "load:yjs2": "node loadYjs2.js",
-    "init:data": "node initData.js"
+    "init:data": "node initData.js",
+    "ts:check": "echo \"No typechecking\"",
+    "test": "echo No tests yet",
+    "lint": "echo \"No linting setup\""
   },
   "dependencies": {
     "automerge": "^1.0.1-preview.7",

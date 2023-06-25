@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { generateId, useYjsSync } from "secsync";
@@ -117,7 +118,8 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       </Head>
 
       <main>
-        <a href="/">Home</a>
+        <Link href="/">Home</Link>
+
         <h2>Instructions</h2>
         <ul>
           <li>

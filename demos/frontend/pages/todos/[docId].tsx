@@ -2,6 +2,7 @@ import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
 import { KeyPair, default as sodium } from "libsodium-wrappers";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
 import { generateId, useAutomergeSync } from "secsync";
@@ -76,7 +77,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       </Head>
 
       <main>
-        <a href="/"></a>
+        <Link href="/">Home</Link>
         <h2>Instructions</h2>
         <ul>
           <li>

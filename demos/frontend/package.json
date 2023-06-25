@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "ts:check": "yarn tsc --noEmit",
+    "test": "echo \"No tests yet\""
   },
   "dependencies": {
     "@automerge/automerge": "^2.0.3",

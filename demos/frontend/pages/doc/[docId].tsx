@@ -1,5 +1,6 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import Head from "next/head";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { exampleSetup } from "prosemirror-example-setup";
 import { keymap } from "prosemirror-keymap";
@@ -138,7 +139,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       </Head>
 
       <main>
-        <a href="/">Home</a>
+        <Link href="/">Home</Link>
         <h2>Instructions</h2>
         <ul>
           <li>
