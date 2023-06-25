@@ -68,7 +68,7 @@ export const useYjsSyncMachine = (config: YjsSyncMachineConfig) => {
     // always listen to updates from the document itself
     const onUpdate = (update, origin) => {
       if (origin?.key === "y-sync$" || origin === "mobile-webview") {
-        send({ type: "ADD_CHANGE", data: update });
+        send({ type: "ADD_CHANGES", data: [update] });
       }
     };
     // TODO switch to v2 updates

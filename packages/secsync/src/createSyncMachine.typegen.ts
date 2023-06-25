@@ -40,7 +40,7 @@ export interface Typegen0 {
   eventsCausingActions: {
     addToCustomMessageQueue: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE";
     addToIncomingQueue: "WEBSOCKET_ADD_TO_INCOMING_QUEUE";
-    addToPendingUpdatesQueue: "ADD_CHANGE";
+    addToPendingUpdatesQueue: "ADD_CHANGES";
     increaseWebsocketRetry: "WEBSOCKET_RETRY";
     removeOldestItemFromQueueAndUpdateContext: "done.invoke.processQueues";
     resetContext: "DISCONNECT" | "WEBSOCKET_DISCONNECTED";
@@ -61,7 +61,7 @@ export interface Typegen0 {
   };
   eventsCausingServices: {
     processQueues:
-      | "ADD_CHANGE"
+      | "ADD_CHANGES"
       | "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE"
       | "WEBSOCKET_ADD_TO_INCOMING_QUEUE"
       | "xstate.after(0)#syncMachine.connected.checkingForMoreQueueItems";

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@automerge/automerge": "^2.0.3",
     "automerge": "^1.0.1-preview.6",
     "next": "^13.4.7",
     "prosemirror-example-setup": "^1.1.2",

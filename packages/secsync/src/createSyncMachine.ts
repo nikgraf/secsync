@@ -187,7 +187,7 @@ export const createSyncMachine = () =>
           | { type: "WEBSOCKET_RETRY" }
           | { type: "DISCONNECT" }
           | { type: "CONNECT" }
-          | { type: "ADD_CHANGE"; data: any }
+          | { type: "ADD_CHANGES"; data: any[] }
           | { type: "ADD_EPHEMERAL_UPDATE"; data: any }
           | {
               type: "SEND_EPHEMERAL_UPDATE";
@@ -285,7 +285,7 @@ export const createSyncMachine = () =>
             WEBSOCKET_CONNECTED: {
               target: "connected",
             },
-            ADD_CHANGE: {
+            ADD_CHANGES: {
               actions: ["addToPendingUpdatesQueue"],
             },
           },
@@ -303,7 +303,7 @@ export const createSyncMachine = () =>
                   actions: ["addToCustomMessageQueue"],
                   target: "processingQueues",
                 },
-                ADD_CHANGE: {
+                ADD_CHANGES: {
                   actions: ["addToPendingUpdatesQueue"],
                   target: "processingQueues",
                 },
@@ -317,7 +317,7 @@ export const createSyncMachine = () =>
                 WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE: {
                   actions: ["addToCustomMessageQueue"],
                 },
-                ADD_CHANGE: {
+                ADD_CHANGES: {
                   actions: ["addToPendingUpdatesQueue"],
                 },
               },
@@ -343,7 +343,7 @@ export const createSyncMachine = () =>
                 WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE: {
                   actions: ["addToCustomMessageQueue"],
                 },
-                ADD_CHANGE: {
+                ADD_CHANGES: {
                   actions: ["addToPendingUpdatesQueue"],
                 },
               },
@@ -374,7 +374,7 @@ export const createSyncMachine = () =>
             cond: "shouldReconnect",
           },
           on: {
-            ADD_CHANGE: {
+            ADD_CHANGES: {
               actions: ["addToPendingUpdatesQueue"],
             },
             CONNECT: {
@@ -437,7 +437,10 @@ export const createSyncMachine = () =>
         addToPendingUpdatesQueue: assign((context, event) => {
           console.debug("addToPendingUpdatesQueue", event.data);
           return {
-            _pendingChangesQueue: [...context._pendingChangesQueue, event.data],
+            _pendingChangesQueue: [
+              ...context._pendingChangesQueue,
+              ...event.data,
+            ],
           };
         }),
         removeOldestItemFromQueueAndUpdateContext: assign((context, event) => {
@@ -784,6 +787,7 @@ export const createSyncMachine = () =>
                 }
                 context.applyChanges(changes);
               } catch (error) {
+                console.debug("APPLYING CHANGES in catch", error);
                 // still try to apply all existing changes
                 context.applyChanges(changes);
                 throw error;
