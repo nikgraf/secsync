@@ -6,7 +6,7 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { useEffect, useRef, useState } from "react";
-import { generateId, useYjsSyncMachine } from "secsync";
+import { generateId, useYjsSync } from "secsync";
 import {
   redo,
   undo,
@@ -43,7 +43,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
-  const [state, send] = useYjsSyncMachine({
+  const [state, send] = useYjsSync({
     yDoc: yDocRef.current,
     yAwareness: yAwarenessRef.current,
     documentId: docId,

@@ -24,7 +24,7 @@ export type YjsSyncMachineConfig = Omit<
   yAwareness: Awareness;
 };
 
-export const useYjsSyncMachine = (config: YjsSyncMachineConfig) => {
+export const useYjsSync = (config: YjsSyncMachineConfig) => {
   const { yDoc, yAwareness, ...rest } = config;
   // necessary to avoid that the same machine context is re-used for different or remounted pages
   // more info here:
