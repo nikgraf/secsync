@@ -1,5 +1,5 @@
-import { createEphemeralUpdate } from "./ephemeralUpdate/createEphemeralUpdate";
-import { SyncMachineConfig } from "./types";
+import { createEphemeralUpdate } from "../ephemeralUpdate/createEphemeralUpdate";
+import { SyncMachineConfig } from "../types";
 
 export const websocketService =
   (context: SyncMachineConfig) => (send, onReceive) => {

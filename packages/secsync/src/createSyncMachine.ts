@@ -27,7 +27,7 @@ import {
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
-import { websocketService } from "./websocketService";
+import { websocketService } from "./utils/websocketService";
 
 // The sync machine is responsible for syncing the document with the server.
 // Specifically it is responsible for:
