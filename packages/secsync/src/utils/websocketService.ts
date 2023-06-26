@@ -2,7 +2,7 @@ import { createEphemeralUpdate } from "../ephemeralUpdate/createEphemeralUpdate"
 import { SyncMachineConfig } from "../types";
 
 export const websocketService =
-  (context: SyncMachineConfig) => (send, onReceive) => {
+  (context: SyncMachineConfig) => (send: any, onReceive: any) => {
     let connected = false;
 
     // timeout the connection try after 5 seconds
@@ -20,7 +20,7 @@ export const websocketService =
       `${context.websocketHost}/${context.documentId}?sessionKey=${context.websocketSessionKey}${knownSnapshotIdParam}`
     );
 
-    const onWebsocketMessage = async (event) => {
+    const onWebsocketMessage = async (event: any) => {
       const data = JSON.parse(event.data);
       switch (data.type) {
         case "documentNotFound":
@@ -63,7 +63,7 @@ export const websocketService =
       send({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
-    onReceive((event) => {
+    onReceive((event: any) => {
       if (event.type === "SEND") {
         websocketConnection.send(event.message);
       }

@@ -250,7 +250,7 @@ test("returns false if an entry is missing using an initial snapshot", () => {
 });
 
 test("returns false for an empty chain", () => {
-  const snapshotProofChain = [];
+  const snapshotProofChain: SnapshotProofChainEntry[] = [];
   const isValid = isValidAncestorSnapshot({
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,

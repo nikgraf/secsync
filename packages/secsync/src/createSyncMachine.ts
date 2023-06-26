@@ -1085,6 +1085,7 @@ export const createSyncMachine = () =>
                 documentDecryptionState,
               };
             } else {
+              // @ts-ignore fails on some environments and not in others
               error.documentDecryptionState = documentDecryptionState;
               throw error;
             }

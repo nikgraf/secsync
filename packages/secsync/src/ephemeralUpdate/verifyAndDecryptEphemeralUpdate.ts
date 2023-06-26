@@ -14,7 +14,7 @@ function isOlderThanTenMin(date: Date): boolean {
 
 export function verifyAndDecryptEphemeralUpdate(
   ephemeralUpdate: EphemeralUpdate,
-  key,
+  key: Uint8Array,
   publicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers"),
   mostRecentEphemeralUpdateDate?: Date

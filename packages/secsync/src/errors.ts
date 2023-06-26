@@ -35,9 +35,9 @@ export class SecsyncNewSnapshotRequiredError extends Error {
 }
 
 export class SecsyncProcessingEphemeralUpdateError extends Error {
-  originalError: Error;
+  originalError: unknown;
 
-  constructor(message: any, originalError: Error) {
+  constructor(message: any, originalError: unknown) {
     super(message);
 
     this.name = this.constructor.name;
