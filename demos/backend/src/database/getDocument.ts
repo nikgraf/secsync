@@ -1,29 +1,42 @@
 import { serializeSnapshot, serializeUpdates } from "../utils/serialize";
 import { prisma } from "./prisma";
 
-export async function getDocument(
-  documentId: string,
-  knownSnapshotId?: string
-) {
+type Params = {
+  documentId: string;
+  lastKnownSnapshotId?: string;
+  lastKnownUpdateServerVersion?: number;
+};
+
+export async function getDocument({
+  documentId,
+  lastKnownSnapshotId,
+  lastKnownUpdateServerVersion,
+}: Params) {
   const doc = await prisma.document.findUnique({
     where: { id: documentId },
     include: {
       activeSnapshot: {
-        include: { updates: { orderBy: { version: "asc" } } },
+        include: {
+          updates: {
+            orderBy: { version: "asc" },
+            where: { version: { gt: lastKnownUpdateServerVersion } },
+          },
+        },
       },
     },
   });
   if (!doc) return null;
+  if (!doc.activeSnapshot) return null;
 
   let snapshotProofChain: {
     id: string;
     parentSnapshotProof: string;
     ciphertextHash: string;
   }[] = [];
-  if (knownSnapshotId) {
+  if (lastKnownSnapshotId) {
     snapshotProofChain = await prisma.snapshot.findMany({
       where: { documentId },
-      cursor: { id: knownSnapshotId },
+      cursor: { id: lastKnownSnapshotId },
       skip: 1,
       select: {
         id: true,
@@ -35,18 +48,9 @@ export async function getDocument(
     });
   }
 
-  const snapshot = doc.activeSnapshot
-    ? serializeSnapshot(doc.activeSnapshot)
-    : null;
-
-  const updates = doc.activeSnapshot
-    ? serializeUpdates(doc.activeSnapshot.updates)
-    : [];
-
   return {
-    doc: { id: doc.id },
-    snapshot,
-    updates,
+    snapshot: serializeSnapshot(doc.activeSnapshot),
+    updates: serializeUpdates(doc.activeSnapshot.updates),
     snapshotProofChain: snapshotProofChain.map((snapshotProofChainEntry) => {
       return {
         id: snapshotProofChainEntry.id,

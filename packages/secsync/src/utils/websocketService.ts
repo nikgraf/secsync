@@ -61,14 +61,6 @@ export const websocketService =
     websocketConnection.addEventListener("close", function (event) {
       console.log("websocket closed");
       send({ type: "WEBSOCKET_DISCONNECTED" });
-      // remove the awareness states of everyone else
-      // removeAwarenessStates(
-      //   yAwarenessRef.current,
-      //   Array.from(yAwarenessRef.current.getStates().keys()).filter(
-      //     (client) => client !== yDocRef.current.clientID
-      //   ),
-      //   "TODOprovider"
-      // );
     });
 
     onReceive((event) => {
@@ -111,7 +103,7 @@ export const websocketService =
 
     return () => {
       // TODO remove event listeners? is this necessary?
-      console.log("CLOSE WEBSOCKET");
+      console.debug("CLOSE WEBSOCKET");
       websocketConnection.close();
     };
   };

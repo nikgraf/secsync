@@ -13,7 +13,6 @@ import { createDocument } from "./database/createDocument";
 import { createSnapshot as createSnapshotDb } from "./database/createSnapshot";
 import { createUpdate as createUpdateDb } from "./database/createUpdate";
 import { getDocument as getDocumentDb } from "./database/getDocument";
-import { getSnapshotAndUpdates as getSnapshotAndUpdatesDb } from "./database/getSnapshotAndUpdates";
 import { schema } from "./schema";
 
 async function main() {
@@ -45,16 +44,15 @@ async function main() {
     "connection",
     createWebSocketConnection({
       getDocument: async (params) => {
-        let doc = await getDocumentDb(params.documentId);
+        let doc = await getDocumentDb(params);
         if (!doc) {
           await createDocument(params.documentId);
-          doc = await getDocumentDb(params.documentId);
+          doc = await getDocumentDb(params);
         }
         return doc;
       },
       createSnapshot: createSnapshotDb,
       createUpdate: createUpdateDb,
-      getSnapshotAndUpdates: getSnapshotAndUpdatesDb,
     })
   );
 

@@ -4,8 +4,6 @@ import { SnapshotPublicData } from "../types";
 import { createSnapshot } from "./createSnapshot";
 import { verifyAndDecryptSnapshot } from "./verifyAndDecryptSnapshot";
 
-const snapshotDerivedKeyContext = "snapshot";
-
 // TODO add tests for parentSnapshotProofInfo and parentSnapshotUpdateClock in verifyAndDecryptSnapshot
 
 test("createSnapshot & verifyAndDecryptSnapshot successfully", async () => {
@@ -74,7 +72,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", as
   };
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
-    snapshotId: generateId(sodium),
+    snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPair.publicKey),
     parentSnapshotClocks: {},

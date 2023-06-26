@@ -168,7 +168,7 @@ export type SyncMachineConfig = {
   }) => boolean;
   isValidCollaborator: (signingPublicKey: string) => boolean | Promise<boolean>;
   serializeChanges: (changes: unknown[]) => string;
-  deserializeChanges: (string) => unknown[];
+  deserializeChanges: (serializeChanges: string) => unknown[];
   sodium: any;
   onSnapshotSaved?: () => void | Promise<void>;
   onCustomMessage?: (message: any) => Promise<void> | void;

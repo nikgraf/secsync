@@ -5,45 +5,25 @@ import {
   SecsyncSnapshotMissesUpdatesError,
   SnapshotWithClientData,
   SnapshotWithServerData,
+  Update,
   UpdateWithServerData,
   parseSnapshotWithClientData,
 } from "secsync";
 import { WebSocket } from "ws";
 
+import { parseEphemeralUpdate } from "../ephemeralUpdate/parseEphemeralUpdate";
+import { parseUpdate } from "../update/parseUpdate";
 import { retryAsyncFunction } from "../utils/retryAsyncFunction";
 import { addConnection, addUpdate, removeConnection } from "./store";
 
-// TODO
-type SecSyncUpdate = {
-  ciphertext?: string;
-  nonce?: string;
-  signature?: string;
-  publicData?: {
-    docId?: string;
-    pubKey?: string;
-    refSnapshotId?: string;
-    clock?: number;
-  };
-  serverData?: { version?: number };
-};
-
-// TODO
-type SecSyncSnapshot = {
-  id: string; // TODO remove
-  latestVersion: number; // TODO remove
-};
-
-// TODO
-type SecSyncDocument = {
-  doc: { id: string };
-  snapshot: {};
-  updates: {}[];
-  snapshotProofChain: {}[];
-};
-
-type GetDocumentParams = {
-  documentId: string;
-  lastKnownSnapshotId?: string;
+type GetDocumentResult = {
+  snapshot: SnapshotWithServerData;
+  updates: UpdateWithServerData[];
+  snapshotProofChain: {
+    id: string;
+    parentSnapshotProof: string;
+    snapshotCiphertextHash: string;
+  }[];
 };
 
 type CreateSnapshotParams = {
@@ -55,41 +35,33 @@ type CreateSnapshotParams = {
 };
 
 type CreateUpdateParams = {
-  update: UpdateWithServerData;
+  update: Update;
 };
 
-type GetSnapshotAndUpdatesParams = {
+type GetDocumentParams = {
   documentId: string;
   lastKnownSnapshotId?: string;
-  latestServerVersion?: number;
+  lastKnownUpdateServerVersion?: number;
 };
 
 type WebsocketConnectionParams = {
   getDocument(
     getDocumentParams: GetDocumentParams
-  ): Promise<SecSyncDocument | undefined>;
+  ): Promise<GetDocumentResult | undefined>;
   createSnapshot(
     createSnapshotParams: CreateSnapshotParams
-  ): Promise<SecSyncSnapshot | undefined>;
+  ): Promise<SnapshotWithServerData>;
   createUpdate(
     createUpdateParams: CreateUpdateParams
-  ): Promise<SecSyncUpdate | undefined>;
-  getSnapshotAndUpdates(
-    getSnapshotAndUpdatesParams: GetSnapshotAndUpdatesParams
-  ): Promise<{ snapshot: any; updates: SecSyncUpdate[] } | undefined>;
+  ): Promise<UpdateWithServerData>;
 };
 
 export const createWebSocketConnection =
-  ({
-    getDocument,
-    createSnapshot,
-    createUpdate,
-    getSnapshotAndUpdates,
-  }: WebsocketConnectionParams) =>
+  ({ getDocument, createSnapshot, createUpdate }: WebsocketConnectionParams) =>
   async (connection: WebSocket, request: IncomingMessage) => {
     const documentId = request.url?.slice(1)?.split("?")[0] || "";
 
-    // TODO allow lastKnownSnapshotId to be passed in as a query param
+    // TODO allow lastKnownSnapshotId & latestServerVersion to be passed in as a query param
     const doc = await getDocument({ documentId });
 
     addConnection(documentId, connection);
@@ -110,14 +82,14 @@ export const createWebSocketConnection =
                   snapshotId: snapshotMessage.lastKnownSnapshotId,
                 }
               : undefined;
-          const snapshot = await createSnapshot({
+          const snapshot: SnapshotWithServerData = await createSnapshot({
             snapshot: snapshotMessage,
             activeSnapshotInfo,
           });
           connection.send(
             JSON.stringify({
               type: "snapshotSaved",
-              snapshotId: snapshot.id,
+              snapshotId: snapshot.publicData.snapshotId,
             })
           );
           const snapshotMsgForOtherClients: SnapshotWithServerData = {
@@ -126,7 +98,7 @@ export const createWebSocketConnection =
             publicData: snapshotMessage.publicData,
             signature: snapshotMessage.signature,
             serverData: {
-              latestVersion: snapshot.latestVersion,
+              latestVersion: snapshot.serverData.latestVersion,
             },
           };
           addUpdate(
@@ -137,31 +109,53 @@ export const createWebSocketConnection =
         } catch (error) {
           console.error("SNAPSHOT FAILED ERROR:", error);
           if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
-            let doc = await getDocument({
+            let document = await getDocument({
               documentId,
               lastKnownSnapshotId: data.lastKnownSnapshotId,
             });
-            if (!doc) return; // should never be the case?
-            connection.send(
-              JSON.stringify({
-                type: "snapshotFailed",
-                snapshot: doc.snapshot,
-                updates: doc.updates,
-                snapshotProofChain: doc.snapshotProofChain,
-              })
-            );
+            if (document) {
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailed",
+                  snapshot: document.snapshot,
+                  updates: document.updates,
+                  snapshotProofChain: document.snapshotProofChain,
+                })
+              );
+            } else {
+              console.error(
+                'document not found for "snapshotBasedOnOutdatedSnapshot" error'
+              );
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailedDueBrokenDocument",
+                })
+              );
+            }
           } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
-            const result = await getSnapshotAndUpdates({
+            const document = await getDocument({
               documentId,
               lastKnownSnapshotId: data.lastKnownSnapshotId,
-              latestServerVersion: data.latestServerVersion,
+              lastKnownUpdateServerVersion: data.latestServerVersion,
             });
-            connection.send(
-              JSON.stringify({
-                type: "snapshotFailed",
-                updates: result.updates,
-              })
-            );
+            if (document) {
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailed",
+                  updates: document.updates,
+                })
+              );
+            } else {
+              // log since it's an unexpected error
+              console.error(
+                'document not found for "snapshotMissesUpdates" error'
+              );
+              connection.send(
+                JSON.stringify({
+                  type: "snapshotFailedDueBrokenDocument",
+                })
+              );
+            }
           } else if (error instanceof SecsyncNewSnapshotRequiredError) {
             connection.send(
               JSON.stringify({
@@ -173,13 +167,14 @@ export const createWebSocketConnection =
             console.error(error);
             connection.send(
               JSON.stringify({
-                type: "snapshotFailed",
+                type: "snapshotFailedDueBrokenDocument",
               })
             );
           }
         }
         // new update
       } else if (data?.publicData?.refSnapshotId) {
+        const updateMessage = parseUpdate(data);
         let savedUpdate: undefined | UpdateWithServerData = undefined;
         try {
           // const random = Math.floor(Math.random() * 10);
@@ -191,7 +186,7 @@ export const createWebSocketConnection =
           savedUpdate = await retryAsyncFunction(
             () =>
               createUpdate({
-                update: data,
+                update: updateMessage,
               }),
             [SecsyncNewSnapshotRequiredError]
           );
@@ -224,8 +219,13 @@ export const createWebSocketConnection =
         }
         // new ephemeral update
       } else {
+        const ephemeralUpdateMessage = parseEphemeralUpdate(data);
         // TODO check if user still has access to the document
-        addUpdate(documentId, { ...data, type: "ephemeralUpdate" }, connection);
+        addUpdate(
+          documentId,
+          { ...ephemeralUpdateMessage, type: "ephemeralUpdate" },
+          connection
+        );
       }
     });
 
