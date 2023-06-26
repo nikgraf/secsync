@@ -197,8 +197,8 @@ export const createWebSocketConnection =
           connection.send(
             JSON.stringify({
               type: "updateSaved",
-              snapshotId: data.publicData.refSnapshotId,
-              clock: data.publicData.clock,
+              snapshotId: savedUpdate.publicData.refSnapshotId,
+              clock: savedUpdate.publicData.clock,
               serverVersion: savedUpdate.serverData.version,
             })
           );
