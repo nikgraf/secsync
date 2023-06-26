@@ -9,7 +9,7 @@ type CreateUpdateParams = {
 
 export async function createUpdate({ update }: CreateUpdateParams) {
   return await prisma.$transaction(async (prisma) => {
-    const snapshot = await prisma.snapshot.findUnique({
+    const snapshot = await prisma.snapshot.findUniqueOrThrow({
       where: { id: update.publicData.refSnapshotId },
       select: {
         latestVersion: true,
@@ -17,9 +17,6 @@ export async function createUpdate({ update }: CreateUpdateParams) {
         document: { select: { activeSnapshotId: true } },
       },
     });
-    if (snapshot === null) {
-      throw new Error("Snapshot does not exist.");
-    }
     if (
       snapshot.document.activeSnapshotId !== update.publicData.refSnapshotId
     ) {

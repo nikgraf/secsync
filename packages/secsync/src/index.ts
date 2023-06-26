@@ -9,6 +9,7 @@ export * from "./crypto/verifySignature";
 export * from "./ephemeralUpdate/createEphemeralUpdate";
 export * from "./ephemeralUpdate/verifyAndDecryptEphemeralUpdate";
 export * from "./errors";
+export * from "./server/createWebSocketConnection";
 export * from "./snapshot/createInitialSnapshot";
 export * from "./snapshot/createSnapshot";
 export * from "./snapshot/parseSnapshotWithClientData";

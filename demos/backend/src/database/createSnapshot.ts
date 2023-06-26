@@ -22,15 +22,12 @@ export async function createSnapshot({
   activeSnapshotInfo,
 }: CreateSnapshotParams) {
   return await prisma.$transaction(async (prisma) => {
-    const document = await prisma.document.findUnique({
+    const document = await prisma.document.findUniqueOrThrow({
       where: { id: snapshot.publicData.docId },
       select: {
         activeSnapshot: true,
       },
     });
-    if (!document) {
-      throw new Error("Document doesn't exist.");
-    }
 
     // function sleep(ms) {
     //   return new Promise((resolve) => setTimeout(resolve, ms));

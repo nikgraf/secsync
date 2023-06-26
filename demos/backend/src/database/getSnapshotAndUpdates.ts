@@ -1,22 +1,24 @@
 import { serializeSnapshot, serializeUpdates } from "../utils/serialize";
 import { prisma } from "./prisma";
 
-export async function getUpdatesForDocument(
-  documentId: string,
-  knownSnapshotId: string,
-  knownUpdateVersion?: number
-) {
-  const document = await prisma.document.findUnique({
+type Params = {
+  documentId: string;
+  knownSnapshotId: string;
+  knownUpdateVersion?: number;
+};
+
+export async function getSnapshotAndUpdates({
+  documentId,
+  knownSnapshotId,
+  knownUpdateVersion,
+}: Params) {
+  const document = await prisma.document.findUniqueOrThrow({
     where: { id: documentId },
     include: { activeSnapshot: true },
   });
-  if (document === null) {
-    throw new Error("Document not found.");
-  }
   if (document.activeSnapshot === null) {
     throw new Error("Document has no active snapshot.");
   }
-
   if (
     document.activeSnapshot.id === knownSnapshotId &&
     document.activeSnapshot.latestVersion === knownUpdateVersion
