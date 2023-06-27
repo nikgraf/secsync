@@ -1,25 +1,31 @@
 export async function retryAsyncFunction(
-  func: () => any,
+  asyncFunction: () => Promise<any>,
   errorsToBailOn: any[] = [],
-  maxRetries = 5
-) {
-  let keepTrying = true;
-  let count = 0;
-  let result = undefined;
+  maxRetries: number = 5
+): Promise<any> {
+  let delay = 100;
+  let retries = 0;
 
-  while (keepTrying && count < maxRetries) {
+  while (retries < maxRetries) {
     try {
-      result = await func();
-      keepTrying = false;
+      return await asyncFunction();
     } catch (err) {
-      console.error(err);
+      // if the error message is in the errorsToBailOn array, throw the error immediately
       for (const error of errorsToBailOn) {
         if (err instanceof error) {
           throw err;
         }
       }
-      count = count + 1;
+      // increase retries count
+      retries += 1;
+      // ff the retries exceed maxRetries, throw the last error
+      if (retries >= maxRetries) {
+        throw err;
+      }
+      // wait for a delay before retrying the function
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      // double the delay value
+      delay *= 2;
     }
   }
-  return result;
 }
