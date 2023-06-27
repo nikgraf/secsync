@@ -193,3 +193,8 @@ export type GetDocumentParams = {
   lastKnownSnapshotId?: string;
   lastKnownUpdateServerVersion?: number;
 };
+
+export type HasAccessParams = {
+  action: "read" | "write-snapshot" | "write-update" | "send-ephemeral-update";
+  documentId: string;
+};
