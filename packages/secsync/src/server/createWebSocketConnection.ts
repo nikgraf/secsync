@@ -43,8 +43,6 @@ type WebsocketConnectionParams = {
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
 };
 
-console.log("IS DEPLOYED V1");
-
 export const createWebSocketConnection =
   ({
     getDocument,
@@ -241,7 +239,6 @@ export const createWebSocketConnection =
           }
           // new ephemeral update
         } else {
-          console.log("EPHEMERAL UPDATE", data);
           const ephemeralUpdateMessage = parseEphemeralUpdate(
             data,
             additionalAuthenticationDataValidations?.ephemeralUpdate
