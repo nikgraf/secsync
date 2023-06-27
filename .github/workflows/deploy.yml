@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - fix-deploys
+      - backend-fixes
 
 jobs:
   build:
@@ -19,6 +19,6 @@ jobs:
         working-directory: ./demos/backend
         run: yarn build
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only ./demos/backend --ha=false
+      - run: flyctl deploy --remote-only ./demos/backend
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
