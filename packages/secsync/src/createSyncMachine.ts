@@ -855,14 +855,14 @@ export const createSyncMachine = () =>
 
                   break;
 
-                case "snapshotSaved":
+                case "snapshot-saved":
                   console.log("snapshot saved", event);
                   // in case the event is received for a snapshot that was not active in sending
                   // we remove the activeSendingSnapshotInfo since any activeSendingSnapshotInfo
                   // that is in flight will fail
                   if (event.snapshotId !== activeSendingSnapshotInfo?.id) {
                     throw new Error(
-                      "Received snapshotSaved for other than the current activeSendingSnapshotInfo"
+                      "Received snapshot-saved for other than the current activeSendingSnapshotInfo"
                     );
                   }
                   activeSnapshotInfo = activeSendingSnapshotInfo;
@@ -874,7 +874,7 @@ export const createSyncMachine = () =>
                     context.onSnapshotSaved();
                   }
                   break;
-                case "snapshotFailed": // TODO rename to snapshotSaveFailed or similar
+                case "snapshot-save-failed": // TODO rename to snapshotSaveFailed or similar
                   console.log("snapshot saving failed", event);
                   if (event.snapshot) {
                     const snapshot = parseSnapshotWithServerData(
@@ -898,7 +898,7 @@ export const createSyncMachine = () =>
                       });
                       if (!isValid) {
                         throw new Error(
-                          "Invalid ancestor snapshot after snapshotFailed event"
+                          "Invalid ancestor snapshot after snapshot-save-failed event"
                         );
                       }
                     }
@@ -919,7 +919,7 @@ export const createSyncMachine = () =>
                 case "update":
                   await processUpdates([event]);
                   break;
-                case "updateSaved":
+                case "update-saved":
                   console.debug("update saved", event);
                   latestServerVersion = event.serverVersion;
                   confirmedUpdatesClock = event.clock;
@@ -928,7 +928,7 @@ export const createSyncMachine = () =>
                   );
 
                   break;
-                case "updateFailed":
+                case "update-save-failed":
                   console.log(
                     "update saving failed",
                     event.snapshotId,
@@ -971,7 +971,7 @@ export const createSyncMachine = () =>
                   }
 
                   break;
-                case "ephemeralUpdate":
+                case "ephemeral-update":
                   try {
                     const ephemeralUpdate = parseEphemeralUpdateWithServerData(
                       event,

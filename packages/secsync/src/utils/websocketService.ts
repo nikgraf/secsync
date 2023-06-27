@@ -33,12 +33,12 @@ export const websocketService =
           break;
         case "document":
         case "snapshot":
-        case "snapshotSaved":
-        case "snapshotFailed":
+        case "snapshot-saved":
+        case "snapshot-save-failed":
         case "update":
-        case "updateSaved":
-        case "updateFailed":
-        case "ephemeralUpdate":
+        case "update-saved":
+        case "update-save-failed":
+        case "ephemeral-update":
           send({ type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE", data });
           break;
         default:

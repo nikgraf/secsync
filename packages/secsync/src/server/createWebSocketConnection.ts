@@ -113,7 +113,7 @@ export const createWebSocketConnection =
             });
             connection.send(
               JSON.stringify({
-                type: "snapshotSaved",
+                type: "snapshot-saved",
                 snapshotId: snapshot.publicData.snapshotId,
               })
             );
@@ -141,7 +141,7 @@ export const createWebSocketConnection =
               if (document) {
                 connection.send(
                   JSON.stringify({
-                    type: "snapshotFailed",
+                    type: "snapshot-save-failed",
                     snapshot: document.snapshot,
                     updates: document.updates,
                     snapshotProofChain: document.snapshotProofChain,
@@ -162,7 +162,7 @@ export const createWebSocketConnection =
               if (document) {
                 connection.send(
                   JSON.stringify({
-                    type: "snapshotFailed",
+                    type: "snapshot-save-failed",
                     updates: document.updates,
                   })
                 );
@@ -176,7 +176,7 @@ export const createWebSocketConnection =
             } else if (error instanceof SecsyncNewSnapshotRequiredError) {
               connection.send(
                 JSON.stringify({
-                  type: "snapshotFailed",
+                  type: "snapshot-save-failed",
                 })
               );
             } else {
@@ -212,7 +212,7 @@ export const createWebSocketConnection =
 
             connection.send(
               JSON.stringify({
-                type: "updateSaved",
+                type: "update-saved",
                 snapshotId: savedUpdate.publicData.refSnapshotId,
                 clock: savedUpdate.publicData.clock,
                 serverVersion: savedUpdate.serverData.version,
@@ -228,7 +228,7 @@ export const createWebSocketConnection =
             if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(
                 JSON.stringify({
-                  type: "updateFailed",
+                  type: "update-save-failed",
                   snapshotId: data.publicData.refSnapshotId,
                   clock: data.publicData.clock,
                   requiresNewSnapshot:
@@ -246,7 +246,7 @@ export const createWebSocketConnection =
           // TODO check if user still has access to the document
           addUpdate(
             documentId,
-            { ...ephemeralUpdateMessage, type: "ephemeralUpdate" },
+            { ...ephemeralUpdateMessage, type: "ephemeral-update" },
             connection
           );
         }
