@@ -1,11 +1,12 @@
 import { IncomingMessage } from "http";
 import {
+  CreateSnapshotParams,
+  CreateUpdateParams,
+  GetDocumentParams,
   SecsyncNewSnapshotRequiredError,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
   SecsyncSnapshotMissesUpdatesError,
-  SnapshotWithClientData,
   SnapshotWithServerData,
-  Update,
   UpdateWithServerData,
   parseSnapshotWithClientData,
 } from "secsync";
@@ -24,24 +25,6 @@ type GetDocumentResult = {
     parentSnapshotProof: string;
     snapshotCiphertextHash: string;
   }[];
-};
-
-type CreateSnapshotParams = {
-  snapshot: SnapshotWithClientData;
-  activeSnapshotInfo?: {
-    latestVersion: number;
-    snapshotId: string;
-  };
-};
-
-type CreateUpdateParams = {
-  update: Update;
-};
-
-type GetDocumentParams = {
-  documentId: string;
-  lastKnownSnapshotId?: string;
-  lastKnownUpdateServerVersion?: number;
 };
 
 type WebsocketConnectionParams = {

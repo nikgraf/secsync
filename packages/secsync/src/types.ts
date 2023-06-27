@@ -175,3 +175,21 @@ export type SyncMachineConfig = {
   knownSnapshotInfo?: KnownSnapshotInfo;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
 };
+
+export type CreateSnapshotParams = {
+  snapshot: SnapshotWithClientData;
+  activeSnapshotInfo?: {
+    latestVersion: number;
+    snapshotId: string;
+  };
+};
+
+export type CreateUpdateParams = {
+  update: Update;
+};
+
+export type GetDocumentParams = {
+  documentId: string;
+  lastKnownSnapshotId?: string;
+  lastKnownUpdateServerVersion?: number;
+};

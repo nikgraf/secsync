@@ -1,17 +1,12 @@
+import { GetDocumentParams } from "packages/secsync/src";
 import { serializeSnapshot, serializeUpdates } from "../utils/serialize";
 import { prisma } from "./prisma";
-
-type Params = {
-  documentId: string;
-  lastKnownSnapshotId?: string;
-  lastKnownUpdateServerVersion?: number;
-};
 
 export async function getDocument({
   documentId,
   lastKnownSnapshotId,
   lastKnownUpdateServerVersion,
-}: Params) {
+}: GetDocumentParams) {
   const doc = await prisma.document.findUnique({
     where: { id: documentId },
     include: {
