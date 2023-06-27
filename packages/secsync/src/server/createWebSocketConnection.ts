@@ -22,7 +22,7 @@ import { retryAsyncFunction } from "../utils/retryAsyncFunction";
 import { addConnection, addUpdate, removeConnection } from "./store";
 
 type GetDocumentResult = {
-  snapshot: SnapshotWithServerData;
+  snapshot?: SnapshotWithServerData;
   updates: UpdateWithServerData[];
   snapshotProofChain: {
     id: string;

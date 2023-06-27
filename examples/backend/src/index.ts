@@ -9,10 +9,9 @@ import express from "express";
 import { createServer } from "http";
 import { createWebSocketConnection } from "secsync";
 import { WebSocketServer } from "ws";
-import { createDocument } from "./database/createDocument";
 import { createSnapshot as createSnapshotDb } from "./database/createSnapshot";
 import { createUpdate as createUpdateDb } from "./database/createUpdate";
-import { getDocument as getDocumentDb } from "./database/getDocument";
+import { getOrCreateDocument as getOrCreateDocumentDb } from "./database/getOrCreateDocument";
 import { schema } from "./schema";
 
 async function main() {
@@ -43,14 +42,7 @@ async function main() {
   webSocketServer.on(
     "connection",
     createWebSocketConnection({
-      getDocument: async (params) => {
-        let doc = await getDocumentDb(params);
-        if (!doc) {
-          await createDocument(params.documentId);
-          doc = await getDocumentDb(params);
-        }
-        return doc;
-      },
+      getDocument: getOrCreateDocumentDb,
       createSnapshot: createSnapshotDb,
       createUpdate: createUpdateDb,
       hasAccess: async () => true,
