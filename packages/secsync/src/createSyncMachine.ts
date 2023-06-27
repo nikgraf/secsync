@@ -181,6 +181,7 @@ export const createSyncMachine = () =>
           | { type: "WEBSOCKET_DISCONNECTED" }
           | { type: "WEBSOCKET_DOCUMENT_NOT_FOUND" }
           | { type: "WEBSOCKET_UNAUTHORIZED" }
+          | { type: "WEBSOCKET_DOCUMENT_ERROR" }
           | { type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE"; data: any }
           | { type: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE"; data: any }
           | { type: "WEBSOCKET_RETRY" }
@@ -361,6 +362,7 @@ export const createSyncMachine = () =>
           on: {
             WEBSOCKET_DOCUMENT_NOT_FOUND: { target: "noAccess" },
             WEBSOCKET_UNAUTHORIZED: { target: "noAccess" },
+            WEBSOCKET_DOCUMENT_ERROR: { target: "failed" },
           },
 
           initial: "idle",

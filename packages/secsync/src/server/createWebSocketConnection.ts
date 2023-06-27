@@ -86,6 +86,12 @@ export const createWebSocketConnection =
           : undefined,
       });
 
+      if (!doc) {
+        connection.send(JSON.stringify({ type: "document-not-found" }));
+        connection.close();
+        return;
+      }
+
       addConnection(documentId, connection);
       connection.send(JSON.stringify({ type: "document", ...doc }));
 

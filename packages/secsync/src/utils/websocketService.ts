@@ -23,13 +23,14 @@ export const websocketService =
     const onWebsocketMessage = async (event: any) => {
       const data = JSON.parse(event.data);
       switch (data.type) {
-        case "documentNotFound":
-          // TODO stop reconnecting
+        case "document-not-found":
           send({ type: "WEBSOCKET_DOCUMENT_NOT_FOUND" });
           break;
         case "unauthorized":
-          // TODO stop reconnecting
-          send({ type: "UNAUTHORIZED" });
+          send({ type: "WEBSOCKET_UNAUTHORIZED" });
+          break;
+        case "document-error":
+          send({ type: "WEBSOCKET_DOCUMENT_ERROR" });
           break;
         case "document":
         case "snapshot":
@@ -54,12 +55,12 @@ export const websocketService =
     });
 
     websocketConnection.addEventListener("error", (event) => {
-      console.log("websocket error", event);
+      console.debug("websocket error", event);
       send({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
     websocketConnection.addEventListener("close", function (event) {
-      console.log("websocket closed");
+      console.debug("websocket closed");
       send({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
