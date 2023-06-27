@@ -7,7 +7,7 @@ import { dateToUint8Array } from "../utils/dateToUint8Array";
 import { prefixWithUint8Array } from "../utils/prefixWithUint8Array";
 
 export function createEphemeralUpdate(
-  content,
+  content: string | Uint8Array,
   publicData: EphemeralUpdatePublicData,
   key: Uint8Array,
   signatureKeyPair: KeyPair,

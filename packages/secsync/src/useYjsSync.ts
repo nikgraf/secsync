@@ -56,8 +56,8 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
           applyAwarenessUpdate(config.yAwareness, ephemeralUpdate, null);
         });
       },
-      serializeChanges: (updates: Uint8Array[]) =>
-        serializeUint8ArrayUpdates(updates, config.sodium),
+      serializeChanges: (changes: Uint8Array[]) =>
+        serializeUint8ArrayUpdates(changes, config.sodium),
       deserializeChanges: (serialized: string) =>
         deserializeUint8ArrayUpdates(serialized, config.sodium),
     },
@@ -66,7 +66,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
 
   useEffect(() => {
     // always listen to updates from the document itself
-    const onUpdate = (update, origin) => {
+    const onUpdate = (update: any, origin: any) => {
       if (origin?.key === "y-sync$" || origin === "mobile-webview") {
         send({ type: "ADD_CHANGES", data: [update] });
       }
@@ -79,7 +79,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
       return;
     }
 
-    const onAwarenessUpdate = ({ added, updated, removed }) => {
+    const onAwarenessUpdate = ({ added, updated, removed }: any) => {
       const changedClients = added.concat(updated).concat(removed);
       const yAwarenessUpdate = encodeAwarenessUpdate(
         yAwareness,

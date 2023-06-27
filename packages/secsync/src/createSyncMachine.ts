@@ -7,16 +7,14 @@ import {
   sendTo,
   spawn,
 } from "xstate";
-import { z } from "zod";
 import { hash } from "./crypto/hash";
+import { parseEphemeralUpdateWithServerData } from "./ephemeralUpdate/parseEphemeralUpdateWithServerData";
 import { verifyAndDecryptEphemeralUpdate } from "./ephemeralUpdate/verifyAndDecryptEphemeralUpdate";
 import { SecsyncProcessingEphemeralUpdateError } from "./errors";
 import { createInitialSnapshot } from "./snapshot/createInitialSnapshot";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { isValidAncestorSnapshot } from "./snapshot/isValidAncestorSnapshot";
-import { parseEphemeralUpdateWithServerData } from "./snapshot/parseEphemeralUpdateWithServerData";
 import { parseSnapshotWithServerData } from "./snapshot/parseSnapshotWithServerData";
-import { parseUpdatesWithServerData } from "./snapshot/parseUpdatesWithServerData";
 import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
   ParentSnapshotProofInfo,
@@ -26,8 +24,9 @@ import {
   UpdateWithServerData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { parseUpdatesWithServerData } from "./update/parseUpdatesWithServerData";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
-import { websocketService } from "./websocketService";
+import { websocketService } from "./utils/websocketService";
 
 // The sync machine is responsible for syncing the document with the server.
 // Specifically it is responsible for:
@@ -669,8 +668,7 @@ export const createSyncMachine = () =>
               console.debug("processSnapshot", rawSnapshot);
               const snapshot = parseSnapshotWithServerData(
                 rawSnapshot,
-                context.additionalAuthenticationDataValidations?.snapshot ??
-                  z.object({})
+                context.additionalAuthenticationDataValidations?.snapshot
               );
 
               const isValidCollaborator = await context.isValidCollaborator(
@@ -724,8 +722,7 @@ export const createSyncMachine = () =>
             ) => {
               const updates = parseUpdatesWithServerData(
                 rawUpdates,
-                context.additionalAuthenticationDataValidations?.update ??
-                  z.object({})
+                context.additionalAuthenticationDataValidations?.update
               );
               let changes: unknown[] = [];
 
@@ -882,8 +879,7 @@ export const createSyncMachine = () =>
                   if (event.snapshot) {
                     const snapshot = parseSnapshotWithServerData(
                       event.snapshot,
-                      context.additionalAuthenticationDataValidations
-                        ?.snapshot ?? z.object({})
+                      context.additionalAuthenticationDataValidations?.snapshot
                     );
 
                     if (activeSnapshotInfo) {
@@ -980,7 +976,7 @@ export const createSyncMachine = () =>
                     const ephemeralUpdate = parseEphemeralUpdateWithServerData(
                       event,
                       context.additionalAuthenticationDataValidations
-                        ?.ephemeralUpdate ?? z.object({})
+                        ?.ephemeralUpdate
                     );
 
                     const ephemeralUpdateKey =
@@ -1089,6 +1085,7 @@ export const createSyncMachine = () =>
                 documentDecryptionState,
               };
             } else {
+              // @ts-ignore fails on some environments and not in others
               error.documentDecryptionState = documentDecryptionState;
               throw error;
             }

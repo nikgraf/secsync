@@ -5,6 +5,7 @@ import {
   Snapshot,
   hash,
 } from "secsync";
+import { serializeSnapshot } from "../utils/serialize";
 import { prisma } from "./prisma";
 
 type ActiveSnapshotInfo = {
@@ -22,15 +23,12 @@ export async function createSnapshot({
   activeSnapshotInfo,
 }: CreateSnapshotParams) {
   return await prisma.$transaction(async (prisma) => {
-    const document = await prisma.document.findUnique({
+    const document = await prisma.document.findUniqueOrThrow({
       where: { id: snapshot.publicData.docId },
       select: {
         activeSnapshot: true,
       },
     });
-    if (!document) {
-      throw new Error("Document doesn't exist.");
-    }
 
     // function sleep(ms) {
     //   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -70,7 +68,7 @@ export async function createSnapshot({
       );
     }
 
-    return await prisma.snapshot.create({
+    const newSnapshot = await prisma.snapshot.create({
       data: {
         id: snapshot.publicData.snapshotId,
         latestVersion: 0,
@@ -86,5 +84,7 @@ export async function createSnapshot({
         parentSnapshotClocks: snapshot.publicData.parentSnapshotClocks,
       },
     });
+
+    return serializeSnapshot(newSnapshot);
   });
 }

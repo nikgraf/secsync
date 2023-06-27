@@ -114,7 +114,7 @@ const createTestEphemeralUpdate = () => {
 };
 
 it("should set _documentDecryptionState to failed if not even the snapshot can be loaded", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
 
@@ -178,7 +178,7 @@ it("should set _documentDecryptionState to failed if not even the snapshot can b
 });
 
 it("should set _documentDecryptionState to partial and apply the first update, if document snapshot decrypts but the second update fails", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
 
@@ -245,7 +245,7 @@ it("should set _documentDecryptionState to partial and apply the first update, i
 });
 
 it("should set _documentDecryptionState to partial, if document snapshot decrypts but the first update fails", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
 
@@ -309,7 +309,7 @@ it("should set _documentDecryptionState to partial, if document snapshot decrypt
 });
 
 it("should process three additional ephemeral updates where the second one fails", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
   let ephemeralUpdatesValue = new Uint8Array();
@@ -414,7 +414,7 @@ it("should process three additional ephemeral updates where the second one fails
 });
 
 it("should store not more than 20 failed ephemeral update errors", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
   let ephemeralUpdatesValue = new Uint8Array();
@@ -508,7 +508,7 @@ it("should store not more than 20 failed ephemeral update errors", (done) => {
 });
 
 it("should reset the context entries after websocket disconnect", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
   let ephemeralUpdatesValue = new Uint8Array();
@@ -598,7 +598,7 @@ it("should reset the context entries after websocket disconnect", (done) => {
 });
 
 it("should reconnect and reload the document", (done) => {
-  const websocketServiceMock = (context) => () => {};
+  const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
   let ephemeralUpdatesValue = new Uint8Array();

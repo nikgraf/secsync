@@ -3,9 +3,10 @@ import { EphemeralUpdate } from "../types";
 
 export const parseEphemeralUpdateWithServerData = (
   ephemeralUpdate: any,
-  AdditionalValidation: SomeZodObject
+  AdditionalValidation?: SomeZodObject
 ) => {
   const rawEphemeralUpdate = EphemeralUpdate.parse(ephemeralUpdate);
+  if (AdditionalValidation === undefined) return rawEphemeralUpdate;
   const additionalData = AdditionalValidation.parse(ephemeralUpdate.publicData);
   return {
     ...rawEphemeralUpdate,

@@ -12,6 +12,7 @@ export function prefixWithUint8Array(
     result.set(prefix);
     result.set(valueUint8Array, prefix.length);
 
+    // @ts-ignore fails on some environments and not in others
     return String.fromCharCode.apply(null, result);
   } else {
     const result = new Uint8Array(prefix.length + value.length);

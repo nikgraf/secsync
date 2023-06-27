@@ -1,8 +1,8 @@
-import { createEphemeralUpdate } from "./ephemeralUpdate/createEphemeralUpdate";
-import { SyncMachineConfig } from "./types";
+import { createEphemeralUpdate } from "../ephemeralUpdate/createEphemeralUpdate";
+import { SyncMachineConfig } from "../types";
 
 export const websocketService =
-  (context: SyncMachineConfig) => (send, onReceive) => {
+  (context: SyncMachineConfig) => (send: any, onReceive: any) => {
     let connected = false;
 
     // timeout the connection try after 5 seconds
@@ -20,7 +20,7 @@ export const websocketService =
       `${context.websocketHost}/${context.documentId}?sessionKey=${context.websocketSessionKey}${knownSnapshotIdParam}`
     );
 
-    const onWebsocketMessage = async (event) => {
+    const onWebsocketMessage = async (event: any) => {
       const data = JSON.parse(event.data);
       switch (data.type) {
         case "documentNotFound":
@@ -61,17 +61,9 @@ export const websocketService =
     websocketConnection.addEventListener("close", function (event) {
       console.log("websocket closed");
       send({ type: "WEBSOCKET_DISCONNECTED" });
-      // remove the awareness states of everyone else
-      // removeAwarenessStates(
-      //   yAwarenessRef.current,
-      //   Array.from(yAwarenessRef.current.getStates().keys()).filter(
-      //     (client) => client !== yDocRef.current.clientID
-      //   ),
-      //   "TODOprovider"
-      // );
     });
 
-    onReceive((event) => {
+    onReceive((event: any) => {
       if (event.type === "SEND") {
         websocketConnection.send(event.message);
       }
@@ -111,7 +103,7 @@ export const websocketService =
 
     return () => {
       // TODO remove event listeners? is this necessary?
-      console.log("CLOSE WEBSOCKET");
+      console.debug("CLOSE WEBSOCKET");
       websocketConnection.close();
     };
   };

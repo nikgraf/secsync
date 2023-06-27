@@ -10,7 +10,8 @@
     "esModuleInterop": true,
     "types": [],
     "jsx": "react",
-    "noEmit": false
+    "noEmit": false,
+    "strict": true
   },
   "exclude": ["node_modules", "dist"]
 }
