@@ -10,8 +10,8 @@ import {
   UpdateWithServerData,
   parseSnapshotWithClientData,
 } from "secsync";
+import { URL } from "url";
 import { WebSocket } from "ws";
-
 import { parseEphemeralUpdate } from "../ephemeralUpdate/parseEphemeralUpdate";
 import { parseUpdate } from "../update/parseUpdate";
 import { retryAsyncFunction } from "../utils/retryAsyncFunction";
@@ -39,13 +39,32 @@ type WebsocketConnectionParams = {
   ): Promise<UpdateWithServerData>;
 };
 
+function extractQueryParam(url: string, param: string): string | null {
+  const urlObject = new URL(url);
+  return urlObject.searchParams.get(param);
+}
+
 export const createWebSocketConnection =
   ({ getDocument, createSnapshot, createUpdate }: WebsocketConnectionParams) =>
   async (connection: WebSocket, request: IncomingMessage) => {
+    const url = request.url;
+    if (url === undefined) {
+      connection.close();
+      return;
+    }
     const documentId = request.url?.slice(1)?.split("?")[0] || "";
+    const lastKnownSnapshotId = extractQueryParam(url, "lastKnownSnapshotId");
+    const latestServerVersion = extractQueryParam(url, "latestServerVersion");
 
-    // TODO allow lastKnownSnapshotId & latestServerVersion to be passed in as a query param
-    const doc = await getDocument({ documentId });
+    const doc = await getDocument({
+      documentId,
+      lastKnownSnapshotId: lastKnownSnapshotId
+        ? lastKnownSnapshotId
+        : undefined,
+      lastKnownUpdateServerVersion: latestServerVersion
+        ? parseInt(latestServerVersion, 10)
+        : undefined,
+    });
 
     addConnection(documentId, connection);
     connection.send(JSON.stringify({ type: "document", ...doc }));
