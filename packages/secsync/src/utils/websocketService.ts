@@ -103,7 +103,6 @@ export const websocketService =
     });
 
     return () => {
-      // TODO remove event listeners? is this necessary?
       console.debug("CLOSE WEBSOCKET");
       websocketConnection.close();
     };

@@ -234,7 +234,6 @@ export const createWebSocketConnection =
             //   throw new Error("CUSTOM ERROR");
             // }
 
-            // TODO add a smart queue to create an offset based on the version?
             savedUpdate = await retryAsyncFunction(
               () =>
                 createUpdate({
