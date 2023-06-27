@@ -6,7 +6,7 @@ It was created out of the need to have an end-to-end encrypted protocol to allow
 
 **WARNING**: This is a rough prototype! A production ready implementation is planned after an initial round of feedback.
 
-## Demos
+## Examples
 
 - End-to-end encrypted document using [Yjs](https://github.com/yjs/yjs) incl. Cursor Awareness
 - End-to-end encrypted todo list using [Automerge](https://github.com/automerge/automerge)
@@ -176,22 +176,22 @@ This highly depends on the use-case e.g. the amount of data per update and frequ
 
 If you have any further ideas or suggestions please let us know.
 
-## Setup and Run the Demo
+## Setup and Run the Example
 
 ```sh
 yarn
-cp demos/backend/.env.example demos/backend/.env
+cp examples/backend/.env.example examples/backend/.env
 docker-compose up
 # in another tab
-cd demos/backend
+cd examples/backend
 yarn prisma migrate dev
 yarn dev
 # in another tab
-cd demos/frontend
+cd examples/frontend
 yarn dev
 ```
 
-## Run the Demo with ngrok
+## Run the example with ngrok
 
 ```sh
 # get your authtoken from https://dashboard.ngrok.com/get-started/your-authtoken

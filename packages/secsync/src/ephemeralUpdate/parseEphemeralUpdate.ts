@@ -1,11 +1,11 @@
 import { SomeZodObject } from "zod";
-import { Update } from "../types";
+import { EphemeralUpdate } from "../types";
 
 export const parseEphemeralUpdate = (
   ephemeralUpdate: any,
   AdditionalValidation?: SomeZodObject
 ) => {
-  const rawEphemeralUpdate = Update.parse(ephemeralUpdate);
+  const rawEphemeralUpdate = EphemeralUpdate.parse(ephemeralUpdate);
   if (AdditionalValidation === undefined) return rawEphemeralUpdate;
   const additionalData = AdditionalValidation.parse(ephemeralUpdate.publicData);
   return {

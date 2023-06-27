@@ -1,11 +1,7 @@
-import { Update } from "secsync";
+import { CreateUpdateParams } from "secsync";
 import { Prisma } from "../../prisma/generated/output";
 import { serializeUpdate } from "../utils/serialize";
 import { prisma } from "./prisma";
-
-type CreateUpdateParams = {
-  update: Update;
-};
 
 export async function createUpdate({ update }: CreateUpdateParams) {
   return await prisma.$transaction(async (prisma) => {

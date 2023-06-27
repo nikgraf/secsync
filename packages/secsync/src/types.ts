@@ -136,7 +136,7 @@ type KnownSnapshotInfo = SnapshotProofChainEntry & {
   id: string;
 };
 
-type AdditionalAuthenticationDataValidations = {
+export type AdditionalAuthenticationDataValidations = {
   snapshot?: z.SomeZodObject;
   update?: z.SomeZodObject;
   ephemeralUpdate?: z.SomeZodObject;
@@ -174,4 +174,22 @@ export type SyncMachineConfig = {
   onCustomMessage?: (message: any) => Promise<void> | void;
   knownSnapshotInfo?: KnownSnapshotInfo;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
+};
+
+export type CreateSnapshotParams = {
+  snapshot: SnapshotWithClientData;
+  activeSnapshotInfo?: {
+    latestVersion: number;
+    snapshotId: string;
+  };
+};
+
+export type CreateUpdateParams = {
+  update: Update;
+};
+
+export type GetDocumentParams = {
+  documentId: string;
+  lastKnownSnapshotId?: string;
+  lastKnownUpdateServerVersion?: number;
 };

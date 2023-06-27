@@ -21,7 +21,7 @@ export default function Home() {
         <a href="https://github.com/serenity-kit/secsync">
           https://github.com/serenity-kit/secsync
         </a>
-        <h2>Document Demo (Yjs + Prosemirror)</h2>
+        <h2>Document Example (Yjs + Prosemirror)</h2>
         <button
           onClick={() => {
             router.push(
@@ -33,7 +33,7 @@ export default function Home() {
         >
           Create new Document
         </button>
-        <h2>Document Demo (Yjs + Tiptap)</h2>
+        <h2>Document Example (Yjs + Tiptap)</h2>
         <button
           onClick={() => {
             router.push(
@@ -45,7 +45,7 @@ export default function Home() {
         >
           Create new Document
         </button>
-        <h2>Todos Demo (Automerge)</h2>
+        <h2>Todos Example (Automerge)</h2>
         <button
           onClick={() => {
             router.push(

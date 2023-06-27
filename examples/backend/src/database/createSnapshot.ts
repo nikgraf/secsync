@@ -1,22 +1,12 @@
 import sodium from "libsodium-wrappers";
 import {
+  CreateSnapshotParams,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
   SecsyncSnapshotMissesUpdatesError,
-  Snapshot,
   hash,
 } from "secsync";
 import { serializeSnapshot } from "../utils/serialize";
 import { prisma } from "./prisma";
-
-type ActiveSnapshotInfo = {
-  latestVersion: number;
-  snapshotId: string;
-};
-
-type CreateSnapshotParams = {
-  snapshot: Snapshot;
-  activeSnapshotInfo?: ActiveSnapshotInfo;
-};
 
 export async function createSnapshot({
   snapshot,

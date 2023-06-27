@@ -2,7 +2,7 @@
   "name": "secsync-monorepo",
   "private": true,
   "workspaces": [
-    "demos/*",
+    "examples/*",
     "packages/*",
     "benchmarks/*"
   ],
