@@ -1,4 +1,4 @@
-# Secsync
+# secsync
 
 Is an architecture to relay end-to-end encrypted CRDTs over a central service.
 
