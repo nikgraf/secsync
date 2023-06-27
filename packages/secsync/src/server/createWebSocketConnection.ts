@@ -1,18 +1,21 @@
 import { IncomingMessage } from "http";
+import { parse as parseUrl } from "url";
+import { WebSocket } from "ws";
+import { parseEphemeralUpdate } from "../ephemeralUpdate/parseEphemeralUpdate";
 import {
-  CreateSnapshotParams,
-  CreateUpdateParams,
-  GetDocumentParams,
   SecsyncNewSnapshotRequiredError,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
   SecsyncSnapshotMissesUpdatesError,
+} from "../errors";
+import { parseSnapshotWithClientData } from "../snapshot/parseSnapshotWithClientData";
+import {
+  AdditionalAuthenticationDataValidations,
+  CreateSnapshotParams,
+  CreateUpdateParams,
+  GetDocumentParams,
   SnapshotWithServerData,
   UpdateWithServerData,
-  parseSnapshotWithClientData,
-} from "secsync";
-import { URL } from "url";
-import { WebSocket } from "ws";
-import { parseEphemeralUpdate } from "../ephemeralUpdate/parseEphemeralUpdate";
+} from "../types";
 import { parseUpdate } from "../update/parseUpdate";
 import { retryAsyncFunction } from "../utils/retryAsyncFunction";
 import { addConnection, addUpdate, removeConnection } from "./store";
@@ -37,32 +40,35 @@ type WebsocketConnectionParams = {
   createUpdate(
     createUpdateParams: CreateUpdateParams
   ): Promise<UpdateWithServerData>;
+  additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
 };
 
-function extractQueryParam(url: string, param: string): string | null {
-  const urlObject = new URL(url);
-  return urlObject.searchParams.get(param);
-}
-
 export const createWebSocketConnection =
-  ({ getDocument, createSnapshot, createUpdate }: WebsocketConnectionParams) =>
+  ({
+    getDocument,
+    createSnapshot,
+    createUpdate,
+    additionalAuthenticationDataValidations,
+  }: WebsocketConnectionParams) =>
   async (connection: WebSocket, request: IncomingMessage) => {
-    const url = request.url;
-    if (url === undefined) {
+    if (request.url === undefined) {
       connection.close();
       return;
     }
+    const urlParts = parseUrl(request.url, true);
     const documentId = request.url?.slice(1)?.split("?")[0] || "";
-    const lastKnownSnapshotId = extractQueryParam(url, "lastKnownSnapshotId");
-    const latestServerVersion = extractQueryParam(url, "latestServerVersion");
 
     const doc = await getDocument({
       documentId,
-      lastKnownSnapshotId: lastKnownSnapshotId
-        ? lastKnownSnapshotId
-        : undefined,
-      lastKnownUpdateServerVersion: latestServerVersion
-        ? parseInt(latestServerVersion, 10)
+      lastKnownSnapshotId: Array.isArray(urlParts.query.lastKnownSnapshotId)
+        ? urlParts.query.lastKnownSnapshotId[0]
+        : urlParts.query.lastKnownSnapshotId,
+      lastKnownUpdateServerVersion: Array.isArray(
+        urlParts.query.latestServerVersion
+      )
+        ? parseInt(urlParts.query.latestServerVersion[0], 10)
+        : urlParts.query.latestServerVersion
+        ? parseInt(urlParts.query.latestServerVersion, 10)
         : undefined,
     });
 
@@ -74,7 +80,10 @@ export const createWebSocketConnection =
 
       // new snapshot
       if (data?.publicData?.snapshotId) {
-        const snapshotMessage = parseSnapshotWithClientData(data);
+        const snapshotMessage = parseSnapshotWithClientData(
+          data,
+          additionalAuthenticationDataValidations?.snapshot
+        );
         try {
           const activeSnapshotInfo =
             snapshotMessage.lastKnownSnapshotId &&
@@ -176,7 +185,10 @@ export const createWebSocketConnection =
         }
         // new update
       } else if (data?.publicData?.refSnapshotId) {
-        const updateMessage = parseUpdate(data);
+        const updateMessage = parseUpdate(
+          data,
+          additionalAuthenticationDataValidations?.update
+        );
         let savedUpdate: undefined | UpdateWithServerData = undefined;
         try {
           // const random = Math.floor(Math.random() * 10);
@@ -221,7 +233,10 @@ export const createWebSocketConnection =
         }
         // new ephemeral update
       } else {
-        const ephemeralUpdateMessage = parseEphemeralUpdate(data);
+        const ephemeralUpdateMessage = parseEphemeralUpdate(
+          data,
+          additionalAuthenticationDataValidations?.ephemeralUpdate
+        );
         // TODO check if user still has access to the document
         addUpdate(
           documentId,

@@ -136,7 +136,7 @@ type KnownSnapshotInfo = SnapshotProofChainEntry & {
   id: string;
 };
 
-type AdditionalAuthenticationDataValidations = {
+export type AdditionalAuthenticationDataValidations = {
   snapshot?: z.SomeZodObject;
   update?: z.SomeZodObject;
   ephemeralUpdate?: z.SomeZodObject;
