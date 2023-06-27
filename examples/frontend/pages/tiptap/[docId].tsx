@@ -40,7 +40,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     documentId: docId,
     signatureKeyPair: authorKeyPair,
     websocketHost,
-    websocketSessionKey: "TODO",
+    websocketSessionKey: "your-secret-session-key",
     onSnapshotSaved: async () => {
       // snapshotKeyRef.current = snapshotInFlightKeyRef.current;
       // snapshotInFlightKeyRef.current = null;
@@ -49,7 +49,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       const snapshotId = generateId(sodium);
       return {
         id: snapshotId,
-        data: Yjs.encodeStateAsUpdate(yDocRef.current),
+        data: Yjs.encodeStateAsUpdateV2(yDocRef.current),
         key: documentKey,
         publicData: {},
       };

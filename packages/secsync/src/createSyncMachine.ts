@@ -181,6 +181,7 @@ export const createSyncMachine = () =>
           | { type: "WEBSOCKET_DISCONNECTED" }
           | { type: "WEBSOCKET_DOCUMENT_NOT_FOUND" }
           | { type: "WEBSOCKET_UNAUTHORIZED" }
+          | { type: "WEBSOCKET_DOCUMENT_ERROR" }
           | { type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE"; data: any }
           | { type: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE"; data: any }
           | { type: "WEBSOCKET_RETRY" }
@@ -361,6 +362,7 @@ export const createSyncMachine = () =>
           on: {
             WEBSOCKET_DOCUMENT_NOT_FOUND: { target: "noAccess" },
             WEBSOCKET_UNAUTHORIZED: { target: "noAccess" },
+            WEBSOCKET_DOCUMENT_ERROR: { target: "failed" },
           },
 
           initial: "idle",
@@ -855,14 +857,14 @@ export const createSyncMachine = () =>
 
                   break;
 
-                case "snapshotSaved":
+                case "snapshot-saved":
                   console.log("snapshot saved", event);
                   // in case the event is received for a snapshot that was not active in sending
                   // we remove the activeSendingSnapshotInfo since any activeSendingSnapshotInfo
                   // that is in flight will fail
                   if (event.snapshotId !== activeSendingSnapshotInfo?.id) {
                     throw new Error(
-                      "Received snapshotSaved for other than the current activeSendingSnapshotInfo"
+                      "Received snapshot-saved for other than the current activeSendingSnapshotInfo"
                     );
                   }
                   activeSnapshotInfo = activeSendingSnapshotInfo;
@@ -874,7 +876,7 @@ export const createSyncMachine = () =>
                     context.onSnapshotSaved();
                   }
                   break;
-                case "snapshotFailed": // TODO rename to snapshotSaveFailed or similar
+                case "snapshot-save-failed": // TODO rename to snapshotSaveFailed or similar
                   console.log("snapshot saving failed", event);
                   if (event.snapshot) {
                     const snapshot = parseSnapshotWithServerData(
@@ -898,7 +900,7 @@ export const createSyncMachine = () =>
                       });
                       if (!isValid) {
                         throw new Error(
-                          "Invalid ancestor snapshot after snapshotFailed event"
+                          "Invalid ancestor snapshot after snapshot-save-failed event"
                         );
                       }
                     }
@@ -919,7 +921,7 @@ export const createSyncMachine = () =>
                 case "update":
                   await processUpdates([event]);
                   break;
-                case "updateSaved":
+                case "update-saved":
                   console.debug("update saved", event);
                   latestServerVersion = event.serverVersion;
                   confirmedUpdatesClock = event.clock;
@@ -928,7 +930,7 @@ export const createSyncMachine = () =>
                   );
 
                   break;
-                case "updateFailed":
+                case "update-save-failed":
                   console.log(
                     "update saving failed",
                     event.snapshotId,
@@ -971,7 +973,7 @@ export const createSyncMachine = () =>
                   }
 
                   break;
-                case "ephemeralUpdate":
+                case "ephemeral-update":
                   try {
                     const ephemeralUpdate = parseEphemeralUpdateWithServerData(
                       event,

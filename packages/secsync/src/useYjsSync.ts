@@ -44,11 +44,15 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
     context: {
       ...rest,
       applySnapshot: (decryptedSnapshotData) => {
-        Yjs.applyUpdate(config.yDoc, decryptedSnapshotData, "sec-sync-remote");
+        Yjs.applyUpdateV2(
+          config.yDoc,
+          decryptedSnapshotData,
+          "sec-sync-remote"
+        );
       },
       applyChanges: (decryptedChanges) => {
         decryptedChanges.map((change) => {
-          Yjs.applyUpdate(config.yDoc, change, "sec-sync-remote");
+          Yjs.applyUpdateV2(config.yDoc, change, "sec-sync-remote");
         });
       },
       applyEphemeralUpdates: (decryptedEphemeralUpdates) => {
@@ -72,7 +76,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
       }
     };
     // TODO switch to v2 updates
-    yDoc.on("update", onUpdate);
+    yDoc.on("updateV2", onUpdate);
 
     // only connect the awareness after the document loaded
     if (state.context._documentDecryptionState !== "complete") {

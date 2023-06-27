@@ -35,7 +35,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     documentId: docId,
     signatureKeyPair: authorKeyPair,
     websocketHost,
-    websocketSessionKey: "TODO",
+    websocketSessionKey: "your-secret-session-key",
     onSnapshotSaved: async () => {
       // snapshotInFlightKeyRef.current = null;
     },

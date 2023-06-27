@@ -49,6 +49,7 @@ export interface Typegen0 {
     stopWebsocketActor:
       | "DISCONNECT"
       | "WEBSOCKET_DISCONNECTED"
+      | "WEBSOCKET_DOCUMENT_ERROR"
       | "WEBSOCKET_DOCUMENT_NOT_FOUND"
       | "WEBSOCKET_UNAUTHORIZED"
       | "error.platform.processQueues";

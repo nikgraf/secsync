@@ -13,6 +13,7 @@ import {
   CreateSnapshotParams,
   CreateUpdateParams,
   GetDocumentParams,
+  HasAccessParams,
   SnapshotWithServerData,
   UpdateWithServerData,
 } from "../types";
@@ -21,7 +22,7 @@ import { retryAsyncFunction } from "../utils/retryAsyncFunction";
 import { addConnection, addUpdate, removeConnection } from "./store";
 
 type GetDocumentResult = {
-  snapshot: SnapshotWithServerData;
+  snapshot?: SnapshotWithServerData;
   updates: UpdateWithServerData[];
   snapshotProofChain: {
     id: string;
@@ -40,6 +41,7 @@ type WebsocketConnectionParams = {
   createUpdate(
     createUpdateParams: CreateUpdateParams
   ): Promise<UpdateWithServerData>;
+  hasAccess(hasAccessParams: HasAccessParams): Promise<boolean>;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
 };
 
@@ -48,6 +50,7 @@ export const createWebSocketConnection =
     getDocument,
     createSnapshot,
     createUpdate,
+    hasAccess,
     additionalAuthenticationDataValidations,
   }: WebsocketConnectionParams) =>
   async (connection: WebSocket, request: IncomingMessage) => {
@@ -72,6 +75,13 @@ export const createWebSocketConnection =
         return;
       }
 
+      const documentAccess = await hasAccess({ action: "read", documentId });
+      if (!documentAccess) {
+        connection.send(JSON.stringify({ type: "unauthorized" }));
+        connection.close();
+        return;
+      }
+
       const doc = await getDocument({
         documentId,
         lastKnownSnapshotId: Array.isArray(urlParts.query.lastKnownSnapshotId)
@@ -86,6 +96,12 @@ export const createWebSocketConnection =
           : undefined,
       });
 
+      if (!doc) {
+        connection.send(JSON.stringify({ type: "document-not-found" }));
+        connection.close();
+        return;
+      }
+
       addConnection(documentId, connection);
       connection.send(JSON.stringify({ type: "document", ...doc }));
 
@@ -94,6 +110,16 @@ export const createWebSocketConnection =
 
         // new snapshot
         if (data?.publicData?.snapshotId) {
+          const documentAccess = await hasAccess({
+            action: "write-snapshot",
+            documentId,
+          });
+          if (!documentAccess) {
+            connection.send(JSON.stringify({ type: "unauthorized" }));
+            connection.close();
+            return;
+          }
+
           const snapshotMessage = parseSnapshotWithClientData(
             data,
             additionalAuthenticationDataValidations?.snapshot
@@ -113,7 +139,7 @@ export const createWebSocketConnection =
             });
             connection.send(
               JSON.stringify({
-                type: "snapshotSaved",
+                type: "snapshot-saved",
                 snapshotId: snapshot.publicData.snapshotId,
               })
             );
@@ -141,7 +167,7 @@ export const createWebSocketConnection =
               if (document) {
                 connection.send(
                   JSON.stringify({
-                    type: "snapshotFailed",
+                    type: "snapshot-save-failed",
                     snapshot: document.snapshot,
                     updates: document.updates,
                     snapshotProofChain: document.snapshotProofChain,
@@ -162,7 +188,7 @@ export const createWebSocketConnection =
               if (document) {
                 connection.send(
                   JSON.stringify({
-                    type: "snapshotFailed",
+                    type: "snapshot-save-failed",
                     updates: document.updates,
                   })
                 );
@@ -176,7 +202,7 @@ export const createWebSocketConnection =
             } else if (error instanceof SecsyncNewSnapshotRequiredError) {
               connection.send(
                 JSON.stringify({
-                  type: "snapshotFailed",
+                  type: "snapshot-save-failed",
                 })
               );
             } else {
@@ -187,6 +213,16 @@ export const createWebSocketConnection =
           }
           // new update
         } else if (data?.publicData?.refSnapshotId) {
+          const documentAccess = await hasAccess({
+            action: "write-update",
+            documentId,
+          });
+          if (!documentAccess) {
+            connection.send(JSON.stringify({ type: "unauthorized" }));
+            connection.close();
+            return;
+          }
+
           const updateMessage = parseUpdate(
             data,
             additionalAuthenticationDataValidations?.update
@@ -198,7 +234,6 @@ export const createWebSocketConnection =
             //   throw new Error("CUSTOM ERROR");
             // }
 
-            // TODO add a smart queue to create an offset based on the version?
             savedUpdate = await retryAsyncFunction(
               () =>
                 createUpdate({
@@ -212,7 +247,7 @@ export const createWebSocketConnection =
 
             connection.send(
               JSON.stringify({
-                type: "updateSaved",
+                type: "update-saved",
                 snapshotId: savedUpdate.publicData.refSnapshotId,
                 clock: savedUpdate.publicData.clock,
                 serverVersion: savedUpdate.serverData.version,
@@ -228,7 +263,7 @@ export const createWebSocketConnection =
             if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(
                 JSON.stringify({
-                  type: "updateFailed",
+                  type: "update-save-failed",
                   snapshotId: data.publicData.refSnapshotId,
                   clock: data.publicData.clock,
                   requiresNewSnapshot:
@@ -239,14 +274,23 @@ export const createWebSocketConnection =
           }
           // new ephemeral update
         } else {
+          const documentAccess = await hasAccess({
+            action: "send-ephemeral-update",
+            documentId,
+          });
+          if (!documentAccess) {
+            connection.send(JSON.stringify({ type: "unauthorized" }));
+            connection.close();
+            return;
+          }
+
           const ephemeralUpdateMessage = parseEphemeralUpdate(
             data,
             additionalAuthenticationDataValidations?.ephemeralUpdate
           );
-          // TODO check if user still has access to the document
           addUpdate(
             documentId,
-            { ...ephemeralUpdateMessage, type: "ephemeralUpdate" },
+            { ...ephemeralUpdateMessage, type: "ephemeral-update" },
             connection
           );
         }

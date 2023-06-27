@@ -725,7 +725,7 @@ it("should load a document and process three additional ephemeral updates", (don
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
       ...ephemeralUpdate,
-      type: "ephemeralUpdate",
+      type: "ephemeral-update",
     },
   });
   setTimeout(() => {
@@ -734,7 +734,7 @@ it("should load a document and process three additional ephemeral updates", (don
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
         ...ephemeralUpdate2,
-        type: "ephemeralUpdate",
+        type: "ephemeral-update",
       },
     });
     setTimeout(() => {
@@ -743,7 +743,7 @@ it("should load a document and process three additional ephemeral updates", (don
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
           ...ephemeralUpdate3,
-          type: "ephemeralUpdate",
+          type: "ephemeral-update",
         },
       });
     }, 1);

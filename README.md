@@ -149,7 +149,7 @@ Yes. You can fetch the essential data (document ID and CRDT document) and upload
 It will receive a new snapshot which will be merged into the local data.
 
 - Automerge: `doc2 = Automerge.merge(doc2, doc1)`
-- Yjs: `Yjs.applyUpdate(yDocRef.current, snapshotResult, null);`
+- Yjs: `Yjs.applyUpdateV2(yDocRef.current, snapshotResult, null);`
 
 ### Why not just use the Signal Protocol, MLS or Olm/MegOlm?
 

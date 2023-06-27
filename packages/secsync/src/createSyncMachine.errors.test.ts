@@ -384,7 +384,7 @@ it("should process three additional ephemeral updates where the second one fails
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
       ...ephemeralUpdate,
-      type: "ephemeralUpdate",
+      type: "ephemeral-update",
     },
   });
   setTimeout(() => {
@@ -397,7 +397,7 @@ it("should process three additional ephemeral updates where the second one fails
           ...ephemeralUpdate2.publicData,
           docId: "wrongDocId",
         },
-        type: "ephemeralUpdate",
+        type: "ephemeral-update",
       },
     });
     setTimeout(() => {
@@ -406,7 +406,7 @@ it("should process three additional ephemeral updates where the second one fails
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
           ...ephemeralUpdate3,
-          type: "ephemeralUpdate",
+          type: "ephemeral-update",
         },
       });
     }, 1);
@@ -490,7 +490,7 @@ it("should store not more than 20 failed ephemeral update errors", (done) => {
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
         ...ephemeralUpdate,
-        type: "ephemeralUpdate",
+        type: "ephemeral-update",
       },
     });
   }
@@ -501,7 +501,7 @@ it("should store not more than 20 failed ephemeral update errors", (done) => {
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
         ...ephemeralUpdate2,
-        type: "ephemeralUpdate",
+        type: "ephemeral-update",
       },
     });
   }, 1);
