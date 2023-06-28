@@ -171,7 +171,7 @@ This highly depends on the use-case e.g. the amount of data per update and frequ
 ## Possible Improvements in the Future
 
 - Add optional read notifications. From a UX perspective there can be value in being aware who has received which updates. From the perspective of the thread model it can be a tool to identify if the central relay service is excluding a collaborator.
-- Using a cryptographic ratchet based on a [key derivation function (KDF)](https://en.wikipedia.org/wiki/Key_derivation_function) for updates to ensure [Forward Secrecy](https://en.wikipedia.org/wiki/Forward_secrecy).
+- Using a cryptographic ratchet based on a [key derivation function (KDF)](https://en.wikipedia.org/wiki/Key_derivation_function)
 - Leverage Zero-knowledge proofs to hide meta data. Inspired by [Signal's Private Group feature](https://signal.org/blog/private-groups/).
 
 If you have any further ideas or suggestions please let us know.
