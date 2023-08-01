@@ -17,7 +17,5 @@ export * from "./snapshot/verifyAndDecryptSnapshot";
 export * from "./types";
 export * from "./update/createUpdate";
 export * from "./update/verifyAndDecryptUpdate";
-export * from "./useAutomergeSync";
-export * from "./useYjsSync";
 export * from "./utils/deserializeUint8ArrayUpdates";
 export * from "./utils/serializeUint8ArrayUpdates";

@@ -7,7 +7,8 @@ import { keymap } from "prosemirror-keymap";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import { useEffect, useRef, useState } from "react";
-import { generateId, useYjsSync } from "secsync";
+import { generateId } from "secsync";
+import { useYjsSync } from "secsync-react-yjs";
 import {
   redo,
   undo,

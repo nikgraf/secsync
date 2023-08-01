@@ -6,7 +6,8 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-import { generateId, useYjsSync } from "secsync";
+import { generateId } from "secsync";
+import { useYjsSync } from "secsync-react-yjs";
 import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 

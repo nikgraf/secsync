@@ -5,7 +5,8 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
-import { generateId, useAutomergeSync } from "secsync";
+import { generateId } from "secsync";
+import { useAutomergeSync } from "secsync-react-automerge";
 import { v4 as uuidv4 } from "uuid";
 
 type TodoType = {
