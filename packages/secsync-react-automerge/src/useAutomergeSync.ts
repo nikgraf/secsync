@@ -2,10 +2,12 @@ import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
 import { useMachine } from "@xstate/react";
 import { useCallback, useRef, useState } from "react";
-import { createSyncMachine } from "./createSyncMachine";
-import { SyncMachineConfig } from "./types";
-import { deserializeUint8ArrayUpdates } from "./utils/deserializeUint8ArrayUpdates";
-import { serializeUint8ArrayUpdates } from "./utils/serializeUint8ArrayUpdates";
+import {
+  SyncMachineConfig,
+  createSyncMachine,
+  deserializeUint8ArrayUpdates,
+  serializeUint8ArrayUpdates,
+} from "secsync";
 
 export type AutomergeSyncConfig<T> = Omit<
   SyncMachineConfig,

@@ -1,16 +1,18 @@
 import { useMachine } from "@xstate/react";
 import { useEffect, useState } from "react";
 import {
+  SyncMachineConfig,
+  createSyncMachine,
+  deserializeUint8ArrayUpdates,
+  serializeUint8ArrayUpdates,
+} from "secsync";
+import {
   Awareness,
   applyAwarenessUpdate,
   encodeAwarenessUpdate,
   removeAwarenessStates,
 } from "y-protocols/awareness";
 import * as Yjs from "yjs";
-import { createSyncMachine } from "./createSyncMachine";
-import { SyncMachineConfig } from "./types";
-import { deserializeUint8ArrayUpdates } from "./utils/deserializeUint8ArrayUpdates";
-import { serializeUint8ArrayUpdates } from "./utils/serializeUint8ArrayUpdates";
 
 export type YjsSyncMachineConfig = Omit<
   SyncMachineConfig,
