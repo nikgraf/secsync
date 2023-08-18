@@ -207,7 +207,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
   );
 };
 
-export default function DocumentPage() {
+const DocumentPage: React.FC = () => {
   const router = useRouter();
   const [libsodiumIsReady, setLibsodiumIsReady] = useState(false);
 
@@ -225,4 +225,6 @@ export default function DocumentPage() {
     return null;
 
   return <Document docId={docId} />;
-}
+};
+
+export default DocumentPage;

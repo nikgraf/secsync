@@ -3,7 +3,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { v4 as uuidv4 } from "uuid";
 
-export default function Home() {
+const Home: React.FC = () => {
   const router = useRouter();
 
   return (
@@ -60,4 +60,6 @@ export default function Home() {
       </main>
     </>
   );
-}
+};
+
+export default Home;
