@@ -11,13 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3 # needed until 18 becomes the default
+      - uses: pnpm/action-setup@v2
         with:
-          node-version: 18
-          cache: yarn
+          version: 8
       - name: Build
         working-directory: ./examples/backend
-        run: yarn build
+        run: pnpm build
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --remote-only ./examples/backend
         env:

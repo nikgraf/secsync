@@ -179,16 +179,16 @@ If you have any further ideas or suggestions please let us know.
 ## Setup and Run the Example
 
 ```sh
-yarn
+pnpm install
 cp examples/backend/.env.example examples/backend/.env
 docker-compose up
 # in another tab
 cd examples/backend
-yarn prisma migrate dev
-yarn dev
+pnpm prisma migrate dev
+pnpm dev
 # in another tab
 cd examples/frontend
-yarn dev
+pnpm dev
 ```
 
 ## Run the example with ngrok

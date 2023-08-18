@@ -146,7 +146,7 @@ test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async
   await sodium.ready;
 
   const key = sodium.from_hex(
-    "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
+    "824b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
   );
 
   const signatureKeyPair: KeyPair = {
