@@ -7,7 +7,7 @@ app = "secsync"
 primary_region = "ams"
 
 [deploy]
-release_command = "pnpm prisma:prod:migrate"
+release_command = "npm run prisma:prod:migrate"
 
 [env]
 PORT = "8080"

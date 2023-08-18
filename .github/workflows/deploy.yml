@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - backend-fixes
+      - fix-backend-example-deploy
 
 jobs:
   build:
