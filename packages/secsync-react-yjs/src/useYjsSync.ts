@@ -77,7 +77,6 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
         send({ type: "ADD_CHANGES", data: [update] });
       }
     };
-    // TODO switch to v2 updates
     yDoc.on("updateV2", onUpdate);
 
     // only connect the awareness after the document loaded

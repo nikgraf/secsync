@@ -82,6 +82,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       return true;
     },
     sodium,
+    logging: "debug",
   });
 
   const initiateEditor = () => {

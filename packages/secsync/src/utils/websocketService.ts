@@ -55,12 +55,16 @@ export const websocketService =
     });
 
     websocketConnection.addEventListener("error", (event) => {
-      console.debug("websocket error", event);
+      if (context.logging === "debug") {
+        console.debug("websocket error", event);
+      }
       send({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
     websocketConnection.addEventListener("close", function (event) {
-      console.debug("websocket closed");
+      if (context.logging === "debug") {
+        console.debug("websocket closed");
+      }
       send({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
@@ -84,7 +88,9 @@ export const websocketService =
             context.signatureKeyPair,
             context.sodium
           );
-          console.debug("send ephemeralUpdate");
+          if (context.logging === "debug") {
+            console.debug("send ephemeralUpdate");
+          }
           send({
             type: "SEND",
             message: JSON.stringify(ephemeralUpdate),
@@ -97,13 +103,17 @@ export const websocketService =
           prepareAndSendEphemeralUpdate();
         } catch (error) {
           // TODO send a error event to the parent
-          console.error(error);
+          if (context.logging === "debug" || context.logging === "error") {
+            console.error(error);
+          }
         }
       }
     });
 
     return () => {
-      console.debug("CLOSE WEBSOCKET");
+      if (context.logging === "debug") {
+        console.debug("CLOSE WEBSOCKET");
+      }
       websocketConnection.close();
     };
   };
