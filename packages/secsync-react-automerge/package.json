@@ -4,7 +4,8 @@
   "main": "src/index",
   "types": "src/index",
   "scripts": {
-    "build": "rimraf -rf ./dist && tsc -p tsconfig.build.json",
+    "build": "pnpm tsup && pnpm build:package-json",
+    "build:package-json": "node package-json-build-script.js",
     "prepublishOnly": "pnpm run build",
     "test": "echo \"No tests\"",
     "ts:check": "pnpm tsc --noEmit",
@@ -30,5 +31,8 @@
     "setupFilesAfterEnv": [
       "<rootDir>/test/config/jestTestSetup.ts"
     ]
+  },
+  "publishConfig": {
+    "directory": "dist"
   }
 }
