@@ -203,6 +203,7 @@ importers:
       mock-socket:
         specifier: ^9.2.1
         version: 9.2.1
+    publishDirectory: dist
 
   packages/secsync-react-automerge:
     dependencies:
@@ -237,6 +238,7 @@ importers:
       jest:
         specifier: ^29.6.2
         version: 29.6.2(@types/node@16.11.9)(ts-node@10.9.1)
+    publishDirectory: dist
 
   packages/secsync-react-yjs:
     dependencies:
@@ -271,6 +273,7 @@ importers:
       jest:
         specifier: ^29.6.2
         version: 29.6.2(@types/node@16.11.9)(ts-node@10.9.1)
+    publishDirectory: dist
 
 packages:
 
