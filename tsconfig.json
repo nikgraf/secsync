@@ -1,11 +1,22 @@
 {
-  "extends": "./tsconfig.build.json",
-
   "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2021",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "types": [],
+    "jsx": "react",
     "baseUrl": ".",
     "paths": {
-      "secsync": ["packages/secsync"]
+      "secsync": ["packages/secsync"],
+      "secsync-react-yjs": ["packages/secsync-react-yjs"],
+      "secsync-react-automerge": ["secsync-react-automerge"]
     },
     "noEmit": true
-  }
+  },
+  "exclude": ["node_modules", "dist"]
 }
