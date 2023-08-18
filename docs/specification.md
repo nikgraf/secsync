@@ -53,10 +53,11 @@ parentSnapshotProof = hash(parentSnapshotProof of the prev snapshot, snapshotCip
 #### Verifying if the snapshot is based on a previous snapshot
 
 In order to verify that a snapshot is based on a previous snapshot the following information is required:
+
 - ciphertext hash and parentSnapshotProof of all past snapshots to and including the known one (snapshotProofChain)
 - the new snapshot
 
-It's the responsibility of the server to store the necessary information and allow a client to query the snapshotProofChain. 
+It's the responsibility of the server to store the necessary information and allow a client to query the snapshotProofChain.
 
 ##### Example
 

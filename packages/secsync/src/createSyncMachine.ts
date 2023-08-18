@@ -155,6 +155,7 @@ export type Context = SyncMachineConfig &
     _shouldReconnect: boolean;
     _errorTrace: Error[];
     _ephemeralUpdateErrors: Error[];
+    logging: SyncMachineConfig["logging"];
   };
 
 const disconnectionContextReset: InternalContextReset = {
@@ -227,6 +228,7 @@ export const createSyncMachine = () =>
         deserializeChanges: () => [],
         onSnapshotSaved: () => undefined,
         isValidCollaborator: async () => false,
+        logging: "off",
         additionalAuthenticationDataValidations: undefined,
         _activeSnapshotInfo: null,
         _latestServerVersion: null,
@@ -436,7 +438,9 @@ export const createSyncMachine = () =>
           };
         }),
         addToPendingUpdatesQueue: assign((context, event) => {
-          console.debug("addToPendingUpdatesQueue", event.data);
+          if (context.logging === "debug") {
+            console.debug("addToPendingUpdatesQueue", event.data);
+          }
           return {
             _pendingChangesQueue: [
               ...context._pendingChangesQueue,
@@ -508,24 +512,28 @@ export const createSyncMachine = () =>
       services: {
         scheduleRetry: (context) => (callback) => {
           const delay = 100 * 1.8 ** context._websocketRetries;
-          console.debug("schedule websocket connection in ", delay);
+          if (context.logging === "debug") {
+            console.debug("schedule websocket connection in ", delay);
+          }
           setTimeout(() => {
             callback("WEBSOCKET_RETRY");
             // calculating slow exponential back-off
           }, delay);
         },
         processQueues: (context, event) => async (send) => {
-          console.debug("clocks", JSON.stringify(context._updateClocks));
-          console.debug("processQueues event", event);
-          console.debug("_incomingQueue", context._incomingQueue.length);
-          console.debug(
-            "_customMessageQueue",
-            context._customMessageQueue.length
-          );
-          console.debug(
-            "_pendingChangesQueue",
-            context._pendingChangesQueue.length
-          );
+          if (context.logging === "debug") {
+            console.debug("clocks", JSON.stringify(context._updateClocks));
+            console.debug("processQueues event", event);
+            console.debug("_incomingQueue", context._incomingQueue.length);
+            console.debug(
+              "_customMessageQueue",
+              context._customMessageQueue.length
+            );
+            console.debug(
+              "_pendingChangesQueue",
+              context._pendingChangesQueue.length
+            );
+          }
 
           let activeSnapshotInfo: ActiveSnapshotInfo | null =
             context._activeSnapshotInfo;
@@ -545,7 +553,9 @@ export const createSyncMachine = () =>
           try {
             const createAndSendSnapshot = async () => {
               const snapshotData = await context.getNewSnapshotData();
-              console.log("createAndSendSnapshot", snapshotData);
+              if (context.logging === "debug") {
+                console.log("createAndSendSnapshot", snapshotData);
+              }
 
               if (activeSnapshotInfo === null) {
                 const publicData: SnapshotPublicData = {
@@ -667,7 +677,9 @@ export const createSyncMachine = () =>
               rawSnapshot: SnapshotWithServerData,
               parentSnapshotProofInfo?: ParentSnapshotProofInfo
             ) => {
-              console.debug("processSnapshot", rawSnapshot);
+              if (context.logging === "debug") {
+                console.debug("processSnapshot", rawSnapshot);
+              }
               const snapshot = parseSnapshotWithServerData(
                 rawSnapshot,
                 context.additionalAuthenticationDataValidations?.snapshot
@@ -786,7 +798,9 @@ export const createSyncMachine = () =>
                 }
                 context.applyChanges(changes);
               } catch (error) {
-                console.debug("APPLYING CHANGES in catch", error);
+                if (context.logging === "debug") {
+                  console.debug("APPLYING CHANGES in catch", error);
+                }
                 // still try to apply all existing changes
                 context.applyChanges(changes);
                 throw error;
@@ -849,7 +863,9 @@ export const createSyncMachine = () =>
                   break;
 
                 case "snapshot":
-                  console.log("snapshot", event);
+                  if (context.logging === "debug") {
+                    console.log("snapshot", event);
+                  }
                   await processSnapshot(
                     event.snapshot,
                     activeSnapshotInfo ? activeSnapshotInfo : undefined
@@ -858,7 +874,9 @@ export const createSyncMachine = () =>
                   break;
 
                 case "snapshot-saved":
-                  console.log("snapshot saved", event);
+                  if (context.logging === "debug") {
+                    console.log("snapshot saved", event);
+                  }
                   // in case the event is received for a snapshot that was not active in sending
                   // we remove the activeSendingSnapshotInfo since any activeSendingSnapshotInfo
                   // that is in flight will fail
@@ -876,8 +894,10 @@ export const createSyncMachine = () =>
                     context.onSnapshotSaved();
                   }
                   break;
-                case "snapshot-save-failed": // TODO rename to snapshotSaveFailed or similar
-                  console.log("snapshot saving failed", event);
+                case "snapshot-save-failed":
+                  if (context.logging === "debug") {
+                    console.log("snapshot saving failed", event);
+                  }
                   if (event.snapshot) {
                     const snapshot = parseSnapshotWithServerData(
                       event.snapshot,
@@ -914,7 +934,9 @@ export const createSyncMachine = () =>
                     await processUpdates(event.updates);
                   }
 
-                  console.log("retry send snapshot");
+                  if (context.logging === "debug") {
+                    console.log("retry send snapshot");
+                  }
                   await createAndSendSnapshot();
                   break;
 
@@ -922,7 +944,9 @@ export const createSyncMachine = () =>
                   await processUpdates([event]);
                   break;
                 case "update-saved":
-                  console.debug("update saved", event);
+                  if (context.logging === "debug") {
+                    console.debug("update saved", event);
+                  }
                   latestServerVersion = event.serverVersion;
                   confirmedUpdatesClock = event.clock;
                   updatesInFlight = updatesInFlight.filter(
@@ -931,12 +955,14 @@ export const createSyncMachine = () =>
 
                   break;
                 case "update-save-failed":
-                  console.log(
-                    "update saving failed",
-                    event.snapshotId,
-                    event.clock,
-                    event.requiresNewSnapshot
-                  );
+                  if (context.logging === "debug") {
+                    console.log(
+                      "update saving failed",
+                      event.snapshotId,
+                      event.clock,
+                      event.requiresNewSnapshot
+                    );
+                  }
 
                   if (event.requiresNewSnapshot) {
                     await createAndSendSnapshot();
@@ -1032,10 +1058,14 @@ export const createSyncMachine = () =>
                   latestServerVersion,
                 })
               ) {
-                console.debug("send snapshot");
+                if (context.logging === "debug") {
+                  console.debug("send snapshot");
+                }
                 await createAndSendSnapshot();
               } else {
-                console.debug("send update");
+                if (context.logging === "debug") {
+                  console.debug("send update");
+                }
                 const key = await context.getUpdateKey(event);
                 const rawChanges = context._pendingChangesQueue;
                 pendingChangesQueue = [];
@@ -1066,7 +1096,9 @@ export const createSyncMachine = () =>
               documentDecryptionState,
             };
           } catch (error) {
-            console.error("Processing queue error:", error);
+            if (context.logging === "debug" || context.logging === "error") {
+              console.error("Processing queue error:", error);
+            }
             if (error instanceof SecsyncProcessingEphemeralUpdateError) {
               const newEphemeralUpdateErrors = [
                 ...context._ephemeralUpdateErrors,

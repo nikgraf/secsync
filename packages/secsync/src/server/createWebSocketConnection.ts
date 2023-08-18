@@ -43,6 +43,8 @@ type WebsocketConnectionParams = {
   ): Promise<UpdateWithServerData>;
   hasAccess(hasAccessParams: HasAccessParams): Promise<boolean>;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
+  /** default: "off" */
+  logging?: "off" | "error";
 };
 
 export const createWebSocketConnection =
@@ -52,8 +54,10 @@ export const createWebSocketConnection =
     createUpdate,
     hasAccess,
     additionalAuthenticationDataValidations,
+    logging: loggingParam,
   }: WebsocketConnectionParams) =>
   async (connection: WebSocket, request: IncomingMessage) => {
+    const logging = loggingParam || "off";
     let documentId = "";
 
     const handleDocumentError = () => {
@@ -158,7 +162,9 @@ export const createWebSocketConnection =
               connection
             );
           } catch (error) {
-            console.error("SNAPSHOT FAILED ERROR:", error);
+            if (logging === "error") {
+              console.error("SNAPSHOT FAILED ERROR:", error);
+            }
             if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
               let document = await getDocument({
                 documentId,
@@ -174,9 +180,11 @@ export const createWebSocketConnection =
                   })
                 );
               } else {
-                console.error(
-                  'document not found for "snapshotBasedOnOutdatedSnapshot" error'
-                );
+                if (logging === "error") {
+                  console.error(
+                    'document not found for "snapshotBasedOnOutdatedSnapshot" error'
+                  );
+                }
                 handleDocumentError();
               }
             } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
@@ -194,9 +202,11 @@ export const createWebSocketConnection =
                 );
               } else {
                 // log since it's an unexpected error
-                console.error(
-                  'document not found for "snapshotMissesUpdates" error'
-                );
+                if (logging === "error") {
+                  console.error(
+                    'document not found for "snapshotMissesUpdates" error'
+                  );
+                }
                 handleDocumentError();
               }
             } else if (error instanceof SecsyncNewSnapshotRequiredError) {
@@ -207,7 +217,9 @@ export const createWebSocketConnection =
               );
             } else {
               // log since it's an unexpected error
-              console.error(error);
+              if (logging === "error") {
+                console.error(error);
+              }
               handleDocumentError();
             }
           }
@@ -259,7 +271,9 @@ export const createWebSocketConnection =
               connection
             );
           } catch (err) {
-            console.error("update failed", err);
+            if (logging === "error") {
+              console.error("update failed", err);
+            }
             if (savedUpdate === null || savedUpdate === undefined) {
               connection.send(
                 JSON.stringify({
@@ -300,7 +314,9 @@ export const createWebSocketConnection =
         removeConnection(documentId, connection);
       });
     } catch (error) {
-      console.error(error);
+      if (logging === "error") {
+        console.error(error);
+      }
       handleDocumentError();
     }
   };

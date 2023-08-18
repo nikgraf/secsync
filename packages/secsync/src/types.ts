@@ -174,6 +174,8 @@ export type SyncMachineConfig = {
   onCustomMessage?: (message: any) => Promise<void> | void;
   knownSnapshotInfo?: KnownSnapshotInfo;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
+  /** default: "off" */
+  logging?: "off" | "error" | "debug";
 };
 
 export type CreateSnapshotParams = {

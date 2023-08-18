@@ -46,6 +46,7 @@ async function main() {
       createSnapshot: createSnapshotDb,
       createUpdate: createUpdateDb,
       hasAccess: async () => true,
+      logging: "error",
     })
   );
 
