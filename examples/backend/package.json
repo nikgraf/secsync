@@ -18,9 +18,9 @@
     "lint": "echo \"No linting setup\"",
     "dev": "ts-node-dev --transpile-only --no-notify ./src/index.ts",
     "clean": "rm -rf build",
-    "build": "pnpm && pnpm clean && pnpm prisma:prod:generate && pnpm ncc build ./src/index.ts -o build",
+    "build": "pnpm install && pnpm clean && pnpm prisma:prod:generate && pnpm ncc build ./src/index.ts -o build",
     "deploy": "pnpm build && fly launch",
-    "prisma:prod:migrate": "pnpm global add prisma@4 && DATABASE_URL=$DATABASE_URL prisma migrate deploy",
+    "prisma:prod:migrate": "npm install -g prisma@4 && DATABASE_URL=$DATABASE_URL prisma migrate deploy",
     "prisma:prod:generate": "DATABASE_URL=$DATABASE_URL prisma generate",
     "prisma:prod:studio": "DATABASE_URL=$DATABASE_URL prisma studio",
     "start:prod": "PORT=$PORT DATABASE_URL=$DATABASE_URL NODE_ENV=production node ./build"
