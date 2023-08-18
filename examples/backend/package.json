@@ -27,12 +27,10 @@
   },
   "dependencies": {
     "@prisma/client": "^4.16.1",
-    "apollo-server-express": "^3.5.0",
+    "cors": "^2.8.5",
     "express": "^4.17.1",
-    "graphql": "^16.0.1",
     "libsodium-wrappers": "^0.7.11",
     "make-promises-safe": "^5.1.0",
-    "nexus": "^1.1.0",
     "secsync": "*",
     "uuid": "^8.3.2",
     "ws": "^8.3.0"
