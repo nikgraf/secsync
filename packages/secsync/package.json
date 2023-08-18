@@ -4,12 +4,13 @@
   "main": "src/index",
   "types": "src/index",
   "scripts": {
-    "build": "rimraf -rf ./dist && pnpm build:xstate-types && tsc -p tsconfig.build.json",
+    "build": "pnpm build:xstate-types && pnpm tsup && pnpm build:package-json",
+    "build:xstate-types": "xstate typegen \"./src/**/*.ts?(x)\"",
+    "build:package-json": "node package-json-build-script.js",
     "prepublishOnly": "pnpm run build",
     "test": "jest",
     "ts:check": "pnpm tsc --noEmit",
-    "lint": "echo \"No linting configured\"",
-    "build:xstate-types": "xstate typegen \"./**/*.ts?(x)\""
+    "lint": "echo \"No linting configured\""
   },
   "dependencies": {
     "canonicalize": "^2.0.0",
@@ -32,5 +33,8 @@
     "setupFilesAfterEnv": [
       "<rootDir>/test/config/jestTestSetup.ts"
     ]
+  },
+  "publishConfig": {
+    "directory": "dist"
   }
 }

@@ -4,7 +4,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "secsync": ["packages/secsync"]
+      "secsync": ["packages/secsync"],
+      "secsync-react-yjs": ["packages/secsync-react-yjs"],
+      "secsync-react-automerge": ["secsync-react-automerge"]
     },
     "noEmit": true
   }
