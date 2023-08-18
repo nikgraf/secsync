@@ -14,11 +14,5 @@
     "ts:check": "pnpm install && pnpm -r ts:check",
     "test": "pnpm install && pnpm -r test",
     "lint": "pnpm install && pnpm -r lint"
-  },
-  "resolutions": {
-    "prosemirror-state": "^1.4.3",
-    "prosemirror-view": "^1.31.5",
-    "prosemirror-model": "^1.13.3",
-    "prosemirror-transform": "^1.7.3"
   }
 }
