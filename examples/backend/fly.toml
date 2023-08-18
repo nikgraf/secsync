@@ -7,15 +7,15 @@ app = "secsync"
 primary_region = "ams"
 
 [deploy]
-  release_command = "yarn prisma:prod:migrate"
+release_command = "pnpm prisma:prod:migrate"
 
 [env]
-  PORT = "8080"
+PORT = "8080"
 
 [http_service]
-  internal_port = 8080
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ["app"]
+internal_port = 8080
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ["app"]

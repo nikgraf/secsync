@@ -7,35 +7,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3 # needed until 18 becomes the default
+      - uses: pnpm/action-setup@v2
         with:
-          node-version: 18
-          cache: yarn
+          version: 8
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Typecheck
-        run: yarn ts:check
+        run: pnpm ts:check
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3 # needed until 18 becomes the default
+      - uses: pnpm/action-setup@v2
         with:
-          node-version: 18
-          cache: yarn
+          version: 8
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Linting
-        run: yarn lint
+        run: pnpm lint
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3 # needed until 18 becomes the default
+      - uses: pnpm/action-setup@v2
         with:
-          node-version: 18
-          cache: yarn
+          version: 8
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: pnpm install --frozen-lockfile
       - name: Test
-        run: yarn test
+        run: pnpm test
