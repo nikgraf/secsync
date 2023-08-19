@@ -34,7 +34,7 @@ A Snapshot consists of the
   - pubKey
   - snapshotId
   - parentSnapshotProof
-  - parentSnapshotClocks: { [clientPublicKey]: clock }
+  - parentSnapshotClocks: `{ [clientPublicKey]: clock }`
 - signature
 
 The `parentSnapshotProof` is a hash of the parent's `ciphertext` and the parents `parentSnapshotProof`. This allows to create a chain
