@@ -111,6 +111,9 @@ importers:
       prosemirror-model:
         specifier: ^1.19.3
         version: 1.19.3
+      prosemirror-schema-basic:
+        specifier: ^1.2.2
+        version: 1.2.2
       prosemirror-state:
         specifier: ^1.4.3
         version: 1.4.3

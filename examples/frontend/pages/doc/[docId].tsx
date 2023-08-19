@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { exampleSetup } from "prosemirror-example-setup";
 import { keymap } from "prosemirror-keymap";
+import { schema } from "prosemirror-schema-basic";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
 import {
@@ -18,7 +19,6 @@ import {
 } from "y-prosemirror";
 import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
 import * as Yjs from "yjs";
-import { schema } from "../../editor/schema";
 
 const websocketHost =
   process.env.NODE_ENV === "development"
@@ -89,22 +89,22 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     const yXmlFragment = yDocRef.current.getXmlFragment("document");
 
     editorRef.current.innerHTML = "";
-    const editor = editorRef.current;
-    new EditorView(editor, {
-      state: EditorState.create({
-        schema,
-        plugins: [
-          ySyncPlugin(yXmlFragment),
-          yCursorPlugin(yAwarenessRef.current),
-          yUndoPlugin(),
-          keymap({
-            "Mod-z": undo,
-            "Mod-y": redo,
-            "Mod-Shift-z": redo,
-          }),
-        ].concat(exampleSetup({ schema })),
-      }),
+    let state = EditorState.create({
+      schema,
+      plugins: [
+        ySyncPlugin(yXmlFragment),
+        yCursorPlugin(yAwarenessRef.current),
+        yUndoPlugin(),
+        keymap({
+          "Mod-z": undo,
+          "Mod-y": redo,
+          "Mod-Shift-z": redo,
+        }),
+        // TODO re-add menuBar - in the current version the menuBar causes an `createElement` error on null
+      ].concat(exampleSetup({ schema, menuBar: false })),
     });
+
+    new EditorView(editorRef.current, { state });
   };
 
   useEffect(() => {
