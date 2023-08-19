@@ -4,7 +4,7 @@ Is an architecture to relay end-to-end encrypted CRDTs over a central service.
 
 It was created out of the need to have an end-to-end encrypted protocol to allow data synchronization/fetching incl. real-time updates to support [local-first](https://www.inkandswitch.com/local-first/) apps in combination with a web clients without locally stored data.
 
-**WARNING**: This is a rough prototype! A production ready implementation is planned after an initial round of feedback.
+**WARNING**: This is beta software.
 
 ## Examples
 

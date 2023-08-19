@@ -35,5 +35,9 @@
   "publishConfig": {
     "directory": "dist",
     "linkDirectory": false
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serenity-kit/secsync.git"
   }
 }
