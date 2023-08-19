@@ -100,6 +100,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
           "Mod-y": redo,
           "Mod-Shift-z": redo,
         }),
+        // TODO re-add menuBar - in the current version the menuBar causes an `createElement` error on null
       ].concat(exampleSetup({ schema, menuBar: false })),
     });
 
