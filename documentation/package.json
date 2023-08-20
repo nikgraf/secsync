@@ -17,6 +17,7 @@
     "url": "https://github.com/serenity-kit/secsync/issues"
   },
   "dependencies": {
+    "@automerge/automerge": "^2.0.3",
     "clsx": "^2.0.0",
     "next": "^13.4.18",
     "nextra": "^2.11.0",
