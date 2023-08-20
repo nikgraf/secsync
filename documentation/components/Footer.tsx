@@ -1,4 +1,5 @@
 import cn from "clsx";
+import Image from "next/image";
 import type { ReactElement } from "react";
 
 export function Footer({ menu }: { menu?: boolean }): ReactElement {
@@ -12,7 +13,21 @@ export function Footer({ menu }: { menu?: boolean }): ReactElement {
       >
         <div className="footer-wrapper">
           <div className="flex-1 justify-between text-sm">
-            <div className="w-52">TODO add NLNet Link</div>
+            <div className="w-52">
+              <a href="https://nlnet.nl/assure/">
+                <Image
+                  src="https://nlnet.nl/image/logos/NGIAssure_tag.svg"
+                  alt="NLNet"
+                  width={102}
+                  height={26}
+                />
+              </a>
+              <p className="mt-3 text-sm">
+                Secsync is proudly sponsored by{" "}
+                <a href="https://nlnet.nl/assure/">NGI Assure</a> via{" "}
+                <a href="https://nlnet.nl">NLNet</a>.
+              </p>
+            </div>
           </div>
           <div className="footer-links">
             <h6>Resources</h6>

@@ -32,9 +32,6 @@ importers:
 
   documentation:
     dependencies:
-      '@serenity-kit/opaque':
-        specifier: ^0.7.0
-        version: 0.7.0
       clsx:
         specifier: ^2.0.0
         version: 2.0.0
@@ -2872,11 +2869,6 @@ packages:
   /@rushstack/eslint-patch@1.3.3:
     resolution: {integrity: sha512-0xd7qez0AQ+MbHatZTlI1gu5vkG8r7MYRUJAHPAHJBmGLs16zpkrpAVLvjQKQOqaXPDUBwOiJzNc00znHSCVBw==}
     dev: true
-
-  /@serenity-kit/opaque@0.7.0:
-    resolution: {integrity: sha512-5CikruVTY7EAAhLvHHU139OOaWRIIq58HhDRjpPDZOS8gAaF9qSfZRyR4kuEqGZWOuNjUtilDwD2G3Nc3YlJzw==}
-    hasBin: true
-    dev: false
 
   /@sinclair/typebox@0.27.8:
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
