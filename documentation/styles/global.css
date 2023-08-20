@@ -1,0 +1,421 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+
+  /* --- colors --- */
+  --primary-100: theme("colors.primary.100");
+  --primary-150: theme("colors.primary.150");
+  --primary-200: theme("colors.primary.200");
+  --primary-300: theme("colors.primary.300");
+  --primary-400: theme("colors.primary.400");
+  --primary-500: theme("colors.primary.500");
+  --primary-600: theme("colors.primary.600");
+  --primary-700: theme("colors.primary.700");
+  --primary-800: theme("colors.primary.800");
+  --primary-900: theme("colors.primary.900");
+
+  --gray-100: theme("colors.gray.100");
+  --gray-120: theme("colors.gray.120");
+  --gray-150: theme("colors.gray.150");
+  --gray-200: theme("colors.gray.200");
+  --gray-300: theme("colors.gray.300");
+  --gray-400: theme("colors.gray.400");
+  --gray-500: theme("colors.gray.500");
+  --gray-600: theme("colors.gray.600");
+  --gray-700: theme("colors.gray.700");
+  --gray-800: theme("colors.gray.800");
+  --gray-900: theme("colors.gray.900");
+
+  --se-terracotta: theme("colors.palette.terracotta");
+  --se-coral: theme("colors.palette.coral");
+  --se-raspberry: theme("colors.palette.raspberry");
+  --se-rose: theme("colors.palette.rose");
+  --se-honey: theme("colors.palette.honey");
+  --se-orange: theme("colors.palette.orange");
+  --se-emerald: theme("colors.palette.emerald");
+  --se-arctic: theme("colors.palette.arctic");
+  --se-sky: theme("colors.palette.sky");
+  --se-serenity: theme("colors.palette.serenity"); /* primary 500 */
+  --se-lavender: theme("colors.palette.lavender");
+  --se-purple: theme("colors.palette.purple");
+  --se-slate: theme("colors.palette.slate");
+
+
+  /* --- theme --- */
+  --surface-primary: theme("colors.white");
+  --surface-secondary: theme("colors.gray.100");
+  --surface-tertiary: theme("colors.gray.200");
+
+  --surface-border: theme("colors.gray.200");
+  --surface-border-button: theme("colors.gray.300");
+
+  --text-title: theme("colors.black");
+  --text-primary: theme("colors.gray.900");
+  --text-secondary: theme("colors.gray.800");
+  --text-tertiary: theme("colors.gray.600");
+
+
+  /* --- code --- */
+  --shiki-color-text: var(--gray-800);
+  --shiki-color-background: transparent;
+
+  --shiki-token-constant: var(--primary-700);
+  --shiki-token-string: var(--se-arctic);
+  --shiki-token-string: hsl(184deg 72% 38%); /* arctic variant */
+  --shiki-token-function: hsl(184 72% 34%); /* arctic variant */
+  --shiki-token-keyword: hsl(281 68% 49%); /* purple variant */
+
+  --shiki-token-comment: var(--gray-500);
+  --shiki-token-parameter: var(--se-coral);
+  --shiki-token-string-expression: var(--shiki-token-string);
+  --shiki-token-punctuation: var(--gray-800);
+  --shiki-token-link: var(--shiki-token-string);
+}
+
+.dark {
+  --primary-400: theme("colors.primary.dark.400");
+  --primary-500: theme("colors.primary.dark.500");
+
+
+  /* --- theme --- */
+  --surface-primary: theme("colors.surface.primary");
+  --surface-secondary: theme("colors.surface.secondary");
+  --surface-tertiary: theme("colors.surface.tertiary");
+
+  --surface-border: theme("colors.surface.border");
+  --surface-border-button: theme("colors.gray.700");
+
+  --text-title: theme("colors.white");
+  --text-primary: theme("colors.gray.200");
+  --text-secondary: theme("colors.gray.200");
+  --text-tertiary: theme("colors.gray.500");
+
+
+  /* --- code --- */
+  --shiki-color-text: var(--gray-150);
+  --shiki-color-background: transparent;
+
+  --shiki-token-constant: hsl(232deg 100% 81%); /* primary variant */
+  --shiki-token-string: hsl(184deg 49% 74%); /* light arctic variant */
+  --shiki-token-function: hsl(184deg 54% 57%); /* arctic variant */
+  --shiki-token-keyword: hsl(284deg 100% 71%); /* purple variant */
+
+  --shiki-token-comment: var(--gray-500);
+  --shiki-token-parameter: var(--se-coral);
+  --shiki-token-string-expression: var(--shiki-token-string);
+  --shiki-token-punctuation: var(--gray-500);
+  --shiki-token-link: var(--shiki-token-string);
+}
+
+
+/* ---------------- logo ---------------- */
+
+/* custom class to ensure the right type for the logo-background */
+.type-alpha {
+  mask-type: alpha;
+}
+
+.svg-wrapper {
+  position: absolute;
+  height: 100%;
+  width: auto;
+}
+
+.svg-wrapper svg {
+  height: 100%;
+  width: auto;
+}
+
+.mask {
+  --transition-time: 0.9s;
+  --easing-function: cubic-bezier(0.51, 0.62, 0.92, 0.53);
+  
+  -webkit-mask-image: -webkit-linear-gradient(30deg,black 25%,rgba(0,0,0,.2)50%,black 75%);
+  mask-image: -webkit-linear-gradient(30deg,black 25%,rgba(0,0,0,.2)50%,black 75%);
+  mask-image: -moz-linear-gradient(30deg,black 25%,rgba(0,0,0,.2)50%,black 75%);
+  mask-image: -o-linear-gradient(30deg,black 25%,rgba(0,0,0,.2)50%,black 75%);
+  mask-image: linear-gradient(60deg,black 25%,rgba(0,0,0,.2)50%,black 75%);
+  -webkit-mask-size: 400%;
+  mask-size: 400%;
+  -webkit-mask-position: 100%;
+  mask-position: 100%;
+
+  /* needed so the mask-transition also shows on page load  */
+  -webkit-animation: mask-reveal 1.5s infinite linear;
+  -webkit-animation-iteration-count: 1;
+  animation: mask-reveal 1.5s linear;
+  animation-iteration-count: 1;
+}
+
+.mask:hover {
+  -webkit-mask-position: 0%;
+  mask-position: 0%;
+  -webkit-transition: mask-position var(--transition-time) var(--easing-function),-webkit-mask-position var(--transition-time) var(--easing-function);
+  -moz-transition: mask-position var(--transition-time) var(--easing-function),-webkit-mask-position var(--transition-time) var(--easing-function);
+  -o-transition: mask-position var(--transition-time) var(--easing-function),-webkit-mask-position var(--transition-time) var(--easing-function);
+  transition: mask-position var(--transition-time) var(--easing-function),-webkit-mask-position var(--transition-time) var(--easing-function);
+}
+
+@-webkit-keyframes mask-reveal {
+  from {
+    -webkit-mask-position: 100%;
+    mask-position: 100%;
+  }
+  to {
+    -webkit-mask-position: 0%;
+    mask-position: 0%;
+  }
+}
+
+@keyframes mask-reveal {
+  from {  
+    -webkit-mask-position: 100%;
+    mask-position: 100%; 
+  }
+  to {  
+    -webkit-mask-position: 0%;
+    mask-position: 0%; 
+  }
+}
+
+
+/* ---------------- general ---------------- */
+
+/* footer */
+.footer-wrapper {
+  display: grid;
+  grid-template-columns: 2.5fr 2fr auto;
+
+  width: 100%;
+  max-width: 48rem;
+
+  margin: 0 auto;
+  color: var(--text-tertiary);
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footer-links a {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+}
+
+#netidee_svg__netidee_logo {
+  width: 6rem;
+  height: auto;
+}
+
+
+/* 
+  ------------------------- OVERRIDES -------------------------
+  ---------------- to customize the theme more ----------------
+*/
+
+
+/* ---------------- general ---------------- */
+::selection {
+  @apply bg-primary-150/60;
+}
+
+.nx-text-gray-500 {
+  color: #777880; /* custom color according to design */
+}
+
+.nx-text-gray-600 {
+  color: var(--gray-800);
+}
+
+.nx-text-gray-700 {
+  color: var(--gray-700);
+}
+
+.nx-text-primary-600 {
+  color: var(--primary-500);
+}
+
+.nx-text-slate-900 {
+  color: var(--gray-900);
+}
+
+
+/* ---------------- content ---------------- */
+.nextra-content {
+  color: var(--gray-800);
+}
+
+.nextra-content h1 {
+  @apply text-h1 mt-8;
+  color: var(--text-title);
+}
+
+.nextra-content h2 {
+  @apply text-h2 pb-3;
+  color: var(--text-title);
+}
+
+.nextra-content h3 {
+  @apply text-h3;
+  color: var(--text-title);
+}
+
+/* table */
+.op-table th:first-child {
+  @apply rounded-l-lg;
+}
+
+.op-table th:last-child {
+  @apply rounded-r-lg;
+}
+
+
+/* ---------------- ui ---------------- */
+
+/* nav */
+/* remove unfitting nextra-hover from logo */
+nav > a:first-child:hover {
+  opacity: 1;
+}
+
+/* sidebar */
+.nextra-sidebar-container li.active a {
+  color: var(--primary-500);
+  background-color: var(--primary-100);
+}
+
+/* page-navigation (link under article) */
+.nextra-content main > :last-child a {
+  color: var(--gray-600);
+}
+
+.nextra-content main > :last-child a:hover {
+  color: var(--gray-900);
+}
+
+/* toc */
+.nextra-toc ul li {
+  margin: 0; /* override nextra */
+  padding: 0.375rem 0 0.375rem 0.75rem;
+  border-left: 1px solid var(--surface-border);
+}
+
+.nextra-toc ul li:has(a.nx-text-primary-600) {
+  border-color: var(--primary-400);
+}
+
+/* theme selector  */
+[role="listbox"] li {
+  color: var(--gray-700);
+}
+
+[role="listbox"] li:has(> span) {
+  color: var(--gray-900);
+}
+
+[role="listbox"] li:hover {
+  color: var(--gray-900);
+  background-color: #66677110; /* gray-700 */
+}
+
+
+/* ============== */
+/* ---- dark ---- */
+/* ============== */
+
+:is(html[class~=dark] *::selection)  {
+  @apply bg-primary-400/30;
+}
+
+:is(html[class~=dark] body) {
+  background-color: var(--gray-900);
+}
+
+:is(html[class~=dark] .dark\:nx-bg-dark) {
+  background-color: var(--gray-900);
+}
+
+/* nav-bar */
+@supports (-webkit-backdrop-filter:blur(1px)) or ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  :is(html[class~=dark] .nextra-nav-container-blur) {
+    /* important needed as nextra uses it -.- */
+    background-color: #1F1F2180 !important; /* gray-900 */
+  }
+}
+
+/* shadow which blends out scrolling elements */
+:is(html[class~=dark] .nextra-scrollbar [class*=nx-shadow]) {
+  --tw-shadow: 0 -12px 16px var(--gray-900);
+}
+
+/* general */
+:is(html[class~=dark] .nx-text-primary-600) {
+  color: var(--primary-400);
+}
+
+/* sidebar */
+:is(html[class~=dark] .nextra-sidebar-container li.active a) {
+  color: var(--primary-400);
+  background-color: hsl(var(--nextra-primary-hue)100% 75%/0.20); /* primary dark 400 */
+}
+
+/* page-navigation (link under article) */
+:is(html[class~=dark] .nextra-content main > :last-child a) {
+  color: var(--gray-600);
+}
+
+:is(html[class~=dark] .nextra-content main > :last-child a:hover) {
+  color: var(--gray-100);
+}
+
+/* theme selector */
+:is(html[class~=dark] [role="listbox"] li) {
+  color: var(--gray-500);
+}
+
+:is(html[class~=dark] [role="listbox"] li:has(> span)) {
+  color: var(--gray-100);
+}
+
+:is(html[class~=dark] [role="listbox"] li:hover) {
+  color: var(--gray-100);
+  background-color: #8A8B9620; /* gray-600 */
+}
+
+/* to override shadow color which is composed here */
+:is(html[class~=dark] .dark\:nx-shadow-\[0_-12px_16px_\#111\]) {
+  --tw-shadow: 0 -12px 16px var(--gray-900);
+}
+
+
+/* --- borders --- */
+
+/* sidebar */
+:is(html[class~=dark] .dark\:before\:nx-bg-neutral-800):before {
+    background-color: var(--surface-border);
+}
+
+/* under h2 */
+:is(html[class~=dark] .dark\:nx-border-primary-100\/10) {
+  border-color: var(--surface-border);
+}
+
+/* theme selector, toc */
+:is(html[class~=dark] .dark\:nx-border-neutral-800) {
+  border-color: var(--surface-border);
+}
+
+
+/* --- footer --- */
+:is(html[class~=dark] #netidee_svg__netidee_logo .netidee_svg__st15) {
+  fill: var(--gray-300);
+}
+
+:is(html[class~=dark] #netidee_svg__netidee_logo .netidee_svg__st16) {
+  fill: var(--gray-200);
+}

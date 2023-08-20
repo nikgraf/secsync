@@ -1,0 +1,35 @@
+{
+  "name": "secsync-documentation",
+  "version": "0.0.1",
+  "description": "Secsync Documentation",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/serenity-kit/secsync.git"
+  },
+  "author": "Nik Graf <nik@nikgraf.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/serenity-kit/secsync/issues"
+  },
+  "dependencies": {
+    "clsx": "^2.0.0",
+    "next": "^13.4.18",
+    "nextra": "^2.11.0",
+    "nextra-theme-docs": "^2.11.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@svgr/webpack": "^8.1.0",
+    "@types/node": "20.4.2",
+    "autoprefixer": "^10.4.15",
+    "postcss": "^8.4.28",
+    "tailwindcss": "^3.3.3",
+    "typescript": "^5.1.6"
+  }
+}

@@ -1,0 +1,19 @@
+---
+searchable: false
+---
+
+# Blog
+
+import { getPagesUnderRoute } from "nextra/context";
+import Link from "next/link";
+
+{getPagesUnderRoute('/blog').map(page => {
+return (
+
+<div key={page.route}>
+  <Link href={page.route}>
+    {page.meta.title || page.frontMatter?.title || page.name}
+  </Link>
+  <p>{page.frontMatter?.description}</p>
+</div>
+) })}

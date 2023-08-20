@@ -1,0 +1,29 @@
+{
+  "index": {
+    "title": "Secsync",
+    "type": "page",
+    "display": "hidden"
+  },
+  "docs": {
+    "title": "Docs",
+    "type": "page"
+  },
+  "blog": {
+    "title": "Blog",
+    "type": "page",
+    "theme": {
+      "sidebar": false,
+      "toc": true,
+      "footer": false,
+      "breadcrumb": false,
+      "typesetting": "article"
+    }
+  },
+  "imprint": {
+    "type": "page",
+    "theme": {
+      "typesetting": "article"
+    },
+    "display": "hidden"
+  }
+}

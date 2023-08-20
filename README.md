@@ -4,7 +4,7 @@ Is an architecture to relay end-to-end encrypted CRDTs over a central service.
 
 It was created out of the need to have an end-to-end encrypted protocol to allow data synchronization/fetching incl. real-time updates to support [local-first](https://www.inkandswitch.com/local-first/) apps in combination with a web clients without locally stored data.
 
-**WARNING**: This is a rough prototype! A production ready implementation is planned after an initial round of feedback.
+**WARNING**: This is beta software.
 
 ## Examples
 
@@ -31,11 +31,11 @@ An _Ephemeral Update_ includes one or multiple **encrypted entries** referencing
 
 If look at it from a perspective of the current state of one document it looks like this:
 
-<img src="./docs/secsync-document-representation.png?raw=true" width="323" height="339" alt="State of one document as snapshots and updates." />
+<img src="./documentation/public/secsync-document-representation.png?raw=true" width="323" height="339" alt="State of one document as snapshots and updates." />
 
 If you look at it over time it looks like a tree that that always comes together once a snapshot is created:
 
-<img src="./docs/secsync-time-representation.png?raw=true" width="309" height="521" alt="State of one document as snapshots and updates." />
+<img src="./documentation/public/secsync-time-representation.png?raw=true" width="309" height="521" alt="State of one document as snapshots and updates." />
 
 When the server service persists an update it stores it with an integer based version number which is returned to every client. This way clients efficiently can ask for only the updates they haven't received.
 
@@ -119,10 +119,10 @@ Note: Instantly removing access can also be seen as an advantage. In in a decent
 
 More documentation can be found in the [docs](./docs) folder.
 
-- [Requirements](./docs/requirements.md)
-- [Specification](./docs/specification.md)
-- [Security & Privacy Considerations](./docs/security_and_privacy_considerations.md)
-- [Threat Library](./docs/threat-library.md)
+- [Requirements](./documentation/public/requirements.md)
+- [Specification](./documentation/public/specification.md)
+- [Security & Privacy Considerations](./documentation/public/security_and_privacy_considerations.md)
+- [Threat Library](./documentation/public/threat-library.md)
 
 ## FAQ & Background
 
