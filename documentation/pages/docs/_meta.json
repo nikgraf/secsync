@@ -1,12 +1,9 @@
 {
   "getting-started": "Getting started",
   "examples": "Examples",
+  "security_and_privacy": "Security & Privacy",
   "specification": "Specification",
-  "security_and_privacy_considerations": "Security & Privacy Considerations",
-  "threat_library": "Threat library",
   "faq": "FAQ",
-  "requirements": "Requirements",
   "benchmarks": "Benchmarks",
-  "future-ideas": "Future Ideas",
-  "resources": "Resources"
+  "future-ideas": "Future Ideas"
 }
