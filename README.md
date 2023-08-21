@@ -15,11 +15,12 @@ Try them out at [https://www.secsync.com/](https://www.secsync.com/)
 
 ## Concept
 
-The architecture is built upon 3 building blocks:
+The architecture is built upon 4 building blocks:
 
 1. Document
 2. Snapshot
 3. Update
+4. Ephemeral Update
 
 A _Document_ is defined by an **ID** and the **active Snapshot**.
 
@@ -27,9 +28,9 @@ A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
 
 An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
 
-An _Ephemeral Update_ includes one or multiple **encrypted entries** referencing a snapshot and if available update.
+An _Ephemeral Update_ includes one or multiple **encrypted entries** referencing a snapshot and if available can reference an update.
 
-If look at it from a perspective of the current state of one document it looks like this:
+If you look at it from a perspective of the current state of one document it looks like this:
 
 <img src="./documentation/public/secsync-document-representation.png?raw=true" width="323" height="339" alt="State of one document as snapshots and updates." />
 
@@ -170,7 +171,7 @@ This highly depends on the use-case e.g. the amount of data per update and frequ
 
 ## Possible Improvements in the Future
 
-- Add optional read notifications. From a UX perspective there can be value in being aware who has received which updates. From the perspective of the thread model it can be a tool to identify if the central relay service is excluding a collaborator.
+- Add optional read notifications. From a UX perspective there can be value in being aware who has received which updates. From the perspective of the threat model it can be a tool to identify if the central relay service is excluding a collaborator.
 - Using a cryptographic ratchet based on a [key derivation function (KDF)](https://en.wikipedia.org/wiki/Key_derivation_function)
 - Leverage Zero-knowledge proofs to hide meta data. Inspired by [Signal's Private Group feature](https://signal.org/blog/private-groups/).
 
