@@ -19,13 +19,53 @@ const websocketHost =
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
 
-type Props = { documentId: string; documentKey: Uint8Array };
-
-const Document: React.FC<Props> = ({ documentId, documentKey }) => {
+const Document: React.FC = () => {
   const [newTodo, setNewTodo] = React.useState("");
   const [initialDoc] = useState<Doc<Todos>>(() => Automerge.init());
   const [authorKeyPair] = useState<KeyPair>(() => {
     return sodium.crypto_sign_keypair();
+  });
+
+  const [documentKey] = useState<Uint8Array | null>(() => {
+    if (typeof window === "undefined") return;
+    let newDocumentKey: Uint8Array | null = null;
+    try {
+      const paramsString = window.location.hash.slice(1);
+      const searchParams = new URLSearchParams(paramsString);
+      const keyString = searchParams.get("key");
+      newDocumentKey = sodium.from_base64(keyString);
+    } catch (err) {
+    } finally {
+      if (!newDocumentKey) {
+        newDocumentKey = sodium.randombytes_buf(
+          sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
+        );
+      }
+      return newDocumentKey;
+    }
+  });
+  const [documentId] = useState<string | null>(() => {
+    if (typeof window === "undefined") return;
+    let newDocumentId: string | null = null;
+    try {
+      const paramsString = window.location.hash.slice(1);
+      const searchParams = new URLSearchParams(paramsString);
+      newDocumentId = searchParams.get("id");
+    } catch (err) {
+    } finally {
+      if (!newDocumentId) {
+        newDocumentId = generateId(sodium);
+      }
+      return newDocumentId;
+    }
+  });
+
+  useEffect(() => {
+    const paramsString = window.location.hash.slice(1);
+    const searchParams = new URLSearchParams(paramsString);
+    searchParams.set("id", documentId);
+    searchParams.set("key", sodium.to_base64(documentKey));
+    window.location.hash = searchParams.toString();
   });
 
   const [currentDoc, syncDoc, state, send] = useAutomergeSync<Todos>({
@@ -180,39 +220,6 @@ const Document: React.FC<Props> = ({ documentId, documentKey }) => {
 
 const DocumentPage: React.FC = () => {
   const [libsodiumIsReady, setLibsodiumIsReady] = useState(false);
-  const [documentKey] = useState<Uint8Array | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentKey: Uint8Array | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      const keyString = searchParams.get("key");
-      newDocumentKey = sodium.from_base64(keyString);
-    } catch (err) {
-    } finally {
-      if (!newDocumentKey) {
-        newDocumentKey = sodium.randombytes_buf(
-          sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
-        );
-      }
-      return newDocumentKey;
-    }
-  });
-  const [documentId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentId: string | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      newDocumentId = searchParams.get("id");
-    } catch (err) {
-    } finally {
-      if (!newDocumentId) {
-        newDocumentId = generateId(sodium);
-      }
-      return newDocumentId;
-    }
-  });
 
   useEffect(() => {
     sodium.ready.then(() => {
@@ -220,23 +227,9 @@ const DocumentPage: React.FC = () => {
     });
   }, []);
 
-  useEffect(() => {
-    const paramsString = window.location.hash.slice(1);
-    const searchParams = new URLSearchParams(paramsString);
-    searchParams.set("id", documentId);
-    searchParams.set("key", sodium.to_base64(documentKey));
-    window.location.hash = searchParams.toString();
-  });
+  if (typeof window === "undefined" || !libsodiumIsReady) return null;
 
-  if (
-    typeof window === "undefined" ||
-    !libsodiumIsReady ||
-    !documentKey ||
-    !documentId
-  )
-    return null;
-
-  return <Document documentId={documentId} documentKey={documentKey} />;
+  return <Document />;
 };
 
 export default DocumentPage;

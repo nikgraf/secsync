@@ -1,19 +1,12 @@
+import Collaboration from "@tiptap/extension-collaboration";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { exampleSetup } from "prosemirror-example-setup";
-import { keymap } from "prosemirror-keymap";
-import { schema } from "prosemirror-schema-basic";
-import { EditorState } from "prosemirror-state";
-import { EditorView } from "prosemirror-view";
-import React, { useEffect, useRef, useState } from "react";
+import Head from "next/head";
+import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
-import {
-  redo,
-  undo,
-  yCursorPlugin,
-  ySyncPlugin,
-  yUndoPlugin,
-} from "y-prosemirror";
 import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
@@ -78,7 +71,6 @@ const Document: React.FC = () => {
     window.location.hash = searchParams.toString();
   });
 
-  const editorRef = useRef<HTMLDivElement>(null);
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   // @ts-expect-error
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
@@ -124,27 +116,18 @@ const Document: React.FC = () => {
     logging: "debug",
   });
 
-  const initiateEditor = () => {
-    const yXmlFragment = yDocRef.current.getXmlFragment("document");
-
-    editorRef.current.innerHTML = "";
-    let state = EditorState.create({
-      schema,
-      plugins: [
-        ySyncPlugin(yXmlFragment),
-        yCursorPlugin(yAwarenessRef.current),
-        yUndoPlugin(),
-        keymap({
-          "Mod-z": undo,
-          "Mod-y": redo,
-          "Mod-Shift-z": redo,
-        }),
-        // TODO re-add menuBar - in the current version the menuBar causes an `createElement` error on null
-      ].concat(exampleSetup({ schema, menuBar: false })),
-    });
-
-    new EditorView(editorRef.current, { state });
-  };
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        // the Collaboration extension comes with its own history handling
+        history: false,
+      }),
+      Collaboration.configure({
+        document: yDocRef.current,
+        field: "page",
+      }),
+    ],
+  });
 
   useEffect(() => {
     yAwarenessRef.current.setLocalStateField("user", {
@@ -160,8 +143,6 @@ const Document: React.FC = () => {
       );
     });
 
-    initiateEditor();
-
     return () => {
       removeAwarenessStates(
         yAwarenessRef.current,
@@ -173,30 +154,55 @@ const Document: React.FC = () => {
 
   return (
     <>
-      <div>
-        {state.matches("connected") && "Connected"}
-        {state.matches("connecting") && "Connecting …"}
-        {state.matches("disconnected") && "Disconnected"}
-        {state.matches("failed") && "Error in loading or sending data"}
+      <Head>
+        <title>Secsync</title>
+        <meta name="description" content="Secsync" />
+        <link rel="icon" href="/favicon.ico" />
+      </Head>
 
-        <button
-          disabled={!state.matches("connected")}
-          onClick={() => {
-            send({ type: "DISCONNECT" });
-          }}
-        >
-          Disconnect WebSocket
-        </button>
-        <button
-          disabled={!state.matches("disconnected")}
-          onClick={() => {
-            send({ type: "CONNECT" });
-          }}
-        >
-          Connect WebSocket
-        </button>
-      </div>
-      <div ref={editorRef}>Loading</div>
+      <main>
+        <Link href="/">Home</Link>
+
+        <h2>Instructions</h2>
+        <ul>
+          <li>
+            Any change that you make will be encrypted and uploaded to the
+            server.
+          </li>
+          <li>
+            You can refresh the page and the current state will be
+            reconstructed.
+          </li>
+          <li>
+            You can share the current URL and collaborate real-time with others.
+            When doing so you can see the cursor position of every collaborator.
+          </li>
+        </ul>
+        <div>
+          {state.matches("connected") && "Connected"}
+          {state.matches("connecting") && "Connecting …"}
+          {state.matches("disconnected") && "Disconnected"}
+          {state.matches("failed") && "Error in loading or sending data"}
+
+          <button
+            disabled={!state.matches("connected")}
+            onClick={() => {
+              send({ type: "DISCONNECT" });
+            }}
+          >
+            Disconnect WebSocket
+          </button>
+          <button
+            disabled={!state.matches("disconnected")}
+            onClick={() => {
+              send({ type: "CONNECT" });
+            }}
+          >
+            Connect WebSocket
+          </button>
+        </div>
+        <EditorContent editor={editor} />
+      </main>
     </>
   );
 };
@@ -210,7 +216,7 @@ const DocumentPage: React.FC = () => {
     });
   }, []);
 
-  if (typeof window === "undefined" || !libsodiumIsReady) return null;
+  if (!libsodiumIsReady) return null;
 
   return <Document />;
 };
