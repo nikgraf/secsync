@@ -1,5 +1,6 @@
 import { default as sodium } from "libsodium-wrappers";
-import { useEffect, useState } from "react";
+import { Link } from "nextra-theme-docs";
+import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 
 type Props = {
@@ -11,17 +12,17 @@ type Props = {
 
 const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
   const [isReady, setIsReady] = useState(false);
-  const [documentKey, setDocumentKey] = useState<Uint8Array | null>(null);
-  const [documentId, setDocumentId] = useState<string | null>(null);
+  const documentKeyRef = useRef<Uint8Array>(null);
+  const documentIdRef = useRef<string>(null);
 
   const updateHashParams = () => {
     const paramsString = window.location.hash.slice(1);
     const searchParams = new URLSearchParams(paramsString);
-    if (documentId) {
-      searchParams.set("id", documentId);
+    if (documentIdRef.current) {
+      searchParams.set("id", documentIdRef.current);
     }
-    if (documentKey) {
-      searchParams.set("key", sodium.to_base64(documentKey));
+    if (documentKeyRef.current) {
+      searchParams.set("key", sodium.to_base64(documentKeyRef.current));
     }
     window.location.hash = searchParams.toString();
   };
@@ -59,8 +60,8 @@ const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
       documentId;
     }
 
-    setDocumentKey(documentKey);
-    setDocumentId(documentId);
+    documentKeyRef.current = documentKey;
+    documentIdRef.current = documentId;
     setIsReady(true);
   };
 
@@ -79,8 +80,30 @@ const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
 
   if (typeof window === "undefined" || !isReady) return null;
 
+  const searchParams = new URLSearchParams("");
+  if (documentIdRef.current) {
+    searchParams.set("id", documentIdRef.current);
+  }
+  if (documentKeyRef.current) {
+    searchParams.set("key", sodium.to_base64(documentKeyRef.current));
+  }
+  const shareUrl = `${window.location.origin}${
+    window.location.pathname
+  }#${searchParams.toString()}`;
+
   const Component = component;
-  return <Component documentId={documentId} documentKey={documentKey} />;
+
+  return (
+    <>
+      <div className="pb-4">
+        Share URL: <Link href={shareUrl}>{shareUrl}</Link>
+      </div>
+      <Component
+        documentId={documentIdRef.current}
+        documentKey={documentKeyRef.current}
+      />
+    </>
+  );
 };
 
 export default SimpleExampleWrapper;
