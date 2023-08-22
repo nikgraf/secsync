@@ -1,8 +1,10 @@
 // needed as explicit import before our own styles
 // as they are otherwise added last and would therefore overrule our stylesheet
-import "nextra-theme-docs/style.css";
 import { Inter } from "next/font/google";
+import "nextra-theme-docs/style.css";
 import "../styles/global.css";
+import "../styles/prosemirror-example-setup.css";
+import "../styles/prosemirror-menu.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
