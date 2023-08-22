@@ -2,8 +2,6 @@ import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
-import Head from "next/head";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
@@ -15,7 +13,12 @@ const websocketHost =
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
 
-const Document: React.FC = () => {
+type Props = {
+  documentId: string;
+  documentKey: Uint8Array;
+};
+
+const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
   const [authorKeyPair] = useState<KeyPair>(() => {
     // return {
     //   privateKey: sodium.from_base64(
@@ -29,54 +32,10 @@ const Document: React.FC = () => {
     return sodium.crypto_sign_keypair();
   });
 
-  const [documentKey] = useState<Uint8Array | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentKey: Uint8Array | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      const keyString = searchParams.get("key");
-      newDocumentKey = sodium.from_base64(keyString);
-    } catch (err) {
-    } finally {
-      if (!newDocumentKey) {
-        newDocumentKey = sodium.randombytes_buf(
-          sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
-        );
-      }
-      return newDocumentKey;
-    }
-  });
-  const [documentId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentId: string | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      newDocumentId = searchParams.get("id");
-    } catch (err) {
-    } finally {
-      if (!newDocumentId) {
-        newDocumentId = generateId(sodium);
-      }
-      return newDocumentId;
-    }
-  });
-
-  useEffect(() => {
-    const paramsString = window.location.hash.slice(1);
-    const searchParams = new URLSearchParams(paramsString);
-    searchParams.set("id", documentId);
-    searchParams.set("key", sodium.to_base64(documentKey));
-    window.location.hash = searchParams.toString();
-  });
-
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  // @ts-expect-error
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
   const [state, send] = useYjsSync({
-    // @ts-expect-error
     yDoc: yDocRef.current,
     yAwareness: yAwarenessRef.current,
     documentId,
@@ -154,71 +113,35 @@ const Document: React.FC = () => {
 
   return (
     <>
-      <Head>
-        <title>Secsync</title>
-        <meta name="description" content="Secsync" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      <div>
+        {state.matches("connected") && "Connected"}
+        {state.matches("connecting") && "Connecting …"}
+        {state.matches("disconnected") && "Disconnected"}
+        {state.matches("failed") && "Error in loading or sending data"}
 
-      <main>
-        <Link href="/">Home</Link>
-
-        <h2>Instructions</h2>
-        <ul>
-          <li>
-            Any change that you make will be encrypted and uploaded to the
-            server.
-          </li>
-          <li>
-            You can refresh the page and the current state will be
-            reconstructed.
-          </li>
-          <li>
-            You can share the current URL and collaborate real-time with others.
-            When doing so you can see the cursor position of every collaborator.
-          </li>
-        </ul>
-        <div>
-          {state.matches("connected") && "Connected"}
-          {state.matches("connecting") && "Connecting …"}
-          {state.matches("disconnected") && "Disconnected"}
-          {state.matches("failed") && "Error in loading or sending data"}
-
-          <button
-            disabled={!state.matches("connected")}
-            onClick={() => {
-              send({ type: "DISCONNECT" });
-            }}
-          >
-            Disconnect WebSocket
-          </button>
-          <button
-            disabled={!state.matches("disconnected")}
-            onClick={() => {
-              send({ type: "CONNECT" });
-            }}
-          >
-            Connect WebSocket
-          </button>
-        </div>
-        <EditorContent editor={editor} />
-      </main>
+        <button
+          disabled={!state.matches("connected")}
+          onClick={() => {
+            send({ type: "DISCONNECT" });
+          }}
+        >
+          Disconnect WebSocket
+        </button>
+        <button
+          disabled={!state.matches("disconnected")}
+          onClick={() => {
+            send({ type: "CONNECT" });
+          }}
+        >
+          Connect WebSocket
+        </button>
+      </div>
+      <EditorContent
+        editor={editor}
+        className="border border-primary-200 p-2 rounded"
+      />
     </>
   );
 };
 
-const DocumentPage: React.FC = () => {
-  const [libsodiumIsReady, setLibsodiumIsReady] = useState(false);
-
-  useEffect(() => {
-    sodium.ready.then(() => {
-      setLibsodiumIsReady(true);
-    });
-  }, []);
-
-  if (!libsodiumIsReady) return null;
-
-  return <Document />;
-};
-
-export default DocumentPage;
+export default YjsTiptapExample;

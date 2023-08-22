@@ -22,7 +22,15 @@ const websocketHost =
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
 
-const Document: React.FC = () => {
+type Props = {
+  documentId: string;
+  documentKey: Uint8Array;
+};
+
+const YjsProsemirrorExample: React.FC<Props> = ({
+  documentId,
+  documentKey,
+}) => {
   const [authorKeyPair] = useState<KeyPair>(() => {
     // return {
     //   privateKey: sodium.from_base64(
@@ -36,55 +44,11 @@ const Document: React.FC = () => {
     return sodium.crypto_sign_keypair();
   });
 
-  const [documentKey] = useState<Uint8Array | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentKey: Uint8Array | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      const keyString = searchParams.get("key");
-      newDocumentKey = sodium.from_base64(keyString);
-    } catch (err) {
-    } finally {
-      if (!newDocumentKey) {
-        newDocumentKey = sodium.randombytes_buf(
-          sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
-        );
-      }
-      return newDocumentKey;
-    }
-  });
-  const [documentId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentId: string | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      newDocumentId = searchParams.get("id");
-    } catch (err) {
-    } finally {
-      if (!newDocumentId) {
-        newDocumentId = generateId(sodium);
-      }
-      return newDocumentId;
-    }
-  });
-
-  useEffect(() => {
-    const paramsString = window.location.hash.slice(1);
-    const searchParams = new URLSearchParams(paramsString);
-    searchParams.set("id", documentId);
-    searchParams.set("key", sodium.to_base64(documentKey));
-    window.location.hash = searchParams.toString();
-  });
-
   const editorRef = useRef<HTMLDivElement>(null);
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  // @ts-expect-error
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
   const [state, send] = useYjsSync({
-    // @ts-expect-error
     yDoc: yDocRef.current,
     yAwareness: yAwarenessRef.current,
     documentId,
@@ -139,7 +103,6 @@ const Document: React.FC = () => {
           "Mod-y": redo,
           "Mod-Shift-z": redo,
         }),
-        // TODO re-add menuBar - in the current version the menuBar causes an `createElement` error on null
       ].concat(exampleSetup({ schema, menuBar: false })),
     });
 
@@ -196,23 +159,11 @@ const Document: React.FC = () => {
           Connect WebSocket
         </button>
       </div>
-      <div ref={editorRef}>Loading</div>
+      <div ref={editorRef} className="border border-primary-200 p-2 rounded">
+        Loading
+      </div>
     </>
   );
 };
 
-const DocumentPage: React.FC = () => {
-  const [libsodiumIsReady, setLibsodiumIsReady] = useState(false);
-
-  useEffect(() => {
-    sodium.ready.then(() => {
-      setLibsodiumIsReady(true);
-    });
-  }, []);
-
-  if (typeof window === "undefined" || !libsodiumIsReady) return null;
-
-  return <Document />;
-};
-
-export default DocumentPage;
+export default YjsProsemirrorExample;

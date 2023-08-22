@@ -15,8 +15,5 @@
     "ts:check": "pnpm install && pnpm -r ts:check",
     "test": "pnpm install && pnpm -r test",
     "lint": "pnpm install && pnpm -r lint"
-  },
-  "resolutions": {
-    "yjs": "13.6.7"
   }
 }

@@ -1,7 +1,7 @@
 import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
 import { KeyPair, default as sodium } from "libsodium-wrappers";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { generateId } from "secsync";
 import { useAutomergeSync } from "secsync-react-automerge";
 import { v4 as uuidv4 } from "uuid";
@@ -19,53 +19,19 @@ const websocketHost =
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
 
-const Document: React.FC = () => {
+type Props = {
+  documentId: string;
+  documentKey: Uint8Array;
+};
+
+const AutomergeTodosExample: React.FC<Props> = ({
+  documentId,
+  documentKey,
+}) => {
   const [newTodo, setNewTodo] = React.useState("");
   const [initialDoc] = useState<Doc<Todos>>(() => Automerge.init());
   const [authorKeyPair] = useState<KeyPair>(() => {
     return sodium.crypto_sign_keypair();
-  });
-
-  const [documentKey] = useState<Uint8Array | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentKey: Uint8Array | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      const keyString = searchParams.get("key");
-      newDocumentKey = sodium.from_base64(keyString);
-    } catch (err) {
-    } finally {
-      if (!newDocumentKey) {
-        newDocumentKey = sodium.randombytes_buf(
-          sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
-        );
-      }
-      return newDocumentKey;
-    }
-  });
-  const [documentId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentId: string | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      newDocumentId = searchParams.get("id");
-    } catch (err) {
-    } finally {
-      if (!newDocumentId) {
-        newDocumentId = generateId(sodium);
-      }
-      return newDocumentId;
-    }
-  });
-
-  useEffect(() => {
-    const paramsString = window.location.hash.slice(1);
-    const searchParams = new URLSearchParams(paramsString);
-    searchParams.set("id", documentId);
-    searchParams.set("key", sodium.to_base64(documentKey));
-    window.location.hash = searchParams.toString();
   });
 
   const [currentDoc, syncDoc, state, send] = useAutomergeSync<Todos>({
@@ -218,18 +184,4 @@ const Document: React.FC = () => {
   );
 };
 
-const DocumentPage: React.FC = () => {
-  const [libsodiumIsReady, setLibsodiumIsReady] = useState(false);
-
-  useEffect(() => {
-    sodium.ready.then(() => {
-      setLibsodiumIsReady(true);
-    });
-  }, []);
-
-  if (typeof window === "undefined" || !libsodiumIsReady) return null;
-
-  return <Document />;
-};
-
-export default DocumentPage;
+export default AutomergeTodosExample;
