@@ -10,6 +10,7 @@
 
 ## Example
 
+import SimpleExampleWrapper from "../../../components/SimpleExampleWrapper";
 import dynamic from "next/dynamic";
 
 export const YjsTiptapExample = dynamic(
@@ -19,4 +20,4 @@ export const YjsTiptapExample = dynamic(
   }
 );
 
-<YjsTiptapExample />
+<SimpleExampleWrapper component={YjsTiptapExample} />

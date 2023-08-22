@@ -22,7 +22,15 @@ const websocketHost =
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
 
-const Document: React.FC = () => {
+type Props = {
+  documentId: string;
+  documentKey: Uint8Array;
+};
+
+const YjsProsemirrorExample: React.FC<Props> = ({
+  documentId,
+  documentKey,
+}) => {
   const [authorKeyPair] = useState<KeyPair>(() => {
     // return {
     //   privateKey: sodium.from_base64(
@@ -34,48 +42,6 @@ const Document: React.FC = () => {
     //   keyType: "ed25519",
     // };
     return sodium.crypto_sign_keypair();
-  });
-
-  const [documentKey] = useState<Uint8Array | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentKey: Uint8Array | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      const keyString = searchParams.get("key");
-      newDocumentKey = sodium.from_base64(keyString);
-    } catch (err) {
-    } finally {
-      if (!newDocumentKey) {
-        newDocumentKey = sodium.randombytes_buf(
-          sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
-        );
-      }
-      return newDocumentKey;
-    }
-  });
-  const [documentId] = useState<string | null>(() => {
-    if (typeof window === "undefined") return;
-    let newDocumentId: string | null = null;
-    try {
-      const paramsString = window.location.hash.slice(1);
-      const searchParams = new URLSearchParams(paramsString);
-      newDocumentId = searchParams.get("id");
-    } catch (err) {
-    } finally {
-      if (!newDocumentId) {
-        newDocumentId = generateId(sodium);
-      }
-      return newDocumentId;
-    }
-  });
-
-  useEffect(() => {
-    const paramsString = window.location.hash.slice(1);
-    const searchParams = new URLSearchParams(paramsString);
-    searchParams.set("id", documentId);
-    searchParams.set("key", sodium.to_base64(documentKey));
-    window.location.hash = searchParams.toString();
   });
 
   const editorRef = useRef<HTMLDivElement>(null);
@@ -140,7 +106,7 @@ const Document: React.FC = () => {
           "Mod-Shift-z": redo,
         }),
         // TODO re-add menuBar - in the current version the menuBar causes an `createElement` error on null
-      ].concat(exampleSetup({ schema, menuBar: false })),
+      ].concat(exampleSetup({ schema, menuBar: true })),
     });
 
     new EditorView(editorRef.current, { state });
@@ -203,18 +169,4 @@ const Document: React.FC = () => {
   );
 };
 
-const DocumentPage: React.FC = () => {
-  const [libsodiumIsReady, setLibsodiumIsReady] = useState(false);
-
-  useEffect(() => {
-    sodium.ready.then(() => {
-      setLibsodiumIsReady(true);
-    });
-  }, []);
-
-  if (typeof window === "undefined" || !libsodiumIsReady) return null;
-
-  return <Document />;
-};
-
-export default DocumentPage;
+export default YjsProsemirrorExample;
