@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  yjs: 13.6.7
-
 importers:
 
   .:
@@ -27,7 +24,7 @@ importers:
         specifier: ^1.0.1-preview.7
         version: 1.0.1-preview.7
       yjs:
-        specifier: 13.6.7
+        specifier: ^13.6.7
         version: 13.6.7
 
   documentation:
@@ -35,6 +32,18 @@ importers:
       '@automerge/automerge':
         specifier: ^2.0.3
         version: 2.0.3
+      '@tiptap/extension-collaboration':
+        specifier: ^2.1.3
+        version: 2.1.3(@tiptap/core@2.1.3)(@tiptap/pm@2.1.3)(y-prosemirror@1.2.1)
+      '@tiptap/pm':
+        specifier: ^2.1.3
+        version: 2.1.3
+      '@tiptap/react':
+        specifier: ^2.1.3
+        version: 2.1.3(@tiptap/core@2.1.3)(@tiptap/pm@2.1.3)(react-dom@18.2.0)(react@18.2.0)
+      '@tiptap/starter-kit':
+        specifier: ^2.1.3
+        version: 2.1.3(@tiptap/pm@2.1.3)
       clsx:
         specifier: ^2.0.0
         version: 2.0.0
@@ -47,12 +56,51 @@ importers:
       nextra-theme-docs:
         specifier: ^2.11.0
         version: 2.11.0(next@13.4.18)(nextra@2.11.0)(react-dom@18.2.0)(react@18.2.0)
+      prosemirror-example-setup:
+        specifier: ^1.2.2
+        version: 1.2.2
+      prosemirror-keymap:
+        specifier: ^1.2.2
+        version: 1.2.2
+      prosemirror-model:
+        specifier: ^1.19.3
+        version: 1.19.3
+      prosemirror-schema-basic:
+        specifier: ^1.2.2
+        version: 1.2.2
+      prosemirror-state:
+        specifier: ^1.4.3
+        version: 1.4.3
+      prosemirror-view:
+        specifier: ^1.31.7
+        version: 1.31.7
       react:
         specifier: ^18.2.0
         version: 18.2.0
       react-dom:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
+      secsync:
+        specifier: ^0.1.0
+        version: link:../packages/secsync
+      secsync-react-automerge:
+        specifier: ^0.1.0
+        version: link:../packages/secsync-react-automerge
+      secsync-react-yjs:
+        specifier: ^0.1.0
+        version: link:../packages/secsync-react-yjs
+      uuid:
+        specifier: ^8.3.2
+        version: 8.3.2
+      y-prosemirror:
+        specifier: ^1.2.1
+        version: 1.2.1(prosemirror-model@1.19.3)(prosemirror-state@1.4.3)(prosemirror-view@1.31.7)(y-protocols@1.0.5)(yjs@13.6.7)
+      y-protocols:
+        specifier: ^1.0.5
+        version: 1.0.5
+      yjs:
+        specifier: ^13.6.7
+        version: 13.6.7
     devDependencies:
       '@svgr/webpack':
         specifier: ^8.1.0
@@ -188,7 +236,7 @@ importers:
         specifier: ^1.0.5
         version: 1.0.5
       yjs:
-        specifier: 13.6.7
+        specifier: ^13.6.7
         version: 13.6.7
     devDependencies:
       '@netlify/plugin-nextjs':

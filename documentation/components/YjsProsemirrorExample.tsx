@@ -46,11 +46,9 @@ const YjsProsemirrorExample: React.FC<Props> = ({
 
   const editorRef = useRef<HTMLDivElement>(null);
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  // @ts-expect-error
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
   const [state, send] = useYjsSync({
-    // @ts-expect-error
     yDoc: yDocRef.current,
     yAwareness: yAwarenessRef.current,
     documentId,
@@ -105,7 +103,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
           "Mod-y": redo,
           "Mod-Shift-z": redo,
         }),
-      ].concat(exampleSetup({ schema, menuBar: true })),
+      ].concat(exampleSetup({ schema, menuBar: false })),
     });
 
     new EditorView(editorRef.current, { state });

@@ -11,13 +11,6 @@
 ## Example
 
 import SimpleExampleWrapper from "../../../components/SimpleExampleWrapper";
-import dynamic from "next/dynamic";
-
-export const YjsTiptapExample = dynamic(
-  () => import("../../../components/YjsTiptapExample"),
-  {
-    ssr: false,
-  }
-);
+import YjsTiptapExample from "../../../components/YjsTiptapExample";
 
 <SimpleExampleWrapper component={YjsTiptapExample} />

@@ -33,11 +33,9 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
   });
 
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  // @ts-expect-error
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
   const [state, send] = useYjsSync({
-    // @ts-expect-error
     yDoc: yDocRef.current,
     yAwareness: yAwarenessRef.current,
     documentId,
