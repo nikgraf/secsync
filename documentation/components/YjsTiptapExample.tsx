@@ -201,7 +201,10 @@ const Document: React.FC = () => {
             Connect WebSocket
           </button>
         </div>
-        <EditorContent editor={editor} />
+        <EditorContent
+          editor={editor}
+          className="border border-primary-200 p-2 rounded"
+        />
       </main>
     </>
   );

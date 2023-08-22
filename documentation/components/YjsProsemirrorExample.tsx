@@ -196,7 +196,9 @@ const Document: React.FC = () => {
           Connect WebSocket
         </button>
       </div>
-      <div ref={editorRef}>Loading</div>
+      <div ref={editorRef} className="border border-primary-200 p-2 rounded">
+        Loading
+      </div>
     </>
   );
 };
