@@ -904,28 +904,37 @@ export const createSyncMachine = () =>
                       context.additionalAuthenticationDataValidations?.snapshot
                     );
 
-                    if (activeSnapshotInfo) {
-                      const isValid = isValidAncestorSnapshot({
-                        knownSnapshotProofEntry: {
-                          parentSnapshotProof:
-                            activeSnapshotInfo.parentSnapshotProof,
-                          snapshotCiphertextHash: hash(
-                            activeSnapshotInfo.ciphertext,
-                            context.sodium
-                          ),
-                        },
-                        snapshotProofChain: event.snapshotProofChain,
-                        currentSnapshot: snapshot,
-                        sodium: context.sodium,
-                      });
-                      if (!isValid) {
-                        throw new Error(
-                          "Invalid ancestor snapshot after snapshot-save-failed event"
-                        );
-                      }
-                    }
+                    const isAlreadyProcessedSnapshot =
+                      activeSnapshotInfo.id ===
+                        snapshot.publicData.snapshotId &&
+                      activeSnapshotInfo.ciphertext === snapshot.ciphertext &&
+                      activeSnapshotInfo.parentSnapshotProof ===
+                        snapshot.publicData.parentSnapshotProof;
 
-                    await processSnapshot(snapshot);
+                    if (!isAlreadyProcessedSnapshot) {
+                      if (activeSnapshotInfo) {
+                        const isValid = isValidAncestorSnapshot({
+                          knownSnapshotProofEntry: {
+                            parentSnapshotProof:
+                              activeSnapshotInfo.parentSnapshotProof,
+                            snapshotCiphertextHash: hash(
+                              activeSnapshotInfo.ciphertext,
+                              context.sodium
+                            ),
+                          },
+                          snapshotProofChain: event.snapshotProofChain,
+                          currentSnapshot: snapshot,
+                          sodium: context.sodium,
+                        });
+                        if (!isValid) {
+                          throw new Error(
+                            "Invalid ancestor snapshot after snapshot-save-failed event"
+                          );
+                        }
+                      }
+
+                      await processSnapshot(snapshot);
+                    }
                   }
                   // TODO test-case:
                   // snapshot is sending, but haven’t received confirmation for the updates I already sent
