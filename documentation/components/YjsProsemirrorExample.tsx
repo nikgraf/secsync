@@ -103,7 +103,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
           "Mod-y": redo,
           "Mod-Shift-z": redo,
         }),
-      ].concat(exampleSetup({ schema, menuBar: false })),
+      ].concat(exampleSetup({ schema })),
     });
 
     new EditorView(editorRef.current, { state });
