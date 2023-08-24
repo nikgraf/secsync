@@ -15,7 +15,7 @@ afterEach((done) => {
   });
 });
 
-it("should start with connecting", (done) => {
+test("should start with connecting", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = interpret(
     syncMachine.withContext({
@@ -32,7 +32,7 @@ it("should start with connecting", (done) => {
   syncService.start();
 });
 
-it("should connect", (done) => {
+test("should connect", (done) => {
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
