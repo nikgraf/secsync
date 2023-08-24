@@ -8,7 +8,8 @@ export function verifyAndDecryptUpdate(
   key: Uint8Array,
   publicKey: Uint8Array,
   currentClock: number,
-  sodium: typeof import("libsodium-wrappers")
+  sodium: typeof import("libsodium-wrappers"),
+  skipIfCurrentClockIsHigher: boolean // TODO add tests for skipIfCurrentClockIsHigher
 ) {
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(update.publicData) as string
@@ -28,13 +29,12 @@ export function verifyAndDecryptUpdate(
     throw new Error("Invalid signature for update");
   }
 
-  const content = decryptAead(
-    sodium.from_base64(update.ciphertext),
-    sodium.to_base64(canonicalize(update.publicData) as string),
-    key,
-    update.nonce,
-    sodium
-  );
+  if (
+    skipIfCurrentClockIsHigher &&
+    currentClock + 1 > update.publicData.clock
+  ) {
+    return null;
+  }
 
   if (currentClock + 1 !== update.publicData.clock) {
     throw new Error(
@@ -43,6 +43,14 @@ export function verifyAndDecryptUpdate(
       }`
     );
   }
+
+  const content = decryptAead(
+    sodium.from_base64(update.ciphertext),
+    sodium.to_base64(canonicalize(update.publicData) as string),
+    key,
+    update.nonce,
+    sodium
+  );
 
   return { content, clock: update.publicData.clock };
 }

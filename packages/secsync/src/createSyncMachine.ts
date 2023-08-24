@@ -732,7 +732,8 @@ export const createSyncMachine = () =>
             };
 
             const processUpdates = async (
-              rawUpdates: UpdateWithServerData[]
+              rawUpdates: UpdateWithServerData[],
+              skipIfCurrentClockIsHigher: boolean
             ) => {
               const updates = parseUpdatesWithServerData(
                 rawUpdates,
@@ -767,13 +768,20 @@ export const createSyncMachine = () =>
                         ]
                       : -1;
 
-                  const { content, clock } = verifyAndDecryptUpdate(
+                  const decryptUpdateResult = verifyAndDecryptUpdate(
                     update,
                     key,
                     context.sodium.from_base64(update.publicData.pubKey),
                     currentClock,
-                    context.sodium
+                    context.sodium,
+                    skipIfCurrentClockIsHigher
                   );
+
+                  if (decryptUpdateResult === null) {
+                    continue;
+                  }
+
+                  const { content, clock } = decryptUpdateResult;
 
                   const existingClocks =
                     updateClocks[activeSnapshotInfo.id] || {};
@@ -855,7 +863,10 @@ export const createSyncMachine = () =>
                     documentDecryptionState = "partial";
 
                     if (event.updates) {
-                      await processUpdates(event.updates);
+                      // skipIfCurrentClockIsHigher to false since the document would
+                      // be broken if the server sends update events with the same clock
+                      // value multiple times
+                      await processUpdates(event.updates, false);
                     }
                   }
                   documentDecryptionState = "complete";
@@ -936,11 +947,11 @@ export const createSyncMachine = () =>
                       await processSnapshot(snapshot);
                     }
                   }
-                  // TODO test-case:
-                  // snapshot is sending, but haven’t received confirmation for the updates I already sent
-                  // currently this breaks (assumption due the incoming and outgoing clock being the same)
+
                   if (event.updates) {
-                    await processUpdates(event.updates);
+                    // skipIfCurrentClockIsHigher to true since the update might already
+                    // have been received via update message
+                    await processUpdates(event.updates, true);
                   }
 
                   if (context.logging === "debug") {
@@ -950,7 +961,9 @@ export const createSyncMachine = () =>
                   break;
 
                 case "update":
-                  await processUpdates([event]);
+                  // skipIfCurrentClockIsHigher to true since the update might already
+                  // have been received via snapshot-save-failed message
+                  await processUpdates([event], true);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {
