@@ -41,7 +41,8 @@ test("createUpdate & verifyAndDecryptUpdate successfully", async () => {
     key,
     signatureKeyPair.publicKey,
     -1,
-    sodium
+    sodium,
+    false
   );
   if (content === null) {
     throw new Error("Update could not be verified.");
@@ -87,7 +88,8 @@ test("createUpdate & verifyAndDecryptUpdate successfully with higher clock numbe
     key,
     signatureKeyPair.publicKey,
     9,
-    sodium
+    sodium,
+    false
   );
   if (content === null) {
     throw new Error("Update could not be verified.");
@@ -137,7 +139,8 @@ test("createUpdate & verifyAndDecryptUpdate break due changed signature", async 
       key,
       signatureKeyPair.publicKey,
       -1,
-      sodium
+      sodium,
+      false
     )
   ).toThrowError();
 });
@@ -183,7 +186,8 @@ test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async
       key,
       signatureKeyPair.publicKey,
       -1,
-      sodium
+      sodium,
+      false
     )
   ).toThrowError();
 });
@@ -221,6 +225,13 @@ test("createUpdate & verifyAndDecryptUpdate fail due invalid clock", async () =>
   );
 
   expect(() =>
-    verifyAndDecryptUpdate(update, key, signatureKeyPair.publicKey, 10, sodium)
+    verifyAndDecryptUpdate(
+      update,
+      key,
+      signatureKeyPair.publicKey,
+      10,
+      sodium,
+      false
+    )
   ).toThrowError();
 });
