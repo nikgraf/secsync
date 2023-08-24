@@ -68,7 +68,111 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   };
 };
 
-it("should retry if snapshot-", (done) => {
+it("should apply snapshot from snapshot-save-failed", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        sodium: sodium,
+        signatureKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      const { snapshot: snapshot2 } = createSnapshotTestHelper({
+        content: "Hello World1",
+        grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        parentSnapshotCiphertext: snapshot.ciphertext,
+      });
+
+      setTimeout(() => {
+        syncService.send({
+          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+          data: {
+            snapshot: snapshot2,
+            snapshotProofChain: [
+              {
+                id: snapshot2.publicData.snapshotId,
+                parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
+                snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
+              },
+            ],
+            updates: [],
+            type: "snapshot-save-failed",
+          },
+        });
+      }, 1);
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (transitionCount === 10) {
+      expect(state.matches("connected.idle")).toBe(true);
+      expect(docValue).toBe("Hello World1");
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+it("should ignore snapshot from snapshot-save-failed if already applied", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
