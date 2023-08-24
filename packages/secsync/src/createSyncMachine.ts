@@ -773,8 +773,8 @@ export const createSyncMachine = () =>
                     key,
                     context.sodium.from_base64(update.publicData.pubKey),
                     currentClock,
-                    context.sodium,
-                    skipIfCurrentClockIsHigher
+                    skipIfCurrentClockIsHigher,
+                    context.sodium
                   );
 
                   if (decryptUpdateResult === null) {

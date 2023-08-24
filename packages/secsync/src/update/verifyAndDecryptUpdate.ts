@@ -8,8 +8,8 @@ export function verifyAndDecryptUpdate(
   key: Uint8Array,
   publicKey: Uint8Array,
   currentClock: number,
-  sodium: typeof import("libsodium-wrappers"),
-  skipIfCurrentClockIsHigher: boolean // TODO add tests for skipIfCurrentClockIsHigher
+  skipIfCurrentClockIsHigher: boolean,
+  sodium: typeof import("libsodium-wrappers")
 ) {
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(update.publicData) as string

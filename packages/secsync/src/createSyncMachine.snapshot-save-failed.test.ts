@@ -97,7 +97,7 @@ const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-it("should apply snapshot from snapshot-save-failed", (done) => {
+test("should apply snapshot from snapshot-save-failed", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -201,7 +201,7 @@ it("should apply snapshot from snapshot-save-failed", (done) => {
   syncService.start();
 });
 
-it("should ignore snapshot from snapshot-save-failed if already applied", (done) => {
+test("should ignore snapshot from snapshot-save-failed if already applied", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -311,7 +311,7 @@ it("should ignore snapshot from snapshot-save-failed if already applied", (done)
   syncService.start();
 });
 
-it("should apply update from snapshot-save-failed", (done) => {
+test("should apply update from snapshot-save-failed", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -410,7 +410,7 @@ it("should apply update from snapshot-save-failed", (done) => {
   syncService.start();
 });
 
-it.only("should ignore update from snapshot-save-failed if already applied", (done) => {
+test("should ignore update from snapshot-save-failed if already applied", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});

@@ -113,7 +113,7 @@ const createTestEphemeralUpdate = () => {
   return { ephemeralUpdate };
 };
 
-it("should set _documentDecryptionState to failed if not even the snapshot can be loaded", (done) => {
+test("should set _documentDecryptionState to failed if not even the snapshot can be loaded", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -177,7 +177,7 @@ it("should set _documentDecryptionState to failed if not even the snapshot can b
   });
 });
 
-it("should set _documentDecryptionState to partial and apply the first update, if document snapshot decrypts but the second update fails", (done) => {
+test("should set _documentDecryptionState to partial and apply the first update, if document snapshot decrypts but the second update fails", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -244,7 +244,7 @@ it("should set _documentDecryptionState to partial and apply the first update, i
   });
 });
 
-it("should set _documentDecryptionState to partial, if document snapshot decrypts but the first update fails", (done) => {
+test("should set _documentDecryptionState to partial, if document snapshot decrypts but the first update fails", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -308,7 +308,7 @@ it("should set _documentDecryptionState to partial, if document snapshot decrypt
   });
 });
 
-it("should process three additional ephemeral updates where the second one fails", (done) => {
+test("should process three additional ephemeral updates where the second one fails", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -413,7 +413,7 @@ it("should process three additional ephemeral updates where the second one fails
   }, 1);
 });
 
-it("should store not more than 20 failed ephemeral update errors", (done) => {
+test("should store not more than 20 failed ephemeral update errors", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -507,7 +507,7 @@ it("should store not more than 20 failed ephemeral update errors", (done) => {
   }, 1);
 });
 
-it("should reset the context entries after websocket disconnect", (done) => {
+test("should reset the context entries after websocket disconnect", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -597,7 +597,7 @@ it("should reset the context entries after websocket disconnect", (done) => {
   });
 });
 
-it("should reconnect and reload the document", (done) => {
+test("should reconnect and reload the document", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";

@@ -113,7 +113,7 @@ const createTestEphemeralUpdate = () => {
   return { ephemeralUpdate };
 };
 
-it("should connect to the websocket", (done) => {
+test("should connect to the websocket", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   const syncMachine = createSyncMachine();
@@ -147,7 +147,7 @@ it("should connect to the websocket", (done) => {
   syncService.send({ type: "WEBSOCKET_CONNECTED" });
 });
 
-it("should initially have _documentDecryptionState state", (done) => {
+test("should initially have _documentDecryptionState state", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -192,7 +192,7 @@ it("should initially have _documentDecryptionState state", (done) => {
   syncService.send({ type: "WEBSOCKET_CONNECTED" });
 });
 
-it("should load a document", (done) => {
+test("should load a document", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -248,7 +248,7 @@ it("should load a document", (done) => {
   });
 });
 
-it("should load a document with updates", (done) => {
+test("should load a document with updates", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -317,7 +317,7 @@ it("should load a document with updates", (done) => {
   });
 });
 
-it("should load a document and two additional updates", (done) => {
+test("should load a document and two additional updates", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -401,7 +401,7 @@ it("should load a document and two additional updates", (done) => {
   });
 });
 
-it("should load a document and an additional snapshot", (done) => {
+test("should load a document and an additional snapshot", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -475,7 +475,7 @@ it("should load a document and an additional snapshot", (done) => {
   });
 });
 
-it("should load a document with updates and two additional updates", (done) => {
+test("should load a document with updates and two additional updates", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -558,7 +558,7 @@ it("should load a document with updates and two additional updates", (done) => {
   });
 });
 
-it("should load a document with updates and two two additional snapshots", (done) => {
+test("should load a document with updates and two two additional snapshots", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -649,7 +649,7 @@ it("should load a document with updates and two two additional snapshots", (done
   });
 });
 
-it("should load a document and process three additional ephemeral updates", (done) => {
+test("should load a document and process three additional ephemeral updates", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
