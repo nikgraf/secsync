@@ -81,13 +81,13 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       secsync:
-        specifier: ^0.1.0
+        specifier: workspace:^
         version: link:../packages/secsync
       secsync-react-automerge:
-        specifier: ^0.1.0
+        specifier: workspace:^
         version: link:../packages/secsync-react-automerge
       secsync-react-yjs:
-        specifier: ^0.1.0
+        specifier: workspace:^
         version: link:../packages/secsync-react-yjs
       uuid:
         specifier: ^8.3.2
@@ -139,7 +139,7 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0
       secsync:
-        specifier: '*'
+        specifier: workspace:^
         version: link:../../packages/secsync
       uuid:
         specifier: ^8.3.2
@@ -218,13 +218,13 @@ importers:
         specifier: ^18.2.0
         version: 18.2.0(react@18.2.0)
       secsync:
-        specifier: ^0.1.0
+        specifier: workspace:^
         version: link:../../packages/secsync
       secsync-react-automerge:
-        specifier: ^0.1.0
+        specifier: workspace:^
         version: link:../../packages/secsync-react-automerge
       secsync-react-yjs:
-        specifier: ^0.1.0
+        specifier: workspace:^
         version: link:../../packages/secsync-react-yjs
       uuid:
         specifier: ^8.3.2
@@ -310,9 +310,6 @@ importers:
       react:
         specifier: '*'
         version: 18.2.0
-      secsync:
-        specifier: workspace:^
-        version: link:../secsync
     devDependencies:
       '@babel/core':
         specifier: ^7.22.10

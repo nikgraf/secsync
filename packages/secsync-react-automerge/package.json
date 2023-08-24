@@ -12,8 +12,7 @@
     "lint": "echo \"No linting configured\""
   },
   "dependencies": {
-    "@xstate/react": "^3.2.2",
-    "secsync": "workspace:^"
+    "@xstate/react": "^3.2.2"
   },
   "peerDependencies": {
     "@automerge/automerge": "*",

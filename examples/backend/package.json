@@ -31,7 +31,7 @@
     "express": "^4.17.1",
     "libsodium-wrappers": "^0.7.11",
     "make-promises-safe": "^5.1.0",
-    "secsync": "*",
+    "secsync": "workspace:^",
     "uuid": "^8.3.2",
     "ws": "^8.3.0"
   },
