@@ -4,7 +4,12 @@ import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
 import { createSnapshot } from "./snapshot/createSnapshot";
-import { SnapshotPublicData, SyncMachineConfig } from "./types";
+import {
+  SnapshotPublicData,
+  SyncMachineConfig,
+  UpdatePublicData,
+} from "./types";
+import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
 
@@ -66,6 +71,30 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     key,
     signatureKeyPair,
   };
+};
+
+type CreateUpdateTestHelperParams = {
+  version: number;
+};
+
+const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
+  const version = params?.version || 0;
+  const publicData: UpdatePublicData = {
+    refSnapshotId: snapshotId,
+    docId,
+    pubKey: sodium.to_base64(signatureKeyPair.publicKey),
+  };
+
+  const update = createUpdate(
+    "u",
+    publicData,
+    key,
+    signatureKeyPair,
+    version,
+    sodium
+  );
+
+  return { update: { ...update, serverData: { version } } };
 };
 
 it("should apply snapshot from snapshot-save-failed", (done) => {
@@ -275,6 +304,105 @@ it("should ignore snapshot from snapshot-save-failed if already applied", (done)
 
     if (transitionCount === 13) {
       expect(state.matches("connected.idle")).toBe(true);
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+it("should apply update from snapshot-save-failed", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      setTimeout(() => {
+        syncService.send({
+          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+          data: {
+            updates: [createUpdateHelper().update],
+            type: "snapshot-save-failed",
+          },
+        });
+      }, 1);
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (transitionCount === 10) {
+      expect(state.matches("connected.idle")).toBe(true);
+      expect(docValue).toBe("Hello Worldu");
       done();
     }
   });
