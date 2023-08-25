@@ -77,7 +77,9 @@ import { websocketService } from "./utils/websocketService";
 // - the update removed from the `_updatesInFlight` removed
 //
 // IF a snapshot failed to save
-// - the snapshot and changes that came with the response are applied and another snapshot is created and sent
+// - the snapshot and changes that came with the response are applied and another snapshot is created and sent. If there is a new snapshot and it has been received in the meantime
+// the snapshot is ignored. If there are new updates and they already have been applied they
+// are ignored as well.
 //
 // If an update failed to save
 // - check if the update is in the `_updatesInFlight` - only if it's there a retry is necessary
