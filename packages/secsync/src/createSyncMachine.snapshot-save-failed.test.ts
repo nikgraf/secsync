@@ -638,7 +638,6 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
 
   syncService.onTransition((state, event) => {
     transitionCount = transitionCount + 1;
-    console.log("transaction count", transitionCount);
     if (event.type === "WEBSOCKET_CONNECTED") {
       runEvents();
     }
