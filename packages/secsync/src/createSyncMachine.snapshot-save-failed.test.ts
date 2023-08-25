@@ -13,19 +13,29 @@ import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
 
-let signatureKeyPair: KeyPair;
+let signatureKeyPairA: KeyPair;
+let signatureKeyPairB: KeyPair;
 let key: Uint8Array;
 let docId: string;
 let snapshotId: string;
 
 beforeEach(() => {
   docId = generateId(sodium);
-  signatureKeyPair = {
+  signatureKeyPairA = {
     privateKey: sodium.from_base64(
       "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
     ),
     publicKey: sodium.from_base64(
       "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM"
+    ),
+    keyType: "ed25519",
+  };
+  signatureKeyPairB = {
+    privateKey: sodium.from_base64(
+      "ElVI9nkbOypSu2quCTXH1i1gGlcd-Sxd7S6ym9sNZj48ben-hOmefr13D9Y1Lnys3CuhwuPb6DMh_oDln913_g"
+    ),
+    publicKey: sodium.from_base64(
+      "PG3p_oTpnn69dw_WNS58rNwrocLj2-gzIf6A5Z_dd_4"
     ),
     keyType: "ed25519",
   };
@@ -50,7 +60,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   const publicData: SnapshotPublicData = {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
-    pubKey: sodium.to_base64(signatureKeyPair.publicKey),
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotClocks: {},
   };
 
@@ -58,7 +68,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     content || "Hello World",
     publicData,
     key,
-    signatureKeyPair,
+    signatureKeyPairA,
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium
@@ -69,16 +79,18 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
       serverData: { latestVersion: 0 },
     },
     key,
-    signatureKeyPair,
+    signatureKeyPairA,
   };
 };
 
 type CreateUpdateTestHelperParams = {
   version: number;
+  signatureKeyPair?: KeyPair;
 };
 
 const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   const version = params?.version || 0;
+  const signatureKeyPair = params?.signatureKeyPair || signatureKeyPairA;
   const publicData: UpdatePublicData = {
     refSnapshotId: snapshotId,
     docId,
@@ -118,7 +130,8 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
+          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -132,7 +145,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
           docValue = sodium.to_string(snapshot);
         },
         sodium: sodium,
-        signatureKeyPair,
+        signatureKeyPair: signatureKeyPairB,
       })
       .withConfig({
         actions: {
@@ -222,7 +235,8 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
+          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -236,7 +250,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
           docValue = sodium.to_string(snapshot);
         },
         sodium: sodium,
-        signatureKeyPair,
+        signatureKeyPair: signatureKeyPairB,
       })
       .withConfig({
         actions: {
@@ -332,7 +346,8 @@ test("should apply update from snapshot-save-failed", (done) => {
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
+          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -355,7 +370,7 @@ test("should apply update from snapshot-save-failed", (done) => {
           });
         },
         sodium: sodium,
-        signatureKeyPair,
+        signatureKeyPair: signatureKeyPairB,
       })
       .withConfig({
         actions: {
@@ -431,7 +446,8 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
+          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -454,7 +470,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
           });
         },
         sodium: sodium,
-        signatureKeyPair,
+        signatureKeyPair: signatureKeyPairB,
       })
       .withConfig({
         actions: {
@@ -521,6 +537,115 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
     if (transitionCount === 16) {
       expect(state.matches("connected.idle")).toBe(true);
       expect(docValue).toBe("Hello Worlduu");
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+test("should ignore update from snapshot-save-failed if it was created by the current client", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
+          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: signatureKeyPairB,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    // this would usually break the clock checks
+    // this case can happen when an update was sent, saved on the server,
+    // but the confirmation `updated-saved` not yet received
+    const update = createUpdateHelper({
+      version: 22,
+      signatureKeyPair: signatureKeyPairB,
+    }).update;
+
+    setTimeout(() => {
+      setTimeout(() => {
+        syncService.send({
+          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+          data: {
+            updates: [update],
+            type: "snapshot-save-failed",
+          },
+        });
+      }, 1);
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    console.log("transaction count", transitionCount);
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (transitionCount === 10) {
+      expect(state.matches("connected.idle")).toBe(true);
+      expect(docValue).toBe("Hello World");
       done();
     }
   });

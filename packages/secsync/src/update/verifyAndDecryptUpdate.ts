@@ -6,14 +6,17 @@ import { Update } from "../types";
 export function verifyAndDecryptUpdate(
   update: Update,
   key: Uint8Array,
-  publicKey: Uint8Array,
+  currentClientPublicKey: string,
   currentClock: number,
   skipIfCurrentClockIsHigher: boolean,
+  skipIfUpdateAuthoredByCurrentClient: boolean,
   sodium: typeof import("libsodium-wrappers")
 ) {
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(update.publicData) as string
   );
+
+  const authorPublicKey = sodium.from_base64(update.publicData.pubKey);
 
   const isValid = verifySignature(
     {
@@ -22,11 +25,18 @@ export function verifyAndDecryptUpdate(
       publicData: publicDataAsBase64,
     },
     update.signature,
-    publicKey,
+    authorPublicKey,
     sodium
   );
   if (!isValid) {
     throw new Error("Invalid signature for update");
+  }
+
+  if (
+    skipIfUpdateAuthoredByCurrentClient &&
+    currentClientPublicKey === update.publicData.pubKey
+  ) {
+    return null;
   }
 
   if (

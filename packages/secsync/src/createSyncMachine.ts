@@ -77,7 +77,9 @@ import { websocketService } from "./utils/websocketService";
 // - the update removed from the `_updatesInFlight` removed
 //
 // IF a snapshot failed to save
-// - the snapshot and changes that came with the response are applied and another snapshot is created and sent
+// - the snapshot and changes that came with the response are applied and another snapshot is created and sent. If there is a new snapshot and it has been received in the meantime
+// the snapshot is ignored. If there are new updates and they already have been applied they
+// are ignored as well.
 //
 // If an update failed to save
 // - check if the update is in the `_updatesInFlight` - only if it's there a retry is necessary
@@ -733,7 +735,8 @@ export const createSyncMachine = () =>
 
             const processUpdates = async (
               rawUpdates: UpdateWithServerData[],
-              skipIfCurrentClockIsHigher: boolean
+              skipIfCurrentClockIsHigher: boolean,
+              skipUpdatesAuthoredByCurrentClient: boolean
             ) => {
               const updates = parseUpdatesWithServerData(
                 rawUpdates,
@@ -771,9 +774,12 @@ export const createSyncMachine = () =>
                   const decryptUpdateResult = verifyAndDecryptUpdate(
                     update,
                     key,
-                    context.sodium.from_base64(update.publicData.pubKey),
+                    context.sodium.to_base64(
+                      context.signatureKeyPair.publicKey
+                    ),
                     currentClock,
                     skipIfCurrentClockIsHigher,
+                    skipUpdatesAuthoredByCurrentClient,
                     context.sodium
                   );
 
@@ -866,7 +872,9 @@ export const createSyncMachine = () =>
                       // skipIfCurrentClockIsHigher to false since the document would
                       // be broken if the server sends update events with the same clock
                       // value multiple times
-                      await processUpdates(event.updates, false);
+                      // skipUpdatesAuthoredByCurrentClient is set to false since the server
+                      // should never send an update made by the current client in this case
+                      await processUpdates(event.updates, false, false);
                     }
                   }
                   documentDecryptionState = "complete";
@@ -951,7 +959,10 @@ export const createSyncMachine = () =>
                   if (event.updates) {
                     // skipIfCurrentClockIsHigher to true since the update might already
                     // have been received via update message
-                    await processUpdates(event.updates, true);
+                    // skipUpdatesAuthoredByCurrentClient is set to true since it can happen
+                    // that an update was sent, saved on the server, but the confirmation
+                    // `updated-saved` not yet received
+                    await processUpdates(event.updates, true, true);
                   }
 
                   if (context.logging === "debug") {
@@ -963,7 +974,9 @@ export const createSyncMachine = () =>
                 case "update":
                   // skipIfCurrentClockIsHigher to true since the update might already
                   // have been received via snapshot-save-failed message
-                  await processUpdates([event], true);
+                  // skipUpdatesAuthoredByCurrentClient is set to false since the server
+                  // should never send an update made by the current client in this case
+                  await processUpdates([event], true, false);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {
