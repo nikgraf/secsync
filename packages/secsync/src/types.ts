@@ -127,7 +127,7 @@ export const ServerEvent = z.union([
 export type ServerEvent = z.infer<typeof ServerEvent>;
 
 export type ParentSnapshotProofInfo = {
-  id: string;
+  id: string; // TODO is the id needed here?
   ciphertext: string;
   parentSnapshotProof: string;
 };
