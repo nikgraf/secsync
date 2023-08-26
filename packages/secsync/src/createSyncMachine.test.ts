@@ -50,5 +50,3 @@ test("should connect", (done) => {
 
   syncService.start();
 });
-
-// TODO add test to verify a reply attack with older ephemeral updates are rejected

@@ -7,12 +7,13 @@ import { isValidParentSnapshot } from "./isValidParentSnapshot";
 export function verifyAndDecryptSnapshot(
   snapshot: Snapshot,
   key: Uint8Array,
-  publicKey: Uint8Array,
   currentClientPublicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers"),
   parentSnapshotProofInfo?: ParentSnapshotProofInfo,
   parentSnapshotUpdateClock?: number
 ) {
+  const publicKey = sodium.from_base64(snapshot.publicData.pubKey);
+
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(snapshot.publicData) as string
   );
@@ -43,16 +44,14 @@ export function verifyAndDecryptSnapshot(
     }
   }
 
-  if (parentSnapshotUpdateClock) {
+  if (parentSnapshotUpdateClock !== undefined) {
     const currentClientPublicKeyString = sodium.to_base64(
       currentClientPublicKey
     );
 
     if (
       snapshot.publicData.parentSnapshotClocks[currentClientPublicKeyString] !==
-        undefined &&
-      parentSnapshotUpdateClock ===
-        snapshot.publicData.parentSnapshotClocks[currentClientPublicKeyString]
+      parentSnapshotUpdateClock
     ) {
       throw new Error("Invalid updateClock for the parent snapshot");
     }

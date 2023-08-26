@@ -127,7 +127,8 @@ export const ServerEvent = z.union([
 export type ServerEvent = z.infer<typeof ServerEvent>;
 
 export type ParentSnapshotProofInfo = {
-  id: string; // TODO is the id needed here?
+  // TODO should the id be part of the proof hash?
+  id: string; // used for the clocks
   ciphertext: string;
   parentSnapshotProof: string;
 };

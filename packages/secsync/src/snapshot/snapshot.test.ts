@@ -5,8 +5,6 @@ import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { createSnapshot } from "./createSnapshot";
 import { verifyAndDecryptSnapshot } from "./verifyAndDecryptSnapshot";
 
-// TODO add tests for parentSnapshotUpdateClock in verifyAndDecryptSnapshot
-
 let signatureKeyPairA: KeyPair;
 let key: Uint8Array;
 
@@ -51,7 +49,6 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     snapshot,
     key,
     signatureKeyPairA.publicKey,
-    signatureKeyPairA.publicKey,
     sodium
   );
   if (result === null) {
@@ -87,7 +84,6 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
       },
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium
     )
   ).toThrowError();
@@ -119,7 +115,6 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
         ciphertext: snapshot.ciphertext.replace(/^./, "a"),
       },
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium
     )
@@ -180,9 +175,24 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   );
 
   const result = verifyAndDecryptSnapshot(
-    snapshot2,
+    snapshot,
     key,
     signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: "",
+      ciphertext: "",
+      parentSnapshotProof: "",
+    }
+  );
+  if (result === null) {
+    throw new Error("Snapshot could not be verified.");
+  }
+  expect(sodium.to_string(result)).toBe("Hello World");
+
+  const result2 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -194,12 +204,11 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   if (result === null) {
     throw new Error("Snapshot could not be verified.");
   }
-  expect(sodium.to_string(result)).toBe("Hello World2");
+  expect(sodium.to_string(result2)).toBe("Hello World2");
 
-  const result2 = verifyAndDecryptSnapshot(
+  const result3 = verifyAndDecryptSnapshot(
     snapshot3,
     key,
-    signatureKeyPairA.publicKey,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -209,7 +218,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     }
   );
 
-  expect(sodium.to_string(result2)).toBe("Hello World3");
+  expect(sodium.to_string(result3)).toBe("Hello World3");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSnapshotProof of initial snapshot", () => {
@@ -254,7 +263,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot2,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot.publicData.snapshotId,
@@ -273,7 +281,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot2,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot.publicData.snapshotId,
@@ -291,7 +298,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -364,7 +370,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot3,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot2.publicData.snapshotId,
@@ -382,7 +387,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot3,
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -402,7 +406,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot3,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot2.publicData.snapshotId,
@@ -413,6 +416,159 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
           sodium,
         }),
       }
+    )
+  ).toThrowError();
+});
+
+test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotClocks", () => {
+  const snapshotId = generateId(sodium);
+  const publicData: SnapshotPublicData = {
+    snapshotId,
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotClocks: {},
+  };
+
+  const snapshot = createSnapshot(
+    "Hello World",
+    publicData,
+    key,
+    signatureKeyPairA,
+    "",
+    "",
+    sodium
+  );
+
+  const snapshotId2 = generateId(sodium);
+  const publicData2: SnapshotPublicData = {
+    snapshotId: snapshotId2,
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotClocks: {
+      [sodium.to_base64(signatureKeyPairA.publicKey)]: 10,
+    },
+  };
+  const snapshot2 = createSnapshot(
+    "Hello World2",
+    publicData2,
+    key,
+    signatureKeyPairA,
+    snapshot.ciphertext,
+    snapshot.publicData.parentSnapshotProof,
+    sodium
+  );
+
+  const result2 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot.ciphertext,
+      parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    },
+    10 // no clock should be present
+  );
+
+  expect(sodium.to_string(result2)).toBe("Hello World2");
+});
+
+test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshotClocks", () => {
+  const snapshotId = generateId(sodium);
+  const publicData: SnapshotPublicData = {
+    snapshotId,
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotClocks: {},
+  };
+
+  const snapshot = createSnapshot(
+    "Hello World",
+    publicData,
+    key,
+    signatureKeyPairA,
+    "",
+    "",
+    sodium
+  );
+
+  const snapshotId2 = generateId(sodium);
+  const publicData2: SnapshotPublicData = {
+    snapshotId: snapshotId2,
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotClocks: {
+      [sodium.to_base64(signatureKeyPairA.publicKey)]: 10,
+    },
+  };
+  const snapshot2 = createSnapshot(
+    "Hello World2",
+    publicData2,
+    key,
+    signatureKeyPairA,
+    snapshot.ciphertext,
+    snapshot.publicData.parentSnapshotProof,
+    sodium
+  );
+
+  expect(() =>
+    verifyAndDecryptSnapshot(
+      snapshot,
+      key,
+      signatureKeyPairA.publicKey,
+      sodium,
+      {
+        id: "",
+        ciphertext: "",
+        parentSnapshotProof: "",
+      },
+      10 // no clock should be present
+    )
+  ).toThrowError();
+
+  expect(() =>
+    verifyAndDecryptSnapshot(
+      snapshot2,
+      key,
+      signatureKeyPairA.publicKey,
+      sodium,
+      {
+        id: snapshot.publicData.snapshotId,
+        ciphertext: snapshot.ciphertext,
+        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+      },
+      11 // clock should be 10
+    )
+  ).toThrowError();
+
+  expect(() =>
+    verifyAndDecryptSnapshot(
+      snapshot2,
+      key,
+      signatureKeyPairA.publicKey,
+      sodium,
+      {
+        id: snapshot.publicData.snapshotId,
+        ciphertext: snapshot.ciphertext,
+        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+      },
+      9 // clock should be 10
+    )
+  ).toThrowError();
+
+  expect(() =>
+    verifyAndDecryptSnapshot(
+      snapshot2,
+      key,
+      signatureKeyPairA.publicKey,
+      sodium,
+      {
+        id: snapshot.publicData.snapshotId,
+        ciphertext: snapshot.ciphertext,
+        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+      },
+      0 // clock should be 10
     )
   ).toThrowError();
 });
