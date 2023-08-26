@@ -740,7 +740,6 @@ export const createSyncMachine = () =>
                 parentSnapshotUpdateClock
               );
 
-              // TODO reset the clocks for the snapshot for the signing key
               context.applySnapshot(decryptedSnapshot);
               activeSnapshotInfo = {
                 id: snapshot.publicData.snapshotId,
@@ -750,6 +749,13 @@ export const createSyncMachine = () =>
               latestServerVersion = snapshot.serverData.latestVersion;
               confirmedUpdatesClock = null;
               sendingUpdatesClock = -1;
+              if (
+                parentSnapshotProofInfo &&
+                updateClocks[parentSnapshotProofInfo.id]
+              ) {
+                // cleanup the updateClocks to avoid a memory leak
+                delete updateClocks[parentSnapshotProofInfo.id];
+              }
             };
 
             const processUpdates = async (
