@@ -695,3 +695,4 @@ test("should reconnect and reload the document", (done) => {
 // testing sending the same ephemeral update twice
 // tests for a broken snapshot key
 // test for a invalid contributor
+// test to verify a reply attack with older ephemeral updates are rejected

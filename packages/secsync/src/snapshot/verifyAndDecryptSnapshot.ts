@@ -43,16 +43,14 @@ export function verifyAndDecryptSnapshot(
     }
   }
 
-  if (parentSnapshotUpdateClock) {
+  if (parentSnapshotUpdateClock !== undefined) {
     const currentClientPublicKeyString = sodium.to_base64(
       currentClientPublicKey
     );
 
     if (
       snapshot.publicData.parentSnapshotClocks[currentClientPublicKeyString] !==
-        undefined &&
-      parentSnapshotUpdateClock ===
-        snapshot.publicData.parentSnapshotClocks[currentClientPublicKeyString]
+      parentSnapshotUpdateClock
     ) {
       throw new Error("Invalid updateClock for the parent snapshot");
     }
