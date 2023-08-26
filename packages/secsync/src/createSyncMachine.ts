@@ -131,7 +131,7 @@ type ProcessQueueData = {
   pendingChangesQueue: any[];
   updateClocks: UpdateClocks;
   mostRecentEphemeralUpdateDatePerPublicSigningKey: MostRecentEphemeralUpdateDatePerPublicSigningKey;
-  ephemeralUpdateErrors: SecsyncProcessingEphemeralUpdateError[];
+  receivingEphemeralUpdateErrors: SecsyncProcessingEphemeralUpdateError[];
   documentDecryptionState: DocumentDecryptionState;
 };
 
@@ -156,7 +156,8 @@ export type Context = SyncMachineConfig &
     _pendingChangesQueue: any[];
     _shouldReconnect: boolean;
     _errorTrace: Error[];
-    _ephemeralUpdateErrors: Error[];
+    _receivingEphemeralUpdateErrors: Error[];
+    _creatingEphemeralUpdateErrors: Error[];
     logging: SyncMachineConfig["logging"];
   };
 
@@ -196,6 +197,10 @@ export const createSyncMachine = () =>
               type: "SEND_EPHEMERAL_UPDATE";
               data: any;
               getEphemeralUpdateKey: () => Promise<Uint8Array>;
+            }
+          | {
+              type: "FAILED_CREATING_EPHEMERAL_UPDATE";
+              error: any;
             }
           | { type: "SEND"; message: any },
         context: {} as Context,
@@ -246,7 +251,8 @@ export const createSyncMachine = () =>
         _updateClocks: {},
         _mostRecentEphemeralUpdateDatePerPublicSigningKey: {},
         _errorTrace: [],
-        _ephemeralUpdateErrors: [],
+        _receivingEphemeralUpdateErrors: [],
+        _creatingEphemeralUpdateErrors: [],
         _documentDecryptionState: "pending",
       },
       initial: "connecting",
@@ -265,6 +271,9 @@ export const createSyncMachine = () =>
         },
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
+        FAILED_CREATING_EPHEMERAL_UPDATE: {
+          actions: ["updateCreatingEphemeralUpdateErrors"],
+        },
       },
       states: {
         connecting: {
@@ -464,7 +473,8 @@ export const createSyncMachine = () =>
               _updateClocks: event.data.updateClocks,
               _mostRecentEphemeralUpdateDatePerPublicSigningKey:
                 event.data.mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              _ephemeralUpdateErrors: event.data.ephemeralUpdateErrors,
+              _receivingEphemeralUpdateErrors:
+                event.data.receivingEphemeralUpdateErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
           } else if (event.data.handledQueue === "customMessage") {
@@ -480,7 +490,8 @@ export const createSyncMachine = () =>
               _updateClocks: event.data.updateClocks,
               _mostRecentEphemeralUpdateDatePerPublicSigningKey:
                 event.data.mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              _ephemeralUpdateErrors: event.data.ephemeralUpdateErrors,
+              _receivingEphemeralUpdateErrors:
+                event.data.receivingEphemeralUpdateErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
           } else {
@@ -495,7 +506,8 @@ export const createSyncMachine = () =>
               _updateClocks: event.data.updateClocks,
               _mostRecentEphemeralUpdateDatePerPublicSigningKey:
                 event.data.mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              _ephemeralUpdateErrors: event.data.ephemeralUpdateErrors,
+              _receivingEphemeralUpdateErrors:
+                event.data.receivingEphemeralUpdateErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
           }
@@ -508,6 +520,14 @@ export const createSyncMachine = () =>
               event.data?.documentDecryptionState ||
               context._documentDecryptionState,
             _errorTrace: [event.data, ...context._errorTrace],
+          };
+        }),
+        updateCreatingEphemeralUpdateErrors: assign((context, event) => {
+          return {
+            _creatingEphemeralUpdateErrors: [
+              event.error,
+              ...context._creatingEphemeralUpdateErrors,
+            ].slice(0, 20), // avoid a memory leak by storing max 20 errors
           };
         }),
       },
@@ -1126,7 +1146,8 @@ export const createSyncMachine = () =>
               pendingChangesQueue,
               updateClocks,
               mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              ephemeralUpdateErrors: context._ephemeralUpdateErrors,
+              receivingEphemeralUpdateErrors:
+                context._receivingEphemeralUpdateErrors,
               documentDecryptionState,
             };
           } catch (error) {
@@ -1134,10 +1155,10 @@ export const createSyncMachine = () =>
               console.error("Processing queue error:", error);
             }
             if (error instanceof SecsyncProcessingEphemeralUpdateError) {
-              const newEphemeralUpdateErrors = [
-                ...context._ephemeralUpdateErrors,
+              const newreceivingEphemeralUpdateErrors = [
+                ...context._receivingEphemeralUpdateErrors,
               ];
-              newEphemeralUpdateErrors.unshift(error);
+              newreceivingEphemeralUpdateErrors.unshift(error);
               return {
                 handledQueue,
                 activeSnapshotInfo,
@@ -1149,7 +1170,8 @@ export const createSyncMachine = () =>
                 pendingChangesQueue,
                 updateClocks,
                 mostRecentEphemeralUpdateDatePerPublicSigningKey,
-                ephemeralUpdateErrors: newEphemeralUpdateErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
+                receivingEphemeralUpdateErrors:
+                  newreceivingEphemeralUpdateErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,
               };
             } else {

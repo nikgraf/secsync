@@ -366,7 +366,7 @@ test("should process three additional ephemeral updates where the second one fai
       })
   ).onTransition((state) => {
     if (ephemeralUpdatesValue.length === 2 && state.matches("connected.idle")) {
-      expect(state.context._ephemeralUpdateErrors.length).toEqual(1);
+      expect(state.context._receivingEphemeralUpdateErrors.length).toEqual(1);
       expect(ephemeralUpdatesValue[0]).toEqual(42);
       expect(ephemeralUpdatesValue[1]).toEqual(42);
       done();
@@ -471,7 +471,7 @@ test("should store not more than 20 failed ephemeral update errors", (done) => {
       })
   ).onTransition((state) => {
     if (ephemeralUpdatesValue.length === 2 && state.matches("connected.idle")) {
-      expect(state.context._ephemeralUpdateErrors.length).toEqual(20);
+      expect(state.context._receivingEphemeralUpdateErrors.length).toEqual(20);
       expect(ephemeralUpdatesValue[0]).toEqual(42);
       expect(ephemeralUpdatesValue[1]).toEqual(42);
       done();
@@ -578,6 +578,8 @@ test("should reset the context entries after websocket disconnect", (done) => {
       expect(
         state.context._mostRecentEphemeralUpdateDatePerPublicSigningKey
       ).toEqual({});
+      expect(state.context._receivingEphemeralUpdateErrors).toEqual([]);
+      expect(state.context._creatingEphemeralUpdateErrors).toEqual([]);
       done();
     }
   });
@@ -696,8 +698,85 @@ test("should reconnect and reload the document", (done) => {
   }, 1);
 });
 
+test("should store not more than 20 failed creating ephemeral update errors", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let ephemeralUpdatesValue = new Uint8Array();
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          sodium.to_base64(signatureKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        getEphemeralUpdateKey: () => key,
+        applyEphemeralUpdates: (ephemeralUpdates) => {
+          ephemeralUpdatesValue = new Uint8Array([
+            ...ephemeralUpdatesValue,
+            ...ephemeralUpdates,
+          ]);
+        },
+        sodium: sodium,
+        signatureKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    transitionCount = transitionCount + 1;
+    console.log("transitionCount", transitionCount);
+    if (transitionCount === 27 && state.matches("connected.idle")) {
+      expect(state.context._creatingEphemeralUpdateErrors.length).toEqual(20);
+      expect(state.context._creatingEphemeralUpdateErrors[0].message).toEqual(
+        `Wrong ephemeral update key #${24}`
+      );
+      expect(state.context._creatingEphemeralUpdateErrors[19].message).toEqual(
+        `Wrong ephemeral update key #${5}`
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  for (let step = 0; step < 25; step++) {
+    syncService.send({
+      type: "FAILED_CREATING_EPHEMERAL_UPDATE",
+      error: new Error(`Wrong ephemeral update key #${step}`),
+    });
+  }
+});
+
 // TODO
-// test sending the same update twice
+// test sending the same update twice (2nd one being ignore)
 // testing sending the same ephemeral update twice
 // tests for a broken snapshot key
 // test for a invalid contributor
