@@ -51,7 +51,6 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     snapshot,
     key,
     signatureKeyPairA.publicKey,
-    signatureKeyPairA.publicKey,
     sodium
   );
   if (result === null) {
@@ -87,7 +86,6 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
       },
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium
     )
   ).toThrowError();
@@ -119,7 +117,6 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
         ciphertext: snapshot.ciphertext.replace(/^./, "a"),
       },
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium
     )
@@ -183,7 +180,6 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     snapshot,
     key,
     signatureKeyPairA.publicKey,
-    signatureKeyPairA.publicKey,
     sodium,
     {
       id: "",
@@ -200,7 +196,6 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     snapshot2,
     key,
     signatureKeyPairA.publicKey,
-    signatureKeyPairA.publicKey,
     sodium,
     {
       id: snapshot.publicData.snapshotId,
@@ -216,7 +211,6 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const result3 = verifyAndDecryptSnapshot(
     snapshot3,
     key,
-    signatureKeyPairA.publicKey,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -271,7 +265,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot2,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot.publicData.snapshotId,
@@ -290,7 +283,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot2,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot.publicData.snapshotId,
@@ -308,7 +300,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -381,7 +372,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot3,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot2.publicData.snapshotId,
@@ -400,7 +390,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
       snapshot3,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot2.publicData.snapshotId,
@@ -418,7 +407,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot3,
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -476,7 +464,6 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     snapshot2,
     key,
     signatureKeyPairA.publicKey,
-    signatureKeyPairA.publicKey,
     sodium,
     {
       id: snapshot.publicData.snapshotId,
@@ -532,7 +519,6 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
       snapshot,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: "",
@@ -547,7 +533,6 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -564,7 +549,6 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
       snapshot2,
       key,
       signatureKeyPairA.publicKey,
-      signatureKeyPairA.publicKey,
       sodium,
       {
         id: snapshot.publicData.snapshotId,
@@ -579,7 +563,6 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
-      signatureKeyPairA.publicKey,
       signatureKeyPairA.publicKey,
       sodium,
       {

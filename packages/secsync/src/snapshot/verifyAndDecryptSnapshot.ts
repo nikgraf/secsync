@@ -7,12 +7,13 @@ import { isValidParentSnapshot } from "./isValidParentSnapshot";
 export function verifyAndDecryptSnapshot(
   snapshot: Snapshot,
   key: Uint8Array,
-  publicKey: Uint8Array,
   currentClientPublicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers"),
   parentSnapshotProofInfo?: ParentSnapshotProofInfo,
   parentSnapshotUpdateClock?: number
 ) {
+  const publicKey = sodium.from_base64(snapshot.publicData.pubKey);
+
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(snapshot.publicData) as string
   );
