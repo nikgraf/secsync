@@ -100,12 +100,17 @@ export const websocketService =
         };
 
         try {
-          prepareAndSendEphemeralUpdate();
+          prepareAndSendEphemeralUpdate().catch((reason) => {
+            if (context.logging === "debug" || context.logging === "error") {
+              console.error(reason);
+            }
+            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          });
         } catch (error) {
-          // TODO send a error event to the parent
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);
           }
+          send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error });
         }
       }
     });
