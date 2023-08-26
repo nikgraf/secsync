@@ -6,6 +6,7 @@ import { createEphemeralUpdate } from "./ephemeralUpdate/createEphemeralUpdate";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralUpdatePublicData,
+  SnapshotClocks,
   SnapshotPublicData,
   UpdatePublicData,
 } from "./types";
@@ -37,12 +38,17 @@ type CreateSnapshotTestHelperParams = {
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
+  parentSnapshotClocks?: SnapshotClocks;
 };
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
-  const { parentSnapshotCiphertext, grandParentSnapshotProof, content } =
-    params || {};
+  const {
+    parentSnapshotCiphertext,
+    grandParentSnapshotProof,
+    content,
+    parentSnapshotClocks,
+  } = params || {};
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
   );
@@ -51,7 +57,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPair.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotClocks: parentSnapshotClocks || {},
   };
 
   const snapshot = createSnapshot(

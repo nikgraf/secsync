@@ -5,8 +5,6 @@ import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { createSnapshot } from "./createSnapshot";
 import { verifyAndDecryptSnapshot } from "./verifyAndDecryptSnapshot";
 
-// TODO add tests for parentSnapshotUpdateClock in verifyAndDecryptSnapshot
-
 let signatureKeyPairA: KeyPair;
 let key: Uint8Array;
 

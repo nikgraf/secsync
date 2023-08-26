@@ -47,6 +47,7 @@ type CreateSnapshotTestHelperParams = {
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
+  // Note: lacks the `parentSnapshotClocks` param from other test suites
 };
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
