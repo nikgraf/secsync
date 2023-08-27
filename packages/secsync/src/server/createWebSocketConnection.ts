@@ -166,6 +166,7 @@ export const createWebSocketConnection =
               console.error("SNAPSHOT FAILED ERROR:", error);
             }
             if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
+              // TODO retry?
               let document = await getDocument({
                 documentId,
                 lastKnownSnapshotId: data.lastKnownSnapshotId,
@@ -185,7 +186,11 @@ export const createWebSocketConnection =
                     'document not found for "snapshotBasedOnOutdatedSnapshot" error'
                   );
                 }
-                handleDocumentError();
+                connection.send(
+                  JSON.stringify({
+                    type: "snapshot-save-failed",
+                  })
+                );
               }
             } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
               const document = await getDocument({
@@ -207,7 +212,11 @@ export const createWebSocketConnection =
                     'document not found for "snapshotMissesUpdates" error'
                   );
                 }
-                handleDocumentError();
+                connection.send(
+                  JSON.stringify({
+                    type: "snapshot-save-failed",
+                  })
+                );
               }
             } else if (error instanceof SecsyncNewSnapshotRequiredError) {
               connection.send(
@@ -220,7 +229,11 @@ export const createWebSocketConnection =
               if (logging === "error") {
                 console.error(error);
               }
-              handleDocumentError();
+              connection.send(
+                JSON.stringify({
+                  type: "snapshot-save-failed",
+                })
+              );
             }
           }
           // new update

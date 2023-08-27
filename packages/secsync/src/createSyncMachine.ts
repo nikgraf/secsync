@@ -702,59 +702,69 @@ export const createSyncMachine = () =>
               if (context.logging === "debug") {
                 console.debug("processSnapshot", rawSnapshot);
               }
-              const snapshot = parseSnapshotWithServerData(
-                rawSnapshot,
-                context.additionalAuthenticationDataValidations?.snapshot
-              );
-
-              const isValidCollaborator = await context.isValidCollaborator(
-                snapshot.publicData.pubKey
-              );
-              if (!isValidCollaborator) {
-                throw new Error("Invalid collaborator");
-              }
-
-              let parentSnapshotUpdateClock: number | undefined = undefined;
-
-              if (
-                parentSnapshotProofInfo &&
-                updateClocks[parentSnapshotProofInfo.id]
-              ) {
-                const currentClientPublicKey = context.sodium.to_base64(
-                  context.signatureKeyPair.publicKey
+              try {
+                const snapshot = parseSnapshotWithServerData(
+                  rawSnapshot,
+                  context.additionalAuthenticationDataValidations?.snapshot
                 );
-                parentSnapshotUpdateClock =
-                  updateClocks[parentSnapshotProofInfo.id][
-                    currentClientPublicKey
-                  ];
-              }
 
-              const snapshotKey = await context.getSnapshotKey(snapshot);
-              // console.log("processSnapshot key", snapshotKey);
-              const decryptedSnapshot = verifyAndDecryptSnapshot(
-                snapshot,
-                snapshotKey,
-                context.signatureKeyPair.publicKey,
-                context.sodium,
-                parentSnapshotProofInfo,
-                parentSnapshotUpdateClock
-              );
+                const isValidCollaborator = await context.isValidCollaborator(
+                  snapshot.publicData.pubKey
+                );
+                if (!isValidCollaborator) {
+                  throw new Error("Invalid collaborator");
+                }
 
-              context.applySnapshot(decryptedSnapshot);
-              activeSnapshotInfo = {
-                id: snapshot.publicData.snapshotId,
-                ciphertext: snapshot.ciphertext,
-                parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-              };
-              latestServerVersion = snapshot.serverData.latestVersion;
-              confirmedUpdatesClock = null;
-              sendingUpdatesClock = -1;
-              if (
-                parentSnapshotProofInfo &&
-                updateClocks[parentSnapshotProofInfo.id]
-              ) {
-                // cleanup the updateClocks to avoid a memory leak
-                delete updateClocks[parentSnapshotProofInfo.id];
+                let parentSnapshotUpdateClock: number | undefined = undefined;
+
+                if (
+                  parentSnapshotProofInfo &&
+                  updateClocks[parentSnapshotProofInfo.id]
+                ) {
+                  const currentClientPublicKey = context.sodium.to_base64(
+                    context.signatureKeyPair.publicKey
+                  );
+                  parentSnapshotUpdateClock =
+                    updateClocks[parentSnapshotProofInfo.id][
+                      currentClientPublicKey
+                    ];
+                }
+
+                const snapshotKey = await context.getSnapshotKey(snapshot);
+                // console.log("processSnapshot key", snapshotKey);
+                const decryptedSnapshot = verifyAndDecryptSnapshot(
+                  snapshot,
+                  snapshotKey,
+                  context.signatureKeyPair.publicKey,
+                  context.sodium,
+                  parentSnapshotProofInfo,
+                  parentSnapshotUpdateClock
+                );
+
+                context.applySnapshot(decryptedSnapshot);
+                activeSnapshotInfo = {
+                  id: snapshot.publicData.snapshotId,
+                  ciphertext: snapshot.ciphertext,
+                  parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                };
+                latestServerVersion = snapshot.serverData.latestVersion;
+                confirmedUpdatesClock = null;
+                sendingUpdatesClock = -1;
+                if (
+                  parentSnapshotProofInfo &&
+                  updateClocks[parentSnapshotProofInfo.id]
+                ) {
+                  // cleanup the updateClocks to avoid a memory leak
+                  delete updateClocks[parentSnapshotProofInfo.id];
+                }
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error("Process snapshot:", err);
+                }
+                throw err;
               }
             };
 
