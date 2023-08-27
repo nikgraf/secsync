@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
 import { YAwarenessExtension } from "tiptap-extension-y-awareness";
-import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
+import { Awareness } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
 const websocketHost =
@@ -96,23 +96,6 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
     yAwarenessRef.current.setLocalStateField("user", {
       name: `User ${yDocRef.current.clientID}`,
     });
-
-    // remove awareness state when closing the window
-    window.addEventListener("beforeunload", () => {
-      removeAwarenessStates(
-        yAwarenessRef.current,
-        [yDocRef.current.clientID],
-        "window unload"
-      );
-    });
-
-    return () => {
-      removeAwarenessStates(
-        yAwarenessRef.current,
-        [yDocRef.current.clientID],
-        "document unmount"
-      );
-    };
   }, []);
 
   return (
