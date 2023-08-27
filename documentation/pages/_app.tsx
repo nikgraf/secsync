@@ -5,6 +5,7 @@ import "nextra-theme-docs/style.css";
 import "../styles/global.css";
 import "../styles/prosemirror-example-setup.css";
 import "../styles/prosemirror-menu.css";
+import "../styles/tiptap-extension-y-awareness.css";
 import "../styles/y-prosemirror.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
