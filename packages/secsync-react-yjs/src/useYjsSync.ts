@@ -85,6 +85,8 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
     }
 
     const onAwarenessUpdate = ({ added, updated, removed }: any) => {
+      // NOTE: an endless loop of sending ephemeral updates can happen if there are
+      // two prosemirror EditorViews are attached to the same DOM element
       const changedClients = added.concat(updated).concat(removed);
       const yAwarenessUpdate = encodeAwarenessUpdate(
         yAwareness,
@@ -95,13 +97,19 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
 
     yAwareness.on("update", onAwarenessUpdate);
 
+    // remove awareness state when closing the browser tab
+    if (global.window) {
+      global.window.addEventListener("beforeunload", () => {
+        removeAwarenessStates(yAwareness, [yDoc.clientID], "window unload");
+      });
+    }
+
     return () => {
-      removeAwarenessStates(yAwareness, [yDoc.clientID], "document unmount");
+      removeAwarenessStates(yAwareness, [yDoc.clientID], "hook unmount");
       yAwareness.off("update", onAwarenessUpdate);
       yDoc.off("update", onUpdate);
     };
     // causes issues if ran multiple times e.g. awareness sharing to not work anymore
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.context._documentDecryptionState]);
 
   return machine;

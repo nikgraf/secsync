@@ -14,7 +14,7 @@ import {
   ySyncPlugin,
   yUndoPlugin,
 } from "y-prosemirror";
-import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
+import { Awareness } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
 const websocketHost =
@@ -106,7 +106,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
       ].concat(exampleSetup({ schema })),
     });
 
-    new EditorView(editorRef.current, { state });
+    return new EditorView(editorRef.current, { state });
   };
 
   useEffect(() => {
@@ -114,23 +114,10 @@ const YjsProsemirrorExample: React.FC<Props> = ({
       name: `User ${yDocRef.current.clientID}`,
     });
 
-    // remove awareness state when closing the window
-    window.addEventListener("beforeunload", () => {
-      removeAwarenessStates(
-        yAwarenessRef.current,
-        [yDocRef.current.clientID],
-        "window unload"
-      );
-    });
-
-    initiateEditor();
+    const editorView = initiateEditor();
 
     return () => {
-      removeAwarenessStates(
-        yAwarenessRef.current,
-        [yDocRef.current.clientID],
-        "document unmount"
-      );
+      editorView.destroy();
     };
   }, []);
 
