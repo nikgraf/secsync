@@ -5,6 +5,7 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
+import { YAwarenessExtension } from "tiptap-extension-y-awareness";
 import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
@@ -84,6 +85,9 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
       Collaboration.configure({
         document: yDocRef.current,
         field: "page",
+      }),
+      YAwarenessExtension.configure({
+        awareness: yAwarenessRef.current,
       }),
     ],
   });
