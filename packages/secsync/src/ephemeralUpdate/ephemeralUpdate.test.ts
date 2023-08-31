@@ -1,10 +1,13 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
+import { generateId } from "../crypto/generateId";
 import { EphemeralUpdatePublicData } from "../types";
 import { createEphemeralUpdate } from "./createEphemeralUpdate";
 import { verifyAndDecryptEphemeralUpdate } from "./verifyAndDecryptEphemeralUpdate";
 
 test("createEphemeralUpdate & verifyAndDecryptEphemeralUpdate successfully", async () => {
   await sodium.ready;
+
+  const authorSessionId = generateId(sodium);
 
   const key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
@@ -30,13 +33,16 @@ test("createEphemeralUpdate & verifyAndDecryptEphemeralUpdate successfully", asy
     publicData,
     key,
     signatureKeyPair,
+    authorSessionId,
+    42,
     sodium
   );
 
-  const { content, date } = verifyAndDecryptEphemeralUpdate(
+  const { content, authorSessionCounter } = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate,
     key,
     signatureKeyPair.publicKey,
+    { [authorSessionId]: 41 },
     sodium
   );
 
@@ -46,5 +52,5 @@ test("createEphemeralUpdate & verifyAndDecryptEphemeralUpdate successfully", asy
   expect(content[0]).toBe(97);
   expect(content[1]).toBe(97);
   expect(content[2]).toBe(97);
-  expect(date).toBeInstanceOf(Date);
+  expect(authorSessionCounter).toBe(42);
 });

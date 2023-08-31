@@ -1,23 +1,17 @@
 import canonicalize from "canonicalize";
 import { decryptAead } from "../crypto/decryptAead";
+import { idLength } from "../crypto/generateId";
 import { verifySignature } from "../crypto/verifySignature";
 import { EphemeralUpdate } from "../types";
-import { dateAsUint8ArrayLength } from "../utils/dateToUint8Array";
 import { extractPrefixFromUint8Array } from "../utils/extractPrefixFromUint8Array";
-import { uint8ArrayToDate } from "../utils/uint8ArrayToDate";
-
-function isOlderThanTenMin(date: Date): boolean {
-  const now = new Date();
-  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000);
-  return date < tenMinutesAgo;
-}
+import { uint8ArrayToNumber } from "../utils/uint8ArrayToInt";
 
 export function verifyAndDecryptEphemeralUpdate(
   ephemeralUpdate: EphemeralUpdate,
   key: Uint8Array,
   publicKey: Uint8Array,
-  sodium: typeof import("libsodium-wrappers"),
-  mostRecentEphemeralUpdateDate?: Date
+  validSessions: { [authorSessionId: string]: number },
+  sodium: typeof import("libsodium-wrappers")
 ) {
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(ephemeralUpdate.publicData) as string
@@ -43,19 +37,21 @@ export function verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate.nonce,
     sodium
   );
-  const { prefix, value } = extractPrefixFromUint8Array(
-    content,
-    dateAsUint8ArrayLength
-  );
-  const date = uint8ArrayToDate(prefix);
-  if (isOlderThanTenMin(date)) {
-    throw new Error("Ephemeral update is older than 10 minutes");
-  }
 
-  if (mostRecentEphemeralUpdateDate && date <= mostRecentEphemeralUpdateDate) {
-    throw new Error(
-      "Incoming ephemeral update is older or equal than a received one"
-    );
+  const { prefix: authorSessionIdAsUint8Array, value: tmpValue } =
+    extractPrefixFromUint8Array(content, idLength);
+  const authorSessionId = sodium.to_base64(authorSessionIdAsUint8Array);
+
+  if (!validSessions.hasOwnProperty(authorSessionId)) {
+    throw new Error("authorSessionId is not available in validSessions");
   }
-  return { content: value, date };
+  const { prefix: authorSessionCounterAsUint8Array, value } =
+    extractPrefixFromUint8Array(tmpValue, 4);
+  const authorSessionCounter = uint8ArrayToNumber(
+    authorSessionCounterAsUint8Array
+  );
+  if (validSessions[authorSessionId] >= authorSessionCounter) {
+    throw new Error("authorSessionCounter is not valid");
+  }
+  return { content: value, authorSessionId, authorSessionCounter };
 }
