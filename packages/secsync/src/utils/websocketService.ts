@@ -1,8 +1,45 @@
-import { createEphemeralUpdate } from "../ephemeralUpdate/createEphemeralUpdate";
-import { SyncMachineConfig } from "../types";
+import {
+  createEphemeralUpdate,
+  messageTypes,
+} from "../ephemeralUpdate/createEphemeralUpdate";
+import { EphemeralMessagesSession, SyncMachineConfig } from "../types";
 
 export const websocketService =
-  (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+  (
+    context: SyncMachineConfig,
+    ephemeralMessagesSession: EphemeralMessagesSession
+  ) =>
+  (send: any, onReceive: any) => {
+    const prepareAndSendEphemeralUpdate = async (
+      data,
+      messageType: keyof typeof messageTypes
+    ) => {
+      const publicData = {
+        docId: context.documentId,
+        pubKey: context.sodium.to_base64(context.signatureKeyPair.publicKey),
+      };
+      const ephemeralUpdateKey = await context.getEphemeralUpdateKey();
+      const ephemeralUpdate = createEphemeralUpdate(
+        data,
+        messageType,
+        publicData,
+        ephemeralUpdateKey,
+        context.signatureKeyPair,
+        ephemeralMessagesSession.id,
+        ephemeralMessagesSession.counter,
+        context.sodium
+      );
+      if (context.logging === "debug") {
+        console.debug("send ephemeralUpdate");
+      }
+      send({
+        type: "SEND",
+        message: JSON.stringify(ephemeralUpdate),
+        // Note: send a faulty message to test the error handling
+        // message: JSON.stringify({ ...ephemeralUpdate, ciphertext: "lala" }),
+      });
+    };
+
     let connected = false;
 
     // timeout the connection try after 5 seconds
@@ -52,6 +89,15 @@ export const websocketService =
     websocketConnection.addEventListener("open", (event) => {
       connected = true;
       send({ type: "WEBSOCKET_CONNECTED", websocket: websocketConnection });
+      // send an empty ephemeralUpdate right away to initiate the session signing
+      prepareAndSendEphemeralUpdate(new Uint8Array(), "initialize").catch(
+        (reason) => {
+          if (context.logging === "debug" || context.logging === "error") {
+            console.error(reason);
+          }
+          send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+        }
+      );
     });
 
     websocketConnection.addEventListener("error", (event) => {
@@ -73,39 +119,15 @@ export const websocketService =
         websocketConnection.send(event.message);
       }
       if (event.type === "SEND_EPHEMERAL_UPDATE") {
-        const prepareAndSendEphemeralUpdate = async () => {
-          const publicData = {
-            docId: context.documentId,
-            pubKey: context.sodium.to_base64(
-              context.signatureKeyPair.publicKey
-            ),
-          };
-          const ephemeralUpdateKey = await event.getEphemeralUpdateKey();
-          const ephemeralUpdate = createEphemeralUpdate(
-            event.data,
-            publicData,
-            ephemeralUpdateKey,
-            context.signatureKeyPair,
-            context.sodium
-          );
-          if (context.logging === "debug") {
-            console.debug("send ephemeralUpdate");
-          }
-          send({
-            type: "SEND",
-            message: JSON.stringify(ephemeralUpdate),
-            // Note: send a faulty message to test the error handling
-            // message: JSON.stringify({ ...ephemeralUpdate, ciphertext: "lala" }),
-          });
-        };
-
         try {
-          prepareAndSendEphemeralUpdate().catch((reason) => {
-            if (context.logging === "debug" || context.logging === "error") {
-              console.error(reason);
+          prepareAndSendEphemeralUpdate(event.data, event.messageType).catch(
+            (reason) => {
+              if (context.logging === "debug" || context.logging === "error") {
+                console.error(reason);
+              }
+              send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
             }
-            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
-          });
+          );
         } catch (error) {
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);

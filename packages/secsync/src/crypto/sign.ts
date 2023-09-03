@@ -1,7 +1,7 @@
 import canonicalize from "canonicalize";
 
 export function sign(
-  content: { [key in string]: string },
+  content: { [key in string]: string | number },
   privateKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers")
 ) {

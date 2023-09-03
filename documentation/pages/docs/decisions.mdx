@@ -1,0 +1,14 @@
+## EphemeralMessages
+
+The session ID + session counter are stored in the encrypted data.
+
+The benefit of this design is that the id as well as the counter are not exposed to any MITM (man-in-the-middle) attacker nor the server.
+
+To make this design work it's important that the sessionId is stored per client and not in one denormalized store per sessionId. Otherwise one client could increase the counter of another making their session basically invalid.
+
+### Process
+
+- initialize -> proof and ask for proof
+- validate proof -> respond with a proof
+- validate proof
+- message

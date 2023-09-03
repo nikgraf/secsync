@@ -6,8 +6,16 @@ import { EphemeralUpdate, EphemeralUpdatePublicData } from "../types";
 import { intToUint8Array } from "../utils/intToUint8Array";
 import { prefixWithUint8Array } from "../utils/prefixWithUint8Array";
 
+export const messageTypes = {
+  initialize: 0,
+  proofAndRequestProof: 1,
+  proof: 2,
+  message: 3,
+};
+
 export function createEphemeralUpdate(
   content: string | Uint8Array,
+  type: keyof typeof messageTypes,
   publicData: EphemeralUpdatePublicData,
   key: Uint8Array,
   authorSignatureKeyPair: KeyPair,
@@ -24,11 +32,19 @@ export function createEphemeralUpdate(
     intToUint8Array(authorSessionCounter)
   );
 
-  // Each EphemeralUpdate is prefixed with the authorSessionId
+  // each EphemeralUpdate is prefixed with the authorSessionId
   prefixedContent = prefixWithUint8Array(
     prefixedContent,
     sodium.from_base64(authorSessionId)
   );
+
+  // each EphemeralUpdate is prefixed with the message type
+  prefixedContent = prefixWithUint8Array(
+    prefixedContent,
+    new Uint8Array([messageTypes[type]])
+  );
+
+  console.log("prefixedContent", type, prefixedContent);
 
   const { ciphertext, publicNonce } = encryptAead(
     prefixedContent,

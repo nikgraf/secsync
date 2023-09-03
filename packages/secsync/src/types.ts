@@ -201,3 +201,13 @@ export type HasAccessParams = {
   action: "read" | "write-snapshot" | "write-update" | "send-ephemeral-update";
   documentId: string;
 };
+
+export type ValidSessions = {
+  [authorPublicKey: string]: { sessionId: string; sessionCounter: number };
+};
+
+export type EphemeralMessagesSession = {
+  id: string;
+  counter: number;
+  validSessions: ValidSessions;
+};

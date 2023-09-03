@@ -1,21 +1,27 @@
 import canonicalize from "canonicalize";
+import { KeyPair } from "libsodium-wrappers";
 import { decryptAead } from "../crypto/decryptAead";
 import { idLength } from "../crypto/generateId";
 import { verifySignature } from "../crypto/verifySignature";
-import { EphemeralUpdate } from "../types";
+import { EphemeralMessagesSession, EphemeralUpdate } from "../types";
 import { extractPrefixFromUint8Array } from "../utils/extractPrefixFromUint8Array";
 import { uint8ArrayToNumber } from "../utils/uint8ArrayToInt";
+import { createEphemeralUpdateProof } from "./createEphemeralSessionProof";
+import { messageTypes } from "./createEphemeralUpdate";
+import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 
 export function verifyAndDecryptEphemeralUpdate(
   ephemeralUpdate: EphemeralUpdate,
   key: Uint8Array,
   publicKey: Uint8Array,
-  validSessions: { [authorSessionId: string]: number },
+  ephemeralMessagesSession: EphemeralMessagesSession,
+  authorSignatureKeyPair: KeyPair,
   sodium: typeof import("libsodium-wrappers")
 ) {
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(ephemeralUpdate.publicData) as string
   );
+  console.log("verifyAndDecryptEphemeralUpdate");
 
   const isValid = verifySignature(
     {
@@ -38,20 +44,84 @@ export function verifyAndDecryptEphemeralUpdate(
     sodium
   );
 
-  const { prefix: authorSessionIdAsUint8Array, value: tmpValue } =
-    extractPrefixFromUint8Array(content, idLength);
-  const authorSessionId = sodium.to_base64(authorSessionIdAsUint8Array);
+  const { prefix: messageTypeAsUint8Array, value: tmpValue } =
+    extractPrefixFromUint8Array(content, 1);
+  const type = messageTypeAsUint8Array[0];
+  const { prefix: sessionIdAsUint8Array, value: tmp2Value } =
+    extractPrefixFromUint8Array(tmpValue, idLength);
+  const sessionId = sodium.to_base64(sessionIdAsUint8Array);
+  const { prefix: sessionCounterAsUint8Array, value } =
+    extractPrefixFromUint8Array(tmp2Value, 4);
+  const sessionCounter = uint8ArrayToNumber(sessionCounterAsUint8Array);
+  const publicKeyAsBase64 = sodium.to_base64(publicKey);
+  const { validSessions } = ephemeralMessagesSession;
 
-  if (!validSessions.hasOwnProperty(authorSessionId)) {
-    throw new Error("authorSessionId is not available in validSessions");
+  if (type === messageTypes.initialize) {
+    console.log("GOT initialize");
+    const proof = createEphemeralUpdateProof(
+      sessionId,
+      ephemeralMessagesSession.id,
+      authorSignatureKeyPair,
+      sodium
+    );
+    return { proof, requestProof: true, validSessions };
+  } else if (
+    type === messageTypes.proof ||
+    type === messageTypes.proofAndRequestProof
+  ) {
+    console.log("GOT proof || proofAndRequestProof");
+    const proofSignature = sodium.to_base64(value);
+    const isValid = verifyEphemeralSessionProof(
+      proofSignature,
+      ephemeralMessagesSession.id,
+      sessionId,
+      publicKey,
+      sodium
+    );
+
+    if (isValid) {
+      const newValidSessions = {
+        ...validSessions,
+        [publicKeyAsBase64]: {
+          sessionId,
+          sessionCounter,
+        },
+      };
+
+      const proof =
+        type === messageTypes.proofAndRequestProof
+          ? createEphemeralUpdateProof(
+              sessionId,
+              ephemeralMessagesSession.id,
+              authorSignatureKeyPair,
+              sodium
+            )
+          : undefined;
+
+      return { validSessions: newValidSessions, proof, requestProof: false };
+    }
+  } else if (type === messageTypes.message) {
+    // TODO if no session exist see it as an initialize, create a proof and request a proof
+
+    console.log("GOT message");
+    if (
+      !validSessions.hasOwnProperty(publicKeyAsBase64) ||
+      validSessions[publicKeyAsBase64].sessionId !== sessionId ||
+      validSessions[publicKeyAsBase64].sessionCounter >= sessionCounter
+    ) {
+      return { validSessions };
+    }
+
+    const newValidSessions = {
+      ...validSessions,
+      [publicKeyAsBase64]: {
+        sessionId,
+        sessionCounter,
+      },
+    };
+
+    return { content: value, validSessions: newValidSessions };
+  } else {
+    throw new Error("Invalid ephemeral message type");
   }
-  const { prefix: authorSessionCounterAsUint8Array, value } =
-    extractPrefixFromUint8Array(tmpValue, 4);
-  const authorSessionCounter = uint8ArrayToNumber(
-    authorSessionCounterAsUint8Array
-  );
-  if (validSessions[authorSessionId] >= authorSessionCounter) {
-    throw new Error("authorSessionCounter is not valid");
-  }
-  return { content: value, authorSessionId, authorSessionCounter };
 }
