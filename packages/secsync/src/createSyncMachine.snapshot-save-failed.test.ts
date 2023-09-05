@@ -13,15 +13,22 @@ import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
 
-let signatureKeyPairA: KeyPair;
-let signatureKeyPairB: KeyPair;
+let clientAKeyPair: KeyPair;
+let clientAPublicKey: string;
+
+let clientBKeyPair: KeyPair;
+let clientBPublicKey: string;
+
 let key: Uint8Array;
 let docId: string;
 let snapshotId: string;
 
-beforeEach(() => {
+beforeEach(async () => {
+  await sodium.ready;
+
   docId = generateId(sodium);
-  signatureKeyPairA = {
+
+  clientAKeyPair = {
     privateKey: sodium.from_base64(
       "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
     ),
@@ -30,7 +37,9 @@ beforeEach(() => {
     ),
     keyType: "ed25519",
   };
-  signatureKeyPairB = {
+  clientAPublicKey = sodium.to_base64(clientAKeyPair.publicKey);
+
+  clientBKeyPair = {
     privateKey: sodium.from_base64(
       "ElVI9nkbOypSu2quCTXH1i1gGlcd-Sxd7S6ym9sNZj48ben-hOmefr13D9Y1Lnys3CuhwuPb6DMh_oDln913_g"
     ),
@@ -39,9 +48,8 @@ beforeEach(() => {
     ),
     keyType: "ed25519",
   };
+  clientBPublicKey = sodium.to_base64(clientBKeyPair.publicKey);
 });
-
-afterEach(() => {});
 
 type CreateSnapshotTestHelperParams = {
   parentSnapshotCiphertext: string;
@@ -61,7 +69,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   const publicData: SnapshotPublicData = {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
-    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    pubKey: clientAPublicKey,
     parentSnapshotClocks: {},
   };
 
@@ -69,7 +77,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     content || "Hello World",
     publicData,
     key,
-    signatureKeyPairA,
+    clientAKeyPair,
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium
@@ -80,7 +88,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
       serverData: { latestVersion: 0 },
     },
     key,
-    signatureKeyPairA,
+    clientAKeyPair,
   };
 };
 
@@ -91,7 +99,7 @@ type CreateUpdateTestHelperParams = {
 
 const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   const version = params?.version || 0;
-  const signatureKeyPair = params?.signatureKeyPair || signatureKeyPairA;
+  const signatureKeyPair = params?.signatureKeyPair || clientAKeyPair;
   const publicData: UpdatePublicData = {
     refSnapshotId: snapshotId,
     docId,
@@ -131,8 +139,8 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
-          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -146,7 +154,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
           docValue = sodium.to_string(snapshot);
         },
         sodium: sodium,
-        signatureKeyPair: signatureKeyPairB,
+        signatureKeyPair: clientBKeyPair,
       })
       .withConfig({
         actions: {
@@ -236,8 +244,8 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
-          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -251,7 +259,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
           docValue = sodium.to_string(snapshot);
         },
         sodium: sodium,
-        signatureKeyPair: signatureKeyPairB,
+        signatureKeyPair: clientBKeyPair,
       })
       .withConfig({
         actions: {
@@ -347,8 +355,8 @@ test("should apply update from snapshot-save-failed", (done) => {
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
-          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -371,7 +379,7 @@ test("should apply update from snapshot-save-failed", (done) => {
           });
         },
         sodium: sodium,
-        signatureKeyPair: signatureKeyPairB,
+        signatureKeyPair: clientBKeyPair,
       })
       .withConfig({
         actions: {
@@ -447,8 +455,8 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
-          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -471,7 +479,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
           });
         },
         sodium: sodium,
-        signatureKeyPair: signatureKeyPairB,
+        signatureKeyPair: clientBKeyPair,
       })
       .withConfig({
         actions: {
@@ -566,8 +574,8 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
-          sodium.to_base64(signatureKeyPairA.publicKey) === signingPublicKey ||
-          sodium.to_base64(signatureKeyPairB.publicKey) === signingPublicKey,
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
         getNewSnapshotData: async () => {
           return {
@@ -590,7 +598,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
           });
         },
         sodium: sodium,
-        signatureKeyPair: signatureKeyPairB,
+        signatureKeyPair: clientBKeyPair,
       })
       .withConfig({
         actions: {
@@ -621,7 +629,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
     // but the confirmation `updated-saved` not yet received
     const update = createUpdateHelper({
       version: 22,
-      signatureKeyPair: signatureKeyPairB,
+      signatureKeyPair: clientBKeyPair,
     }).update;
 
     setTimeout(() => {
