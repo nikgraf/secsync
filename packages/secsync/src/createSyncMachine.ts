@@ -200,7 +200,6 @@ export const createSyncMachine = () =>
               type: "SEND_EPHEMERAL_UPDATE";
               data: any;
               messageType: keyof typeof messageTypes;
-              counter: number;
               getEphemeralUpdateKey: () => Uint8Array | Promise<Uint8Array>;
             }
           | {
@@ -265,18 +264,14 @@ export const createSyncMachine = () =>
           actions: forwardTo("websocketActor"),
         },
         ADD_EPHEMERAL_UPDATE: {
-          actions: [
-            "increaseEphemeralMessagesSession",
-            sendTo("websocketActor", (context, event) => {
-              return {
-                type: "SEND_EPHEMERAL_UPDATE",
-                data: event.data,
-                messageType: event.messageType || "message",
-                counter: context._ephemeralMessagesSession.counter,
-                getEphemeralUpdateKey: context.getEphemeralUpdateKey,
-              };
-            }),
-          ],
+          actions: sendTo("websocketActor", (context, event) => {
+            return {
+              type: "SEND_EPHEMERAL_UPDATE",
+              data: event.data,
+              messageType: event.messageType || "message",
+              getEphemeralUpdateKey: context.getEphemeralUpdateKey,
+            };
+          }),
         },
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
@@ -425,13 +420,6 @@ export const createSyncMachine = () =>
             return { _websocketRetries: context._websocketRetries + 1 };
           }
           return { _websocketRetries: context._websocketRetries };
-        }),
-        increaseEphemeralMessagesSession: assign((context) => {
-          const ephemeralMessagesSession: EphemeralMessagesSession = {
-            ...context._ephemeralMessagesSession,
-            counter: context._ephemeralMessagesSession.counter + 1,
-          };
-          return { _ephemeralMessagesSession: ephemeralMessagesSession };
         }),
         spawnWebsocketActor: assign((context) => {
           const ephemeralMessagesSession = createEphemeralUpdateSession(

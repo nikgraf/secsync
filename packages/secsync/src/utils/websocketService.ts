@@ -10,10 +10,10 @@ export const websocketService =
     ephemeralMessagesSession: EphemeralMessagesSession
   ) =>
   (send: any, onReceive: any) => {
+    let ephemeralSessionCounter = ephemeralMessagesSession.counter; // TODO rename .counter to initialCounter
     const prepareAndSendEphemeralUpdate = async (
       data,
-      messageType: keyof typeof messageTypes,
-      ephemeralMessageCounter
+      messageType: keyof typeof messageTypes
     ) => {
       const publicData = {
         docId: context.documentId,
@@ -27,9 +27,10 @@ export const websocketService =
         ephemeralUpdateKey,
         context.signatureKeyPair,
         ephemeralMessagesSession.id,
-        ephemeralMessageCounter,
+        ephemeralSessionCounter,
         context.sodium
       );
+      ephemeralSessionCounter++;
       if (context.logging === "debug") {
         console.debug("send ephemeralUpdate");
       }
@@ -71,6 +72,18 @@ export const websocketService =
           send({ type: "WEBSOCKET_DOCUMENT_ERROR" });
           break;
         case "document":
+          // At this point the server will have added the user to the active session of
+          // the document, so we can start sending ephemeral updates.
+          // An empty ephemeralUpdate right away to initiate the session signing.
+          // NOTE: There is no break and send with WEBSOCKET_ADD_TO_INCOMING_QUEUE is still invoked
+          prepareAndSendEphemeralUpdate(new Uint8Array(), "initialize").catch(
+            (reason) => {
+              if (context.logging === "debug" || context.logging === "error") {
+                console.error(reason);
+              }
+              send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+            }
+          );
         case "snapshot":
         case "snapshot-saved":
         case "snapshot-save-failed":
@@ -90,19 +103,6 @@ export const websocketService =
     websocketConnection.addEventListener("open", (event) => {
       connected = true;
       send({ type: "WEBSOCKET_CONNECTED", websocket: websocketConnection });
-      setTimeout(() => {
-        // send an empty ephemeralUpdate right away to initiate the session signing
-        prepareAndSendEphemeralUpdate(
-          new Uint8Array(),
-          "initialize",
-          ephemeralMessagesSession.counter
-        ).catch((reason) => {
-          if (context.logging === "debug" || context.logging === "error") {
-            console.error(reason);
-          }
-          send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
-        });
-      }, 1000); // WHY 1000 does work here?
     });
 
     websocketConnection.addEventListener("error", (event) => {
@@ -125,16 +125,14 @@ export const websocketService =
       }
       if (event.type === "SEND_EPHEMERAL_UPDATE") {
         try {
-          prepareAndSendEphemeralUpdate(
-            event.data,
-            event.messageType,
-            event.counter
-          ).catch((reason) => {
-            if (context.logging === "debug" || context.logging === "error") {
-              console.error(reason);
+          prepareAndSendEphemeralUpdate(event.data, event.messageType).catch(
+            (reason) => {
+              if (context.logging === "debug" || context.logging === "error") {
+                console.error(reason);
+              }
+              send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
             }
-            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
-          });
+          );
         } catch (error) {
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);
