@@ -1090,9 +1090,6 @@ export const createSyncMachine = () =>
                       verifyAndDecryptEphemeralUpdate(
                         ephemeralUpdate,
                         ephemeralUpdateKey,
-                        context.sodium.from_base64(
-                          ephemeralUpdate.publicData.pubKey
-                        ),
                         context._ephemeralMessagesSession,
                         context.signatureKeyPair,
                         context.sodium

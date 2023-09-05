@@ -8,11 +8,13 @@ let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
 let clientACounter: number;
 let clientASessionId: string;
+let clientAPublicData: EphemeralUpdatePublicData;
 
 let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 let clientBCounter: number;
 let clientBSessionId: string;
+let clientBPublicData: EphemeralUpdatePublicData;
 
 let clientCKeyPair: KeyPair;
 let clientCPublicKey: string;
@@ -44,6 +46,10 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientAPublicKey = sodium.to_base64(clientAKeyPair.publicKey);
+  clientAPublicData = {
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: clientAPublicKey,
+  };
 
   clientBKeyPair = {
     privateKey: sodium.from_base64(
@@ -55,6 +61,11 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientBPublicKey = sodium.to_base64(clientBKeyPair.publicKey);
+
+  clientBPublicData = {
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: clientBPublicKey,
+  };
 
   clientCKeyPair = {
     privateKey: sodium.from_base64(
@@ -69,16 +80,11 @@ beforeEach(async () => {
 });
 
 test("establish authentication and send a message between clientA and clientB each", async () => {
-  const publicData: EphemeralUpdatePublicData = {
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
-    pubKey: clientAPublicKey,
-  };
-
   // Client A generates the `initialize` message
   const ephemeralUpdate1 = createEphemeralUpdate(
     new Uint8Array(),
     "initialize",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -92,7 +98,6 @@ test("establish authentication and send a message between clientA and clientB ea
   const result1 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate1,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -112,7 +117,7 @@ test("establish authentication and send a message between clientA and clientB ea
   const ephemeralUpdate2 = createEphemeralUpdate(
     result1.proof,
     "proofAndRequestProof",
-    publicData,
+    clientBPublicData,
     key,
     clientBKeyPair,
     clientBSessionId,
@@ -126,7 +131,6 @@ test("establish authentication and send a message between clientA and clientB ea
   const result2 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate2,
     key,
-    clientBKeyPair.publicKey,
     {
       id: clientASessionId,
       counter: clientACounter,
@@ -152,7 +156,7 @@ test("establish authentication and send a message between clientA and clientB ea
   const ephemeralUpdate3 = createEphemeralUpdate(
     result2.proof,
     "proof",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -165,7 +169,6 @@ test("establish authentication and send a message between clientA and clientB ea
   const result3 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate3,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -190,7 +193,7 @@ test("establish authentication and send a message between clientA and clientB ea
   const ephemeralUpdate4 = createEphemeralUpdate(
     new Uint8Array([42, 97, 97]),
     "message",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -203,7 +206,6 @@ test("establish authentication and send a message between clientA and clientB ea
   const result4 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate4,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -232,7 +234,7 @@ test("establish authentication and send a message between clientA and clientB ea
   const ephemeralUpdate5 = createEphemeralUpdate(
     new Uint8Array([91, 11]),
     "message",
-    publicData,
+    clientBPublicData,
     key,
     clientBKeyPair,
     clientBSessionId,
@@ -245,7 +247,6 @@ test("establish authentication and send a message between clientA and clientB ea
   const result5 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate5,
     key,
-    clientBKeyPair.publicKey,
     {
       id: clientASessionId,
       counter: clientACounter,
@@ -271,16 +272,11 @@ test("establish authentication and send a message between clientA and clientB ea
 });
 
 test("establish authentication without an initialize message and send a message between clientA and clientB each", async () => {
-  const publicData: EphemeralUpdatePublicData = {
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
-    pubKey: clientAPublicKey,
-  };
-
   // Client A never generates the `initialize` message, but right away sends a message
   const ephemeralUpdate1 = createEphemeralUpdate(
     new Uint8Array([42, 97, 97]),
     "message",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -294,7 +290,6 @@ test("establish authentication without an initialize message and send a message 
   const result1 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate1,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -314,7 +309,7 @@ test("establish authentication without an initialize message and send a message 
   const ephemeralUpdate2 = createEphemeralUpdate(
     result1.proof,
     "proofAndRequestProof",
-    publicData,
+    clientBPublicData,
     key,
     clientBKeyPair,
     clientBSessionId,
@@ -328,7 +323,6 @@ test("establish authentication without an initialize message and send a message 
   const result2 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate2,
     key,
-    clientBKeyPair.publicKey,
     {
       id: clientASessionId,
       counter: clientACounter,
@@ -354,7 +348,7 @@ test("establish authentication without an initialize message and send a message 
   const ephemeralUpdate3 = createEphemeralUpdate(
     result2.proof,
     "proof",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -367,7 +361,6 @@ test("establish authentication without an initialize message and send a message 
   const result3 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate3,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -392,7 +385,7 @@ test("establish authentication without an initialize message and send a message 
   const ephemeralUpdate4 = createEphemeralUpdate(
     new Uint8Array([42, 97, 97]),
     "message",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -405,7 +398,6 @@ test("establish authentication without an initialize message and send a message 
   const result4 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate4,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -434,7 +426,7 @@ test("establish authentication without an initialize message and send a message 
   const ephemeralUpdate5 = createEphemeralUpdate(
     new Uint8Array([91, 11]),
     "message",
-    publicData,
+    clientBPublicData,
     key,
     clientBKeyPair,
     clientBSessionId,
@@ -447,7 +439,6 @@ test("establish authentication without an initialize message and send a message 
   const result5 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate5,
     key,
-    clientBKeyPair.publicKey,
     {
       id: clientASessionId,
       counter: clientACounter,
@@ -482,7 +473,7 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
   const ephemeralUpdate1 = createEphemeralUpdate(
     new Uint8Array(),
     "initialize",
-    publicData,
+    clientAPublicData,
     key,
     clientAKeyPair,
     clientASessionId,
@@ -496,7 +487,6 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
   const result1 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate1,
     key,
-    clientAKeyPair.publicKey,
     {
       id: clientBSessionId,
       counter: clientBCounter,
@@ -516,7 +506,7 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
   const ephemeralUpdate2 = createEphemeralUpdate(
     result1.proof,
     "proofAndRequestProof",
-    publicData,
+    clientBPublicData,
     key,
     clientBKeyPair,
     clientBSessionId,
@@ -529,7 +519,6 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
   const result2 = verifyAndDecryptEphemeralUpdate(
     ephemeralUpdate2,
     key,
-    clientBKeyPair.publicKey,
     {
       id: clientCSessionId,
       counter: clientCCounter,

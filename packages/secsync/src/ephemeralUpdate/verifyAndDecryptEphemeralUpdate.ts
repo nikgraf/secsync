@@ -13,7 +13,6 @@ import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 export function verifyAndDecryptEphemeralUpdate(
   ephemeralUpdate: EphemeralUpdate,
   key: Uint8Array,
-  publicKey: Uint8Array,
   ephemeralMessagesSession: EphemeralMessagesSession,
   authorSignatureKeyPair: KeyPair,
   sodium: typeof import("libsodium-wrappers")
@@ -21,6 +20,8 @@ export function verifyAndDecryptEphemeralUpdate(
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(ephemeralUpdate.publicData) as string
   );
+
+  const publicKey = sodium.from_base64(ephemeralUpdate.publicData.pubKey);
 
   const isValid = verifySignature(
     {

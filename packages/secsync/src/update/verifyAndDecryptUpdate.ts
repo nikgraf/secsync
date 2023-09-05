@@ -16,7 +16,7 @@ export function verifyAndDecryptUpdate(
     canonicalize(update.publicData) as string
   );
 
-  const authorPublicKey = sodium.from_base64(update.publicData.pubKey);
+  const publicKey = sodium.from_base64(update.publicData.pubKey);
 
   const isValid = verifySignature(
     {
@@ -25,7 +25,7 @@ export function verifyAndDecryptUpdate(
       publicData: publicDataAsBase64,
     },
     update.signature,
-    authorPublicKey,
+    publicKey,
     sodium
   );
   if (!isValid) {
