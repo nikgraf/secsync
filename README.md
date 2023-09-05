@@ -20,7 +20,7 @@ The architecture is built upon 4 building blocks:
 1. Document
 2. Snapshot
 3. Update
-4. Ephemeral Update
+4. Ephemeral message
 
 A _Document_ is defined by an **ID** and the **active Snapshot**.
 
@@ -28,7 +28,7 @@ A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
 
 An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
 
-An _Ephemeral Update_ includes one or multiple **encrypted entries** referencing a snapshot and if available can reference an update.
+An _Ephemeral message_ includes **encrypted data** referencing a document.
 
 If you look at it from a perspective of the current state of one document it looks like this:
 

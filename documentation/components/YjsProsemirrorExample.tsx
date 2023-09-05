@@ -78,7 +78,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
       // create a new snapshot if the active snapshot has more than 100 updates
       return latestServerVersion !== null && latestServerVersion > 10;
     },
-    getEphemeralUpdateKey: async () => {
+    getEphemeralMessageKey: async () => {
       return documentKey;
     },
     isValidCollaborator: async (signingPublicKey: string) => {

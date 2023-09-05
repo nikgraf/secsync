@@ -1,0 +1,50 @@
+attacker[active]
+
+principal Alice[
+	generates alice_session_id
+	knows private alice_privatekey
+	alice_publickey = G^alice_privatekey
+]
+
+principal Bob[
+	generates bob_session_id
+	knows private bob_privatekey
+	bob_publickey = G^bob_privatekey
+]
+
+Alice -> Bob: [alice_publickey]
+
+Bob -> Alice: [bob_publickey]
+
+Alice -> Bob: alice_session_id
+
+principal Bob[
+	session_hash = HASH(bob_publickey, alice_session_id, bob_session_id)
+	session_proof = SIGN(bob_privatekey, session_hash)
+]
+
+Bob -> Alice: bob_session_id, session_proof
+
+principal Alice[
+	session_hash_2 = HASH(bob_publickey, alice_session_id, bob_session_id)
+	sig = SIGNVERIF(bob_publickey, session_hash_2, session_proof)?
+]
+
+principal Alice[
+	session_hash_3 = HASH(alice_publickey, alice_session_id, bob_session_id)
+	session_proof_2 = SIGN(alice_privatekey, session_hash_3)
+]
+
+Alice -> Bob: session_proof_2
+
+principal Bob[
+	session_hash_4 = HASH(alice_publickey, alice_session_id, bob_session_id)
+	sig2 = SIGNVERIF(alice_publickey, session_hash_4, session_proof_2)?
+]
+
+queries[
+	confidentiality? alice_privatekey
+	confidentiality? bob_privatekey
+	authentication? Bob -> Alice: session_proof
+	authentication? Alice -> Bob: session_proof_2
+]

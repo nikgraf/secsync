@@ -18,7 +18,7 @@ export type YjsSyncMachineConfig = Omit<
   SyncMachineConfig,
   | "applySnapshot"
   | "applyChanges"
-  | "applyEphemeralUpdates"
+  | "applyEphemeralMessages"
   | "serializeChanges"
   | "deserializeChanges"
 > & {
@@ -57,9 +57,9 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
           Yjs.applyUpdateV2(config.yDoc, change, "sec-sync-remote");
         });
       },
-      applyEphemeralUpdates: (decryptedEphemeralUpdates) => {
-        decryptedEphemeralUpdates.map((ephemeralUpdate) => {
-          applyAwarenessUpdate(config.yAwareness, ephemeralUpdate, null);
+      applyEphemeralMessages: (decryptedEphemeralMessages) => {
+        decryptedEphemeralMessages.map((ephemeralMessage) => {
+          applyAwarenessUpdate(config.yAwareness, ephemeralMessage, null);
         });
       },
       serializeChanges: (changes: Uint8Array[]) =>
@@ -85,7 +85,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
     }
 
     const onAwarenessUpdate = ({ added, updated, removed }: any) => {
-      // NOTE: an endless loop of sending ephemeral updates can happen if there are
+      // NOTE: an endless loop of sending ephemeral messages can happen if there are
       // two prosemirror EditorViews are attached to the same DOM element
       const changedClients = added.concat(updated).concat(removed);
       const yAwarenessUpdate = encodeAwarenessUpdate(

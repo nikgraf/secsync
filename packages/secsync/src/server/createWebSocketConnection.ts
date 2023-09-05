@@ -1,7 +1,7 @@
 import { IncomingMessage } from "http";
 import { parse as parseUrl } from "url";
 import { WebSocket } from "ws";
-import { parseEphemeralUpdate } from "../ephemeralUpdate/parseEphemeralUpdate";
+import { parseEphemeralMessage } from "../ephemeralMessage/parseEphemeralMessage";
 import {
   SecsyncNewSnapshotRequiredError,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
@@ -299,10 +299,10 @@ export const createWebSocketConnection =
               );
             }
           }
-          // new ephemeral update
+          // new ephemeral message
         } else {
           const documentAccess = await hasAccess({
-            action: "send-ephemeral-update",
+            action: "send-ephemeral-message",
             documentId,
           });
           if (!documentAccess) {
@@ -311,13 +311,13 @@ export const createWebSocketConnection =
             return;
           }
 
-          const ephemeralUpdateMessage = parseEphemeralUpdate(
+          const ephemeralMessageMessage = parseEphemeralMessage(
             data,
-            additionalAuthenticationDataValidations?.ephemeralUpdate
+            additionalAuthenticationDataValidations?.ephemeralMessage
           );
           addUpdate(
             documentId,
-            { ...ephemeralUpdateMessage, type: "ephemeral-update" },
+            { ...ephemeralMessageMessage, type: "ephemeral-message" },
             connection
           );
         }

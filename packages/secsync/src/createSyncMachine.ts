@@ -8,15 +8,18 @@ import {
   spawn,
 } from "xstate";
 import { hash } from "./crypto/hash";
-import { parseEphemeralUpdateWithServerData } from "./ephemeralUpdate/parseEphemeralUpdateWithServerData";
-import { verifyAndDecryptEphemeralUpdate } from "./ephemeralUpdate/verifyAndDecryptEphemeralUpdate";
-import { SecsyncProcessingEphemeralUpdateError } from "./errors";
+import { messageTypes } from "./ephemeralMessage/createEphemeralMessage";
+import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
+import { parseEphemeralMessageWithServerData } from "./ephemeralMessage/parseEphemeralMessageWithServerData";
+import { verifyAndDecryptEphemeralMessage } from "./ephemeralMessage/verifyAndDecryptEphemeralMessage";
+import { SecsyncProcessingEphemeralMessageError } from "./errors";
 import { createInitialSnapshot } from "./snapshot/createInitialSnapshot";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { isValidAncestorSnapshot } from "./snapshot/isValidAncestorSnapshot";
 import { parseSnapshotWithServerData } from "./snapshot/parseSnapshotWithServerData";
 import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
+  EphemeralMessagesSession,
   ParentSnapshotProofInfo,
   SnapshotPublicData,
   SnapshotWithServerData,
@@ -32,10 +35,10 @@ import { websocketService } from "./utils/websocketService";
 // Specifically it is responsible for:
 // - sending snapshots
 // - sending updates
-// - sending ephemeral updates
+// - sending ephemeral messages
 // - receiving snapshots
 // - receiving updates
-// - receiving ephemeral updates
+// - receiving ephemeral messages
 //
 // In general the first thing that happens is that a websocket connection is established.
 // Once that's done the latest snapshot including it's related updates should be received.
@@ -104,10 +107,6 @@ type UpdateClocks = {
   [snapshotId: string]: { [publicSigningKey: string]: number };
 };
 
-type MostRecentEphemeralUpdateDatePerPublicSigningKey = {
-  [publicSigningKey: string]: Date;
-};
-
 type ActiveSnapshotInfo = {
   id: string;
   ciphertext: string;
@@ -130,9 +129,9 @@ type ProcessQueueData = {
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
   updateClocks: UpdateClocks;
-  mostRecentEphemeralUpdateDatePerPublicSigningKey: MostRecentEphemeralUpdateDatePerPublicSigningKey;
-  receivingEphemeralUpdateErrors: SecsyncProcessingEphemeralUpdateError[];
+  receivingEphemeralMessageErrors: SecsyncProcessingEphemeralMessageError[];
   documentDecryptionState: DocumentDecryptionState;
+  ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
 
 export type InternalContextReset = {
@@ -145,8 +144,8 @@ export type InternalContextReset = {
   _confirmedUpdatesClock: number | null;
   _sendingUpdatesClock: number;
   _updateClocks: UpdateClocks;
-  _mostRecentEphemeralUpdateDatePerPublicSigningKey: MostRecentEphemeralUpdateDatePerPublicSigningKey;
   _documentDecryptionState: DocumentDecryptionState;
+  _ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
 
 export type Context = SyncMachineConfig &
@@ -156,8 +155,8 @@ export type Context = SyncMachineConfig &
     _pendingChangesQueue: any[];
     _shouldReconnect: boolean;
     _errorTrace: Error[];
-    _receivingEphemeralUpdateErrors: Error[];
-    _creatingEphemeralUpdateErrors: Error[];
+    _receivingEphemeralMessageErrors: Error[];
+    _creatingEphemeralMessageErrors: Error[];
     logging: SyncMachineConfig["logging"];
   };
 
@@ -171,8 +170,8 @@ const disconnectionContextReset: InternalContextReset = {
   _confirmedUpdatesClock: null,
   _sendingUpdatesClock: -1,
   _updateClocks: {},
-  _mostRecentEphemeralUpdateDatePerPublicSigningKey: {},
   _documentDecryptionState: "pending",
+  _ephemeralMessagesSession: null,
 };
 
 export const createSyncMachine = () =>
@@ -192,11 +191,16 @@ export const createSyncMachine = () =>
           | { type: "DISCONNECT" }
           | { type: "CONNECT" }
           | { type: "ADD_CHANGES"; data: any[] }
-          | { type: "ADD_EPHEMERAL_UPDATE"; data: any }
+          | {
+              type: "ADD_EPHEMERAL_UPDATE";
+              data: any;
+              messageType?: keyof typeof messageTypes;
+            }
           | {
               type: "SEND_EPHEMERAL_UPDATE";
               data: any;
-              getEphemeralUpdateKey: () => Promise<Uint8Array>;
+              messageType: keyof typeof messageTypes;
+              getEphemeralMessageKey: () => Uint8Array | Promise<Uint8Array>;
             }
           | {
               type: "FAILED_CREATING_EPHEMERAL_UPDATE";
@@ -210,7 +214,6 @@ export const createSyncMachine = () =>
       },
       tsTypes: {} as import("./createSyncMachine.typegen").Typegen0,
       predictableActionArguments: true,
-      // context: JSON.parse(JSON.stringify(initialContext)),
       context: {
         documentId: "",
         signatureKeyPair: {} as KeyPair,
@@ -227,8 +230,8 @@ export const createSyncMachine = () =>
             publicData: {},
           }),
         getUpdateKey: () => Promise.resolve(new Uint8Array()),
-        applyEphemeralUpdates: () => undefined,
-        getEphemeralUpdateKey: () => Promise.resolve(new Uint8Array()),
+        applyEphemeralMessages: () => undefined,
+        getEphemeralMessageKey: () => Promise.resolve(new Uint8Array()),
         shouldSendSnapshot: () => false,
         sodium: {},
         serializeChanges: () => "",
@@ -249,11 +252,11 @@ export const createSyncMachine = () =>
         _confirmedUpdatesClock: null,
         _sendingUpdatesClock: -1,
         _updateClocks: {},
-        _mostRecentEphemeralUpdateDatePerPublicSigningKey: {},
         _errorTrace: [],
-        _receivingEphemeralUpdateErrors: [],
-        _creatingEphemeralUpdateErrors: [],
+        _receivingEphemeralMessageErrors: [],
+        _creatingEphemeralMessageErrors: [],
         _documentDecryptionState: "pending",
+        _ephemeralMessagesSession: null,
       },
       initial: "connecting",
       on: {
@@ -265,14 +268,15 @@ export const createSyncMachine = () =>
             return {
               type: "SEND_EPHEMERAL_UPDATE",
               data: event.data,
-              getEphemeralUpdateKey: context.getEphemeralUpdateKey,
+              messageType: event.messageType || "message",
+              getEphemeralMessageKey: context.getEphemeralMessageKey,
             };
           }),
         },
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateCreatingEphemeralUpdateErrors"],
+          actions: ["updateCreatingEphemeralMessageErrors"],
         },
       },
       states: {
@@ -418,8 +422,17 @@ export const createSyncMachine = () =>
           return { _websocketRetries: context._websocketRetries };
         }),
         spawnWebsocketActor: assign((context) => {
+          // the counter in there is only the initial counter and actually
+          // increased with ever ephemeral message sent inside "websocketActor"
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
           return {
-            _websocketActor: spawn(websocketService(context), "websocketActor"),
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(
+              websocketService(context, ephemeralMessagesSession),
+              "websocketActor"
+            ),
           };
         }),
         stopWebsocketActor: assign((context) => {
@@ -471,11 +484,10 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _mostRecentEphemeralUpdateDatePerPublicSigningKey:
-                event.data.mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              _receivingEphemeralUpdateErrors:
-                event.data.receivingEphemeralUpdateErrors,
+              _receivingEphemeralMessageErrors:
+                event.data.receivingEphemeralMessageErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
           } else if (event.data.handledQueue === "customMessage") {
             return {
@@ -488,11 +500,11 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _mostRecentEphemeralUpdateDatePerPublicSigningKey:
-                event.data.mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              _receivingEphemeralUpdateErrors:
-                event.data.receivingEphemeralUpdateErrors,
+
+              _receivingEphemeralMessageErrors:
+                event.data.receivingEphemeralMessageErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
           } else {
             return {
@@ -504,11 +516,10 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _mostRecentEphemeralUpdateDatePerPublicSigningKey:
-                event.data.mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              _receivingEphemeralUpdateErrors:
-                event.data.receivingEphemeralUpdateErrors,
+              _receivingEphemeralMessageErrors:
+                event.data.receivingEphemeralMessageErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
           }
         }),
@@ -522,11 +533,11 @@ export const createSyncMachine = () =>
             _errorTrace: [event.data, ...context._errorTrace],
           };
         }),
-        updateCreatingEphemeralUpdateErrors: assign((context, event) => {
+        updateCreatingEphemeralMessageErrors: assign((context, event) => {
           return {
-            _creatingEphemeralUpdateErrors: [
+            _creatingEphemeralMessageErrors: [
               event.error,
-              ...context._creatingEphemeralUpdateErrors,
+              ...context._creatingEphemeralMessageErrors,
             ].slice(0, 20), // avoid a memory leak by storing max 20 errors
           };
         }),
@@ -568,9 +579,8 @@ export const createSyncMachine = () =>
           let updatesInFlight = context._updatesInFlight;
           let pendingChangesQueue = context._pendingChangesQueue;
           let updateClocks = context._updateClocks;
-          let mostRecentEphemeralUpdateDatePerPublicSigningKey =
-            context._mostRecentEphemeralUpdateDatePerPublicSigningKey;
           let documentDecryptionState = context._documentDecryptionState;
+          let ephemeralMessagesSession = context._ephemeralMessagesSession;
 
           try {
             const createAndSendSnapshot = async () => {
@@ -1069,47 +1079,58 @@ export const createSyncMachine = () =>
                   }
 
                   break;
-                case "ephemeral-update":
+                case "ephemeral-message":
                   try {
-                    const ephemeralUpdate = parseEphemeralUpdateWithServerData(
-                      event,
-                      context.additionalAuthenticationDataValidations
-                        ?.ephemeralUpdate
-                    );
+                    const ephemeralMessage =
+                      parseEphemeralMessageWithServerData(
+                        event,
+                        context.additionalAuthenticationDataValidations
+                          ?.ephemeralMessage
+                      );
 
-                    const ephemeralUpdateKey =
-                      await context.getEphemeralUpdateKey();
+                    const ephemeralMessageKey =
+                      await context.getEphemeralMessageKey();
 
                     const isValidCollaborator =
                       await context.isValidCollaborator(
-                        ephemeralUpdate.publicData.pubKey
+                        ephemeralMessage.publicData.pubKey
                       );
                     if (!isValidCollaborator) {
                       throw new Error("Invalid collaborator");
                     }
 
-                    const ephemeralUpdateResult =
-                      verifyAndDecryptEphemeralUpdate(
-                        ephemeralUpdate,
-                        ephemeralUpdateKey,
-                        context.sodium.from_base64(
-                          ephemeralUpdate.publicData.pubKey
-                        ),
-                        context.sodium,
-                        mostRecentEphemeralUpdateDatePerPublicSigningKey[
-                          ephemeralUpdate.publicData.pubKey
-                        ]
+                    const ephemeralMessageResult =
+                      verifyAndDecryptEphemeralMessage(
+                        ephemeralMessage,
+                        ephemeralMessageKey,
+                        context._ephemeralMessagesSession,
+                        context.signatureKeyPair,
+                        context.sodium
                       );
-                    mostRecentEphemeralUpdateDatePerPublicSigningKey[
-                      event.publicData.pubKey
-                    ] = ephemeralUpdateResult.date;
 
-                    context.applyEphemeralUpdates([
-                      ephemeralUpdateResult.content,
-                    ]);
+                    if (ephemeralMessageResult.proof) {
+                      send({
+                        type: "ADD_EPHEMERAL_UPDATE",
+                        data: ephemeralMessageResult.proof,
+                        messageType: ephemeralMessageResult.requestProof
+                          ? "proofAndRequestProof"
+                          : "proof",
+                      });
+                    }
+
+                    ephemeralMessagesSession.validSessions =
+                      ephemeralMessageResult.validSessions;
+
+                    // content can be undefined if it's a new session or the
+                    // session data was invalid
+                    if (ephemeralMessageResult.content) {
+                      context.applyEphemeralMessages([
+                        ephemeralMessageResult.content,
+                      ]);
+                    }
                   } catch (err) {
-                    throw new SecsyncProcessingEphemeralUpdateError(
-                      "Failed to process ephemeral update",
+                    throw new SecsyncProcessingEphemeralMessageError(
+                      "Failed to process ephemeral message",
                       err
                     );
                   }
@@ -1161,20 +1182,20 @@ export const createSyncMachine = () =>
               updatesInFlight,
               pendingChangesQueue,
               updateClocks,
-              mostRecentEphemeralUpdateDatePerPublicSigningKey,
-              receivingEphemeralUpdateErrors:
-                context._receivingEphemeralUpdateErrors,
+              receivingEphemeralMessageErrors:
+                context._receivingEphemeralMessageErrors,
               documentDecryptionState,
+              ephemeralMessagesSession,
             };
           } catch (error) {
             if (context.logging === "debug" || context.logging === "error") {
               console.error("Processing queue error:", error);
             }
-            if (error instanceof SecsyncProcessingEphemeralUpdateError) {
-              const newreceivingEphemeralUpdateErrors = [
-                ...context._receivingEphemeralUpdateErrors,
+            if (error instanceof SecsyncProcessingEphemeralMessageError) {
+              const newReceivingEphemeralMessageErrors = [
+                ...context._receivingEphemeralMessageErrors,
               ];
-              newreceivingEphemeralUpdateErrors.unshift(error);
+              newReceivingEphemeralMessageErrors.unshift(error);
               return {
                 handledQueue,
                 activeSnapshotInfo,
@@ -1185,10 +1206,10 @@ export const createSyncMachine = () =>
                 updatesInFlight,
                 pendingChangesQueue,
                 updateClocks,
-                mostRecentEphemeralUpdateDatePerPublicSigningKey,
-                receivingEphemeralUpdateErrors:
-                  newreceivingEphemeralUpdateErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
+                receivingEphemeralMessageErrors:
+                  newReceivingEphemeralMessageErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,
+                ephemeralMessagesSession,
               };
             } else {
               // @ts-ignore fails on some environments and not in others

@@ -20,17 +20,17 @@ Secsync provides integrity guarantees for all messages of one document. This mea
 
 In general invalid injected messages are just ignored and won't have any effect on the resulting document.
 
-In case the attacker removes a snapshot message, the client can’t resolve the latest state of the document and any further update or ephemeral update will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualizing when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral update for an unknown snapshot is received the user should be informed that the document is likely out of date.
+In case the attacker removes a snapshot message, the client can’t resolve the latest state of the document and any further update or ephemeral message will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualizing when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral message for an unknown snapshot is received the user should be informed that the document is likely out of date.
 
-In case the attacker removes an update message, the client can’t resolve the latest state of the document and any further update or ephemeral update will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualizing when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral update referencing an unknown update is received the user should be informed that the document is out of date.
+In case the attacker removes an update message, the client can’t resolve the latest state of the document and any further update or ephemeral message will be ignored and the client’s document basically becomes stale until a newer snapshot is received. From a UX perspective visualizing when the last update happened might help a user to identify that document changes are missing. In case a update or ephemeral message referencing an unknown update is received the user should be informed that the document is out of date.
 
-In case the attacker removes an ephemeral update message, the client misses the ephemeral updates. Since these updates are not supposed to be persistent a downgrade in the user-experience e.g. not seeing other users cursor’s might be the result, but document changes that should be persisted are lost.
+In case the attacker removes an ephemeral message, the client misses the ephemeral messages. Since these updates are not supposed to be persistent a downgrade in the user-experience e.g. not seeing other users cursor’s might be the result, but document changes that should be persisted are lost.
 
 ## Replay Attacks
 
-Secsync is designed resilient to replay attacks for snapshot and update messages. Ephemeral updates messages are only protected against replay attacks if the receiving client is aware of the last ephemeral update message for a specific snapshot and update from the sender. This is the case during an active session.
+Secsync is designed resilient to replay attacks for snapshot and update messages. Ephemeral messages are only protected against replay attacks if the receiving client is aware of the last ephemeral message for a specific snapshot and update from the sender. This is the case during an active session.
 
-In case the receiving client is not aware of the last ephemeral update message, the attacker can replay the ephemeral update message once and the receiving client will accept it as a valid ephemeral update message. For Secsync's current use cases this is an acceptable threat, since ephemeral updates are only used to indicated presence or cursor position.
+In case the receiving client is not aware of the last ephemeral message, the attacker can replay the ephemeral message once and the receiving client will accept it as a valid ephemeral message. For Secsync's current use cases this is an acceptable threat, since ephemeral messages are only used to indicated presence or cursor position.
 
 ## Forward and Post-Compromise Security
 

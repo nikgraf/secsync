@@ -58,13 +58,13 @@ export const UpdateServerData = z.object({
 
 export type UpdateServerData = z.infer<typeof UpdateServerData>;
 
-export const EphemeralUpdatePublicData = z.object({
+export const EphemeralMessagePublicData = z.object({
   docId: z.string(),
   pubKey: z.string(), // public signing key
 });
 
-export type EphemeralUpdatePublicData = z.infer<
-  typeof EphemeralUpdatePublicData
+export type EphemeralMessagePublicData = z.infer<
+  typeof EphemeralMessagePublicData
 >;
 
 export const Snapshot = z.object({
@@ -105,23 +105,23 @@ export const UpdateWithServerData = Update.extend({
 
 export type UpdateWithServerData = z.infer<typeof UpdateWithServerData>;
 
-export const EphemeralUpdate = z.object({
+export const EphemeralMessage = z.object({
   ciphertext: z.string(),
   nonce: z.string(),
   signature: z.string(), // ciphertext + nonce + publicData
-  publicData: EphemeralUpdatePublicData,
+  publicData: EphemeralMessagePublicData,
 });
 
-export type EphemeralUpdate = z.infer<typeof EphemeralUpdate>;
+export type EphemeralMessage = z.infer<typeof EphemeralMessage>;
 
-export const ClientEvent = z.union([Snapshot, Update, EphemeralUpdate]);
+export const ClientEvent = z.union([Snapshot, Update, EphemeralMessage]);
 
 export type ClientEvent = z.infer<typeof ClientEvent>;
 
 export const ServerEvent = z.union([
   SnapshotWithServerData,
   UpdateWithServerData,
-  EphemeralUpdate,
+  EphemeralMessage,
 ]);
 
 export type ServerEvent = z.infer<typeof ServerEvent>;
@@ -140,7 +140,7 @@ type KnownSnapshotInfo = SnapshotProofChainEntry & {
 export type AdditionalAuthenticationDataValidations = {
   snapshot?: z.SomeZodObject;
   update?: z.SomeZodObject;
-  ephemeralUpdate?: z.SomeZodObject;
+  ephemeralMessage?: z.SomeZodObject;
 };
 
 export type SyncMachineConfig = {
@@ -161,8 +161,8 @@ export type SyncMachineConfig = {
   }>;
   applyChanges: (updates: any[]) => void;
   getUpdateKey: (update: any) => Promise<Uint8Array> | Uint8Array;
-  applyEphemeralUpdates: (ephemeralUpdates: any[]) => void;
-  getEphemeralUpdateKey: () => Promise<Uint8Array> | Uint8Array;
+  applyEphemeralMessages: (ephemeralMessages: any[]) => void;
+  getEphemeralMessageKey: () => Promise<Uint8Array> | Uint8Array;
   shouldSendSnapshot: (info: {
     activeSnapshotId: string | null;
     latestServerVersion: number | null;
@@ -198,6 +198,16 @@ export type GetDocumentParams = {
 };
 
 export type HasAccessParams = {
-  action: "read" | "write-snapshot" | "write-update" | "send-ephemeral-update";
+  action: "read" | "write-snapshot" | "write-update" | "send-ephemeral-message";
   documentId: string;
+};
+
+export type ValidSessions = {
+  [authorPublicKey: string]: { sessionId: string; sessionCounter: number };
+};
+
+export type EphemeralMessagesSession = {
+  id: string;
+  counter: number;
+  validSessions: ValidSessions;
 };
