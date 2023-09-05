@@ -103,14 +103,23 @@ export function verifyAndDecryptEphemeralUpdate(
       return { validSessions };
     }
   } else if (type === messageTypes.message) {
-    // TODO if no session exist see it as an initialize, create a proof and request a proof
-
     if (
       !validSessions.hasOwnProperty(publicKeyAsBase64) ||
       validSessions[publicKeyAsBase64].sessionId !== sessionId ||
       validSessions[publicKeyAsBase64].sessionCounter >= sessionCounter
     ) {
-      return { validSessions };
+      // if no session exist see it as an initialize, create a proof and request a proof
+      const proof = createEphemeralUpdateProof(
+        sessionId,
+        ephemeralMessagesSession.id,
+        authorSignatureKeyPair,
+        sodium
+      );
+      return {
+        proof,
+        requestProof: true,
+        validSessions,
+      };
     }
 
     const newValidSessions = {

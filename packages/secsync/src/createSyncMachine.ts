@@ -215,7 +215,6 @@ export const createSyncMachine = () =>
       },
       tsTypes: {} as import("./createSyncMachine.typegen").Typegen0,
       predictableActionArguments: true,
-      // context: JSON.parse(JSON.stringify(initialContext)),
       context: {
         documentId: "",
         signatureKeyPair: {} as KeyPair,
