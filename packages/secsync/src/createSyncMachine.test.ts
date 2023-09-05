@@ -1,3 +1,4 @@
+import sodium from "libsodium-wrappers";
 import { Server } from "mock-socket";
 import { interpret } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
@@ -5,7 +6,8 @@ import { createSyncMachine } from "./createSyncMachine";
 const url = "wss://www.example.com";
 let mockServer: Server;
 
-beforeEach(() => {
+beforeEach(async () => {
+  await sodium.ready;
   mockServer = new Server(url);
 });
 
@@ -22,9 +24,11 @@ test("should start with connecting", (done) => {
       ...syncMachine.context,
       websocketHost: url,
       websocketSessionKey: "sessionKey",
+      sodium,
     })
   ).onTransition((state) => {
     if (state.matches("connecting")) {
+      syncService.stop();
       done();
     }
   });
@@ -41,9 +45,11 @@ test("should connect", (done) => {
       ...syncMachine.context,
       websocketHost: url,
       websocketSessionKey: "sessionKey",
+      sodium,
     })
   ).onTransition((state) => {
     if (state.matches("connected")) {
+      syncService.stop();
       done();
     }
   });
