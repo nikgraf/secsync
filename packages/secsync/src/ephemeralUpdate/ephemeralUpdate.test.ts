@@ -25,12 +25,6 @@ let key: Uint8Array;
 
 beforeEach(async () => {
   await sodium.ready;
-  clientASessionId = generateId(sodium);
-  clientACounter = 1000;
-  clientBSessionId = generateId(sodium);
-  clientBCounter = 50;
-  clientCSessionId = generateId(sodium);
-  clientCCounter = 200;
 
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
@@ -50,6 +44,8 @@ beforeEach(async () => {
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientAPublicKey,
   };
+  clientASessionId = generateId(sodium);
+  clientACounter = 1000;
 
   clientBKeyPair = {
     privateKey: sodium.from_base64(
@@ -61,11 +57,12 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientBPublicKey = sodium.to_base64(clientBKeyPair.publicKey);
-
   clientBPublicData = {
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientBPublicKey,
   };
+  clientBSessionId = generateId(sodium);
+  clientBCounter = 50;
 
   clientCKeyPair = {
     privateKey: sodium.from_base64(
@@ -77,6 +74,8 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientCPublicKey = sodium.to_base64(clientCKeyPair.publicKey);
+  clientCSessionId = generateId(sodium);
+  clientCCounter = 200;
 });
 
 test("establish authentication and send a message between clientA and clientB each", async () => {
