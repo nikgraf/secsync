@@ -21,7 +21,6 @@ export function verifyAndDecryptEphemeralUpdate(
   const publicDataAsBase64 = sodium.to_base64(
     canonicalize(ephemeralUpdate.publicData) as string
   );
-  console.log("verifyAndDecryptEphemeralUpdate");
 
   const isValid = verifySignature(
     {
@@ -57,22 +56,23 @@ export function verifyAndDecryptEphemeralUpdate(
   const { validSessions } = ephemeralMessagesSession;
 
   if (type === messageTypes.initialize) {
-    console.log("GOT initialize");
     const proof = createEphemeralUpdateProof(
       sessionId,
       ephemeralMessagesSession.id,
       authorSignatureKeyPair,
       sodium
     );
-    return { proof, requestProof: true, validSessions };
+    return {
+      proof,
+      requestProof: true,
+      validSessions,
+    };
   } else if (
     type === messageTypes.proof ||
     type === messageTypes.proofAndRequestProof
   ) {
-    console.log("GOT proof || proofAndRequestProof");
-    const proofSignature = sodium.to_base64(value);
     const isValid = verifyEphemeralSessionProof(
-      proofSignature,
+      value,
       ephemeralMessagesSession.id,
       sessionId,
       publicKey,
@@ -99,11 +99,12 @@ export function verifyAndDecryptEphemeralUpdate(
           : undefined;
 
       return { validSessions: newValidSessions, proof, requestProof: false };
+    } else {
+      return { validSessions };
     }
   } else if (type === messageTypes.message) {
     // TODO if no session exist see it as an initialize, create a proof and request a proof
 
-    console.log("GOT message");
     if (
       !validSessions.hasOwnProperty(publicKeyAsBase64) ||
       validSessions[publicKeyAsBase64].sessionId !== sessionId ||

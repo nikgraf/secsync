@@ -9,6 +9,7 @@ export function createEphemeralUpdateProof(
   sodium: typeof import("libsodium-wrappers")
 ) {
   const SessionId = z.string();
+
   const signature = sign(
     {
       remoteClientSessionId: SessionId.parse(remoteClientSessionId),
@@ -18,5 +19,5 @@ export function createEphemeralUpdateProof(
     sodium
   );
 
-  return signature;
+  return sodium.from_base64(signature);
 }

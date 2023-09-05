@@ -44,8 +44,6 @@ export function createEphemeralUpdate(
     new Uint8Array([messageTypes[type]])
   );
 
-  console.log("prefixedContent", type, prefixedContent);
-
   const { ciphertext, publicNonce } = encryptAead(
     prefixedContent,
     publicDataAsBase64,

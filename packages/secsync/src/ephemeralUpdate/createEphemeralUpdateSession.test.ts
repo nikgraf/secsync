@@ -7,7 +7,7 @@ beforeEach(async () => {
 
 test("should return an object with id and counter", () => {
   const result = createEphemeralUpdateSession(sodium);
-  expect(result).toHaveProperty("sessionId");
+  expect(result).toHaveProperty("id");
   expect(typeof result.id).toBe("string");
   expect(result).toHaveProperty("counter");
   expect(typeof result.counter).toBe("number");

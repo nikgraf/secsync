@@ -288,7 +288,6 @@ export const createWebSocketConnection =
           }
           // new ephemeral update
         } else {
-          console.log("NEW EPHEMERAL UPDATE1");
           const documentAccess = await hasAccess({
             action: "send-ephemeral-update",
             documentId,
@@ -303,7 +302,6 @@ export const createWebSocketConnection =
             data,
             additionalAuthenticationDataValidations?.ephemeralUpdate
           );
-          console.log("NEW EPHEMERAL UPDATE2");
           addUpdate(
             documentId,
             { ...ephemeralUpdateMessage, type: "ephemeral-update" },

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { verifySignature } from "../crypto/verifySignature";
 
 export function verifyEphemeralSessionProof(
-  signature: string,
+  signature: Uint8Array,
   remoteClientSessionId: string,
   currentClientSessionId: string,
   authorPublicKey: Uint8Array,
@@ -10,12 +10,13 @@ export function verifyEphemeralSessionProof(
 ) {
   try {
     const SessionId = z.string();
+
     return verifySignature(
       {
         remoteClientSessionId: SessionId.parse(remoteClientSessionId),
         currentClientSessionId: SessionId.parse(currentClientSessionId),
       },
-      signature,
+      sodium.to_base64(signature),
       authorPublicKey,
       sodium
     );

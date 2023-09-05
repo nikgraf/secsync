@@ -5,7 +5,7 @@ import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 let remoteClientSessionId;
 let currentClientSessionId;
 let currentClientSignatureKeyPair: KeyPair;
-let proof: string;
+let proof: Uint8Array;
 
 beforeEach(async () => {
   await sodium.ready;
@@ -44,7 +44,7 @@ it("should return a valid signature", async () => {
 
 it("should throw error if any of the required parameters is missing", () => {
   const isValid = verifyEphemeralSessionProof(
-    "weeee",
+    new Uint8Array([32, 0, 99]),
     remoteClientSessionId,
     currentClientSessionId,
     currentClientSignatureKeyPair.publicKey,

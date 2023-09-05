@@ -41,6 +41,7 @@ export interface Typegen0 {
     addToCustomMessageQueue: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE";
     addToIncomingQueue: "WEBSOCKET_ADD_TO_INCOMING_QUEUE";
     addToPendingUpdatesQueue: "ADD_CHANGES";
+    increaseEphemeralMessagesSession: "ADD_EPHEMERAL_UPDATE";
     increaseWebsocketRetry: "WEBSOCKET_RETRY";
     removeOldestItemFromQueueAndUpdateContext: "done.invoke.processQueues";
     resetContext: "DISCONNECT" | "WEBSOCKET_DISCONNECTED";

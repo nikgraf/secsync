@@ -12,7 +12,8 @@ export const websocketService =
   (send: any, onReceive: any) => {
     const prepareAndSendEphemeralUpdate = async (
       data,
-      messageType: keyof typeof messageTypes
+      messageType: keyof typeof messageTypes,
+      ephemeralMessageCounter
     ) => {
       const publicData = {
         docId: context.documentId,
@@ -26,7 +27,7 @@ export const websocketService =
         ephemeralUpdateKey,
         context.signatureKeyPair,
         ephemeralMessagesSession.id,
-        ephemeralMessagesSession.counter,
+        ephemeralMessageCounter,
         context.sodium
       );
       if (context.logging === "debug") {
@@ -89,15 +90,19 @@ export const websocketService =
     websocketConnection.addEventListener("open", (event) => {
       connected = true;
       send({ type: "WEBSOCKET_CONNECTED", websocket: websocketConnection });
-      // send an empty ephemeralUpdate right away to initiate the session signing
-      prepareAndSendEphemeralUpdate(new Uint8Array(), "initialize").catch(
-        (reason) => {
+      setTimeout(() => {
+        // send an empty ephemeralUpdate right away to initiate the session signing
+        prepareAndSendEphemeralUpdate(
+          new Uint8Array(),
+          "initialize",
+          ephemeralMessagesSession.counter
+        ).catch((reason) => {
           if (context.logging === "debug" || context.logging === "error") {
             console.error(reason);
           }
           send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
-        }
-      );
+        });
+      }, 1000); // WHY 1000 does work here?
     });
 
     websocketConnection.addEventListener("error", (event) => {
@@ -120,14 +125,16 @@ export const websocketService =
       }
       if (event.type === "SEND_EPHEMERAL_UPDATE") {
         try {
-          prepareAndSendEphemeralUpdate(event.data, event.messageType).catch(
-            (reason) => {
-              if (context.logging === "debug" || context.logging === "error") {
-                console.error(reason);
-              }
-              send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          prepareAndSendEphemeralUpdate(
+            event.data,
+            event.messageType,
+            event.counter
+          ).catch((reason) => {
+            if (context.logging === "debug" || context.logging === "error") {
+              console.error(reason);
             }
-          );
+            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          });
         } catch (error) {
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);

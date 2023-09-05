@@ -29,7 +29,7 @@ it("should return a valid signature", async () => {
     sodium
   );
 
-  expect(proof).toBe(
+  expect(sodium.to_base64(proof)).toBe(
     "JjKW5_lgRv6_CVxIDubz5oMtyUBfHiv4dkJvkNkIMu5pmIGFHhw9lMbRxWfRv3jm0g6EvSabO_HlOGjYLnuUDA"
   );
 });

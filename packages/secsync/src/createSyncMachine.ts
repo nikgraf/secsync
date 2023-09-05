@@ -191,11 +191,16 @@ export const createSyncMachine = () =>
           | { type: "DISCONNECT" }
           | { type: "CONNECT" }
           | { type: "ADD_CHANGES"; data: any[] }
-          | { type: "ADD_EPHEMERAL_UPDATE"; data: any }
+          | {
+              type: "ADD_EPHEMERAL_UPDATE";
+              data: any;
+              messageType?: keyof typeof messageTypes;
+            }
           | {
               type: "SEND_EPHEMERAL_UPDATE";
               data: any;
               messageType: keyof typeof messageTypes;
+              counter: number;
               getEphemeralUpdateKey: () => Uint8Array | Promise<Uint8Array>;
             }
           | {
@@ -261,14 +266,18 @@ export const createSyncMachine = () =>
           actions: forwardTo("websocketActor"),
         },
         ADD_EPHEMERAL_UPDATE: {
-          actions: sendTo("websocketActor", (context, event) => {
-            return {
-              type: "SEND_EPHEMERAL_UPDATE",
-              data: event.data,
-              messageType: "message",
-              getEphemeralUpdateKey: context.getEphemeralUpdateKey,
-            };
-          }),
+          actions: [
+            "increaseEphemeralMessagesSession",
+            sendTo("websocketActor", (context, event) => {
+              return {
+                type: "SEND_EPHEMERAL_UPDATE",
+                data: event.data,
+                messageType: event.messageType || "message",
+                counter: context._ephemeralMessagesSession.counter,
+                getEphemeralUpdateKey: context.getEphemeralUpdateKey,
+              };
+            }),
+          ],
         },
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
@@ -417,6 +426,13 @@ export const createSyncMachine = () =>
             return { _websocketRetries: context._websocketRetries + 1 };
           }
           return { _websocketRetries: context._websocketRetries };
+        }),
+        increaseEphemeralMessagesSession: assign((context) => {
+          const ephemeralMessagesSession: EphemeralMessagesSession = {
+            ...context._ephemeralMessagesSession,
+            counter: context._ephemeralMessagesSession.counter + 1,
+          };
+          return { _ephemeralMessagesSession: ephemeralMessagesSession };
         }),
         spawnWebsocketActor: assign((context) => {
           const ephemeralMessagesSession = createEphemeralUpdateSession(
@@ -1095,15 +1111,9 @@ export const createSyncMachine = () =>
                         context.sodium
                       );
 
-                    console.log(
-                      "TOOO ephemeralUpdateResult",
-                      ephemeralUpdateResult
-                    );
-
                     if (ephemeralUpdateResult.proof) {
                       send({
-                        type: "SEND_EPHEMERAL_UPDATE",
-                        getEphemeralUpdateKey: context.getEphemeralUpdateKey,
+                        type: "ADD_EPHEMERAL_UPDATE",
                         data: ephemeralUpdateResult.proof,
                         messageType: ephemeralUpdateResult.requestProof
                           ? "proofAndRequestProof"
