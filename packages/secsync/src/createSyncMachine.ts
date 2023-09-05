@@ -422,6 +422,8 @@ export const createSyncMachine = () =>
           return { _websocketRetries: context._websocketRetries };
         }),
         spawnWebsocketActor: assign((context) => {
+          // the counter in there is only the initial counter and actually
+          // increased with ever ephemeral message sent inside "websocketActor"
           const ephemeralMessagesSession = createEphemeralSession(
             context.sodium
           );

@@ -10,7 +10,7 @@ export const websocketService =
     ephemeralMessagesSession: EphemeralMessagesSession
   ) =>
   (send: any, onReceive: any) => {
-    let ephemeralSessionCounter = ephemeralMessagesSession.counter; // TODO rename .counter to initialCounter
+    let ephemeralSessionCounter = ephemeralMessagesSession.counter;
     const prepareAndSendEphemeralMessage = async (
       data,
       messageType: keyof typeof messageTypes
