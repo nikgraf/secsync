@@ -2,12 +2,12 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { assign, interpret, spawn } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
-import { createEphemeralUpdateProof } from "./ephemeralUpdate/createEphemeralSessionProof";
-import { createEphemeralUpdate } from "./ephemeralUpdate/createEphemeralUpdate";
-import { createEphemeralUpdateSession } from "./ephemeralUpdate/createEphemeralUpdateSession";
+import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
+import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
+import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
-  EphemeralUpdatePublicData,
+  EphemeralMessagePublicData,
   SnapshotClocks,
   SnapshotPublicData,
   UpdatePublicData,
@@ -20,12 +20,12 @@ let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
 let clientACounter: number;
 let clientASessionId: string;
-let clientAPublicData: EphemeralUpdatePublicData;
+let clientAPublicData: EphemeralMessagePublicData;
 
 let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 let clientBSessionId: string;
-let clientBPublicData: EphemeralUpdatePublicData;
+let clientBPublicData: EphemeralMessagePublicData;
 
 let key: Uint8Array;
 let docId: string;
@@ -134,7 +134,7 @@ const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-const createTestEphemeralUpdate = ({
+const createTestEphemeralMessage = ({
   messageType,
   receiverSessionId,
 }: {
@@ -142,14 +142,14 @@ const createTestEphemeralUpdate = ({
   receiverSessionId: string;
 }) => {
   if (messageType === "proof") {
-    const proof = createEphemeralUpdateProof(
+    const proof = createEphemeralMessageProof(
       receiverSessionId,
       clientASessionId,
       clientAKeyPair,
       sodium
     );
 
-    const ephemeralUpdate = createEphemeralUpdate(
+    const ephemeralMessage = createEphemeralMessage(
       proof,
       "proof",
       clientAPublicData,
@@ -160,9 +160,9 @@ const createTestEphemeralUpdate = ({
       sodium
     );
     clientACounter++;
-    return { ephemeralUpdate };
+    return { ephemeralMessage };
   } else {
-    const ephemeralUpdate = createEphemeralUpdate(
+    const ephemeralMessage = createEphemeralMessage(
       new Uint8Array([22]),
       "message",
       clientAPublicData,
@@ -173,7 +173,7 @@ const createTestEphemeralUpdate = ({
       sodium
     );
     clientACounter++;
-    return { ephemeralUpdate };
+    return { ephemeralMessage };
   }
 };
 
@@ -193,7 +193,7 @@ test("should connect to the websocket", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -241,7 +241,7 @@ test("should initially have _documentDecryptionState state", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -291,7 +291,7 @@ test("should load a document", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -361,7 +361,7 @@ test("should load a document with updates", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -435,7 +435,7 @@ test("should load a document and two additional updates", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -524,7 +524,7 @@ test("should load a document and an additional snapshot", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -603,7 +603,7 @@ test("should load a document with updates and two additional updates", (done) =>
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -691,7 +691,7 @@ test("should load a document with updates and two two additional snapshots", (do
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -761,7 +761,7 @@ test("should load a document and process three additional ephemeral messages", (
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
-  let ephemeralUpdatesValue = new Uint8Array();
+  let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
   const syncService = interpret(
@@ -785,11 +785,11 @@ test("should load a document and process three additional ephemeral messages", (
             docValue = docValue + change;
           });
         },
-        getEphemeralUpdateKey: () => key,
-        applyEphemeralUpdates: (ephemeralUpdates) => {
-          ephemeralUpdatesValue = new Uint8Array([
-            ...ephemeralUpdatesValue,
-            ...ephemeralUpdates,
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
           ]);
         },
         sodium: sodium,
@@ -798,7 +798,7 @@ test("should load a document and process three additional ephemeral messages", (
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -812,9 +812,9 @@ test("should load a document and process three additional ephemeral messages", (
         },
       })
   ).onTransition((state) => {
-    if (ephemeralUpdatesValue.length === 2) {
-      expect(ephemeralUpdatesValue[0]).toEqual(22);
-      expect(ephemeralUpdatesValue[1]).toEqual(22);
+    if (ephemeralMessagesValue.length === 2) {
+      expect(ephemeralMessagesValue[0]).toEqual(22);
+      expect(ephemeralMessagesValue[1]).toEqual(22);
       done();
     }
   });
@@ -835,40 +835,41 @@ test("should load a document and process three additional ephemeral messages", (
   const receiverSessionId =
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
-  const { ephemeralUpdate } = createTestEphemeralUpdate({
+  const { ephemeralMessage } = createTestEphemeralMessage({
     messageType: "proof",
     receiverSessionId,
   });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
-      ...ephemeralUpdate,
-      type: "ephemeral-update",
+      ...ephemeralMessage,
+      type: "ephemeral-message",
     },
   });
 
   setTimeout(() => {
-    const { ephemeralUpdate: ephemeralUpdate2 } = createTestEphemeralUpdate({
+    const { ephemeralMessage: ephemeralMessage2 } = createTestEphemeralMessage({
       messageType: "message",
       receiverSessionId,
     });
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
-        ...ephemeralUpdate2,
-        type: "ephemeral-update",
+        ...ephemeralMessage2,
+        type: "ephemeral-message",
       },
     });
     setTimeout(() => {
-      const { ephemeralUpdate: ephemeralUpdate3 } = createTestEphemeralUpdate({
-        messageType: "message",
-        receiverSessionId,
-      });
+      const { ephemeralMessage: ephemeralMessage3 } =
+        createTestEphemeralMessage({
+          messageType: "message",
+          receiverSessionId,
+        });
       syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
-          ...ephemeralUpdate3,
-          type: "ephemeral-update",
+          ...ephemeralMessage3,
+          type: "ephemeral-message",
         },
       });
     }, 1);

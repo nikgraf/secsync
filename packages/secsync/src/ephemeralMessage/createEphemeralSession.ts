@@ -1,6 +1,6 @@
 import { generateId } from "../crypto/generateId";
 
-export function createEphemeralUpdateSession(
+export function createEphemeralSession(
   sodium: typeof import("libsodium-wrappers")
 ) {
   const id = generateId(sodium);

@@ -1,7 +1,7 @@
 import {
-  createEphemeralUpdate,
+  createEphemeralMessage,
   messageTypes,
-} from "../ephemeralUpdate/createEphemeralUpdate";
+} from "../ephemeralMessage/createEphemeralMessage";
 import { EphemeralMessagesSession, SyncMachineConfig } from "../types";
 
 export const websocketService =
@@ -11,7 +11,7 @@ export const websocketService =
   ) =>
   (send: any, onReceive: any) => {
     let ephemeralSessionCounter = ephemeralMessagesSession.counter; // TODO rename .counter to initialCounter
-    const prepareAndSendEphemeralUpdate = async (
+    const prepareAndSendEphemeralMessage = async (
       data,
       messageType: keyof typeof messageTypes
     ) => {
@@ -19,12 +19,12 @@ export const websocketService =
         docId: context.documentId,
         pubKey: context.sodium.to_base64(context.signatureKeyPair.publicKey),
       };
-      const ephemeralUpdateKey = await context.getEphemeralUpdateKey();
-      const ephemeralUpdate = createEphemeralUpdate(
+      const ephemeralMessageKey = await context.getEphemeralMessageKey();
+      const ephemeralMessage = createEphemeralMessage(
         data,
         messageType,
         publicData,
-        ephemeralUpdateKey,
+        ephemeralMessageKey,
         context.signatureKeyPair,
         ephemeralMessagesSession.id,
         ephemeralSessionCounter,
@@ -32,13 +32,13 @@ export const websocketService =
       );
       ephemeralSessionCounter++;
       if (context.logging === "debug") {
-        console.debug("send ephemeralUpdate");
+        console.debug("send ephemeralMessage");
       }
       send({
         type: "SEND",
-        message: JSON.stringify(ephemeralUpdate),
+        message: JSON.stringify(ephemeralMessage),
         // Note: send a faulty message to test the error handling
-        // message: JSON.stringify({ ...ephemeralUpdate, ciphertext: "lala" }),
+        // message: JSON.stringify({ ...ephemeralMessage, ciphertext: "lala" }),
       });
     };
 
@@ -73,10 +73,10 @@ export const websocketService =
           break;
         case "document":
           // At this point the server will have added the user to the active session of
-          // the document, so we can start sending ephemeral updates.
-          // An empty ephemeralUpdate right away to initiate the session signing.
+          // the document, so we can start sending ephemeral messages.
+          // An empty ephemeralMessage right away to initiate the session signing.
           // NOTE: There is no break and send with WEBSOCKET_ADD_TO_INCOMING_QUEUE is still invoked
-          prepareAndSendEphemeralUpdate(new Uint8Array(), "initialize").catch(
+          prepareAndSendEphemeralMessage(new Uint8Array(), "initialize").catch(
             (reason) => {
               if (context.logging === "debug" || context.logging === "error") {
                 console.error(reason);
@@ -90,7 +90,7 @@ export const websocketService =
         case "update":
         case "update-saved":
         case "update-save-failed":
-        case "ephemeral-update":
+        case "ephemeral-message":
           send({ type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE", data });
           break;
         default:
@@ -125,7 +125,7 @@ export const websocketService =
       }
       if (event.type === "SEND_EPHEMERAL_UPDATE") {
         try {
-          prepareAndSendEphemeralUpdate(event.data, event.messageType).catch(
+          prepareAndSendEphemeralMessage(event.data, event.messageType).catch(
             (reason) => {
               if (context.logging === "debug" || context.logging === "error") {
                 console.error(reason);

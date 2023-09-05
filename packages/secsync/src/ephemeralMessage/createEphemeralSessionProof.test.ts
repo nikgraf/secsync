@@ -1,5 +1,5 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { createEphemeralUpdateProof } from "./createEphemeralSessionProof";
+import { createEphemeralMessageProof } from "./createEphemeralSessionProof";
 
 let remoteClientSessionId;
 let currentClientSessionId;
@@ -22,7 +22,7 @@ beforeEach(async () => {
 });
 
 it("should return a valid signature", async () => {
-  const proof = createEphemeralUpdateProof(
+  const proof = createEphemeralMessageProof(
     remoteClientSessionId,
     currentClientSessionId,
     currentClientSignatureKeyPair,
@@ -36,7 +36,7 @@ it("should return a valid signature", async () => {
 
 it("should throw error if any of the required parameters is missing", () => {
   expect(() => {
-    createEphemeralUpdateProof(
+    createEphemeralMessageProof(
       remoteClientSessionId,
       currentClientSessionId,
       null,
@@ -45,7 +45,7 @@ it("should throw error if any of the required parameters is missing", () => {
   }).toThrow();
 
   expect(() => {
-    createEphemeralUpdateProof(
+    createEphemeralMessageProof(
       null,
       currentClientSessionId,
       currentClientSignatureKeyPair,
@@ -54,7 +54,7 @@ it("should throw error if any of the required parameters is missing", () => {
   }).toThrow();
 
   expect(() => {
-    createEphemeralUpdateProof(
+    createEphemeralMessageProof(
       remoteClientSessionId,
       null,
       currentClientSignatureKeyPair,
@@ -63,7 +63,7 @@ it("should throw error if any of the required parameters is missing", () => {
   }).toThrow();
 
   expect(() => {
-    createEphemeralUpdateProof(
+    createEphemeralMessageProof(
       remoteClientSessionId,
       currentClientSessionId,
       currentClientSignatureKeyPair,

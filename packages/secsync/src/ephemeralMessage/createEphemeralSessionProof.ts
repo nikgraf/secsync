@@ -2,7 +2,7 @@ import type { KeyPair } from "libsodium-wrappers";
 import { z } from "zod";
 import { sign } from "../crypto/sign";
 
-export function createEphemeralUpdateProof(
+export function createEphemeralMessageProof(
   remoteClientSessionId: string,
   currentClientSessionId: string,
   currentClientSignatureKeyPair: KeyPair,

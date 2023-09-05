@@ -2,7 +2,7 @@
 
 ## Overview
 
-All messages (snapshots, updates & ephemeral updates) are encrypted using an AEAD construction and the resulting ciphertext, nonce and public data is then hashed. The result of this hash is signed.
+All messages (snapshots, updates & ephemeral messages) are encrypted using an AEAD construction and the resulting ciphertext, nonce and public data is then hashed. The result of this hash is signed.
 
 The public data of a message always contains the document ID in order to be able to verify that the message is for the correct document.
 
@@ -100,11 +100,11 @@ The `signature` is a sigature of the concatinated `nonce` string, `ciphertext` s
 
 ## Ephemeral Upates
 
-An ephemeral update must include the referecening document ID, snapshot ID and if available the referencing update ID from the source client. In addition a counter stored in the encrypted content is included to prevent replay attacks for the same session. Preventing replay attacks for new sessions is out of scope. It can be by storing the ephemeral update counter for each snapshot and update in a local database.
+An ephemeral message must include the referecening document ID, snapshot ID and if available the referencing update ID from the source client. In addition a counter stored in the encrypted content is included to prevent replay attacks for the same session. Preventing replay attacks for new sessions is out of scope. It can be by storing the ephemeral message counter for each snapshot and update in a local database.
 
 An update consists of the
 
-- ciphertext (containing the ephemeral update counter)
+- ciphertext (containing the ephemeral message counter)
 - nonce
 - publicData
   - documentId

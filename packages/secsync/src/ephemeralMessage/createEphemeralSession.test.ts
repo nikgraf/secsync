@@ -1,12 +1,12 @@
 import sodium from "libsodium-wrappers";
-import { createEphemeralUpdateSession } from "./createEphemeralUpdateSession";
+import { createEphemeralSession } from "./createEphemeralSession";
 
 beforeEach(async () => {
   await sodium.ready;
 });
 
 test("should return an object with id and counter", () => {
-  const result = createEphemeralUpdateSession(sodium);
+  const result = createEphemeralSession(sodium);
   expect(result).toHaveProperty("id");
   expect(typeof result.id).toBe("string");
   expect(result).toHaveProperty("counter");

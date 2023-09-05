@@ -2,7 +2,7 @@ import canonicalize from "canonicalize";
 import type { KeyPair } from "libsodium-wrappers";
 import { encryptAead } from "../crypto/encryptAead";
 import { sign } from "../crypto/sign";
-import { EphemeralUpdate, EphemeralUpdatePublicData } from "../types";
+import { EphemeralMessage, EphemeralMessagePublicData } from "../types";
 import { intToUint8Array } from "../utils/intToUint8Array";
 import { prefixWithUint8Array } from "../utils/prefixWithUint8Array";
 
@@ -13,10 +13,10 @@ export const messageTypes = {
   message: 3,
 };
 
-export function createEphemeralUpdate(
+export function createEphemeralMessage(
   content: string | Uint8Array,
   type: keyof typeof messageTypes,
-  publicData: EphemeralUpdatePublicData,
+  publicData: EphemeralMessagePublicData,
   key: Uint8Array,
   authorSignatureKeyPair: KeyPair,
   authorSessionId: string,
@@ -32,13 +32,13 @@ export function createEphemeralUpdate(
     intToUint8Array(authorSessionCounter)
   );
 
-  // each EphemeralUpdate is prefixed with the authorSessionId
+  // each EphemeralMessage is prefixed with the authorSessionId
   prefixedContent = prefixWithUint8Array(
     prefixedContent,
     sodium.from_base64(authorSessionId)
   );
 
-  // each EphemeralUpdate is prefixed with the message type
+  // each EphemeralMessage is prefixed with the message type
   prefixedContent = prefixWithUint8Array(
     prefixedContent,
     new Uint8Array([messageTypes[type]])
@@ -59,12 +59,12 @@ export function createEphemeralUpdate(
     authorSignatureKeyPair.privateKey,
     sodium
   );
-  const ephemeralUpdate: EphemeralUpdate = {
+  const ephemeralMessage: EphemeralMessage = {
     nonce: publicNonce,
     ciphertext,
     publicData,
     signature,
   };
 
-  return ephemeralUpdate;
+  return ephemeralMessage;
 }

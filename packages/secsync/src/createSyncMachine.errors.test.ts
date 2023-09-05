@@ -2,12 +2,12 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { assign, interpret, spawn } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
-import { createEphemeralUpdateProof } from "./ephemeralUpdate/createEphemeralSessionProof";
-import { createEphemeralUpdate } from "./ephemeralUpdate/createEphemeralUpdate";
-import { createEphemeralUpdateSession } from "./ephemeralUpdate/createEphemeralUpdateSession";
+import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
+import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
+import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
-  EphemeralUpdatePublicData,
+  EphemeralMessagePublicData,
   SnapshotClocks,
   SnapshotPublicData,
   UpdatePublicData,
@@ -20,12 +20,12 @@ let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
 let clientACounter: number;
 let clientASessionId: string;
-let clientAPublicData: EphemeralUpdatePublicData;
+let clientAPublicData: EphemeralMessagePublicData;
 
 let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 let clientBSessionId: string;
-let clientBPublicData: EphemeralUpdatePublicData;
+let clientBPublicData: EphemeralMessagePublicData;
 
 let key: Uint8Array;
 let docId: string;
@@ -134,7 +134,7 @@ const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-const createTestEphemeralUpdate = ({
+const createTestEphemeralMessage = ({
   messageType,
   receiverSessionId,
 }: {
@@ -142,14 +142,14 @@ const createTestEphemeralUpdate = ({
   receiverSessionId: string;
 }) => {
   if (messageType === "proof") {
-    const proof = createEphemeralUpdateProof(
+    const proof = createEphemeralMessageProof(
       receiverSessionId,
       clientASessionId,
       clientAKeyPair,
       sodium
     );
 
-    const ephemeralUpdate = createEphemeralUpdate(
+    const ephemeralMessage = createEphemeralMessage(
       proof,
       "proof",
       clientAPublicData,
@@ -160,9 +160,9 @@ const createTestEphemeralUpdate = ({
       sodium
     );
     clientACounter++;
-    return { ephemeralUpdate };
+    return { ephemeralMessage };
   } else {
-    const ephemeralUpdate = createEphemeralUpdate(
+    const ephemeralMessage = createEphemeralMessage(
       new Uint8Array([22]),
       "message",
       clientAPublicData,
@@ -173,7 +173,7 @@ const createTestEphemeralUpdate = ({
       sodium
     );
     clientACounter++;
-    return { ephemeralUpdate };
+    return { ephemeralMessage };
   }
 };
 
@@ -212,7 +212,7 @@ test("should set _documentDecryptionState to failed if not even the snapshot can
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -279,7 +279,7 @@ test("should set _documentDecryptionState to partial and apply the first update,
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -351,7 +351,7 @@ test("should set _documentDecryptionState to partial, if document snapshot decry
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -387,11 +387,11 @@ test("should set _documentDecryptionState to partial, if document snapshot decry
   });
 });
 
-test("should process three additional ephemeral updates where the second one fails", (done) => {
+test("should process three additional ephemeral messages where the second one fails", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
-  let ephemeralUpdatesValue = new Uint8Array();
+  let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
   const syncService = interpret(
@@ -415,11 +415,11 @@ test("should process three additional ephemeral updates where the second one fai
             docValue = docValue + change;
           });
         },
-        getEphemeralUpdateKey: () => key,
-        applyEphemeralUpdates: (ephemeralUpdates) => {
-          ephemeralUpdatesValue = new Uint8Array([
-            ...ephemeralUpdatesValue,
-            ...ephemeralUpdates,
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
           ]);
         },
         sodium: sodium,
@@ -428,7 +428,7 @@ test("should process three additional ephemeral updates where the second one fai
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -442,9 +442,12 @@ test("should process three additional ephemeral updates where the second one fai
         },
       })
   ).onTransition((state) => {
-    if (ephemeralUpdatesValue.length === 1 && state.matches("connected.idle")) {
-      expect(state.context._receivingEphemeralUpdateErrors.length).toEqual(1);
-      expect(ephemeralUpdatesValue[0]).toEqual(22);
+    if (
+      ephemeralMessagesValue.length === 1 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._receivingEphemeralMessageErrors.length).toEqual(1);
+      expect(ephemeralMessagesValue[0]).toEqual(22);
       done();
     }
   });
@@ -465,55 +468,56 @@ test("should process three additional ephemeral updates where the second one fai
   const receiverSessionId =
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
-  const { ephemeralUpdate } = createTestEphemeralUpdate({
+  const { ephemeralMessage } = createTestEphemeralMessage({
     messageType: "proof",
     receiverSessionId,
   });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
-      ...ephemeralUpdate,
-      type: "ephemeral-update",
+      ...ephemeralMessage,
+      type: "ephemeral-message",
     },
   });
 
   setTimeout(() => {
-    const { ephemeralUpdate: ephemeralUpdate2 } = createTestEphemeralUpdate({
+    const { ephemeralMessage: ephemeralMessage2 } = createTestEphemeralMessage({
       messageType: "message",
       receiverSessionId,
     });
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
-        ...ephemeralUpdate2,
+        ...ephemeralMessage2,
         publicData: {
-          ...ephemeralUpdate2.publicData,
+          ...ephemeralMessage2.publicData,
           docId: "wrongDocId",
         },
-        type: "ephemeral-update",
+        type: "ephemeral-message",
       },
     });
     setTimeout(() => {
-      const { ephemeralUpdate: ephemeralUpdate3 } = createTestEphemeralUpdate({
-        messageType: "message",
-        receiverSessionId,
-      });
+      const { ephemeralMessage: ephemeralMessage3 } =
+        createTestEphemeralMessage({
+          messageType: "message",
+          receiverSessionId,
+        });
       syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
-          ...ephemeralUpdate3,
-          type: "ephemeral-update",
+          ...ephemeralMessage3,
+          type: "ephemeral-message",
         },
       });
     }, 1);
   }, 1);
 });
 
-test("should store not more than 20 failed ephemeral update errors", (done) => {
+test("should store not more than 20 failed ephemeral message errors", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
-  let ephemeralUpdatesValue = new Uint8Array();
+  let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
   const syncService = interpret(
@@ -537,11 +541,11 @@ test("should store not more than 20 failed ephemeral update errors", (done) => {
             docValue = docValue + change;
           });
         },
-        getEphemeralUpdateKey: () => key,
-        applyEphemeralUpdates: (ephemeralUpdates) => {
-          ephemeralUpdatesValue = new Uint8Array([
-            ...ephemeralUpdatesValue,
-            ...ephemeralUpdates,
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
           ]);
         },
         sodium: sodium,
@@ -550,7 +554,7 @@ test("should store not more than 20 failed ephemeral update errors", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -564,9 +568,12 @@ test("should store not more than 20 failed ephemeral update errors", (done) => {
         },
       })
   ).onTransition((state) => {
-    if (ephemeralUpdatesValue.length === 1 && state.matches("connected.idle")) {
-      expect(state.context._receivingEphemeralUpdateErrors.length).toEqual(20);
-      expect(ephemeralUpdatesValue[0]).toEqual(22);
+    if (
+      ephemeralMessagesValue.length === 1 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._receivingEphemeralMessageErrors.length).toEqual(20);
+      expect(ephemeralMessagesValue[0]).toEqual(22);
       done();
     }
   });
@@ -587,42 +594,44 @@ test("should store not more than 20 failed ephemeral update errors", (done) => {
   const receiverSessionId =
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
-  const { ephemeralUpdate } = createTestEphemeralUpdate({
+  const { ephemeralMessage } = createTestEphemeralMessage({
     messageType: "proof",
     receiverSessionId,
   });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
-      ...ephemeralUpdate,
-      type: "ephemeral-update",
+      ...ephemeralMessage,
+      type: "ephemeral-message",
     },
   });
 
   for (let step = 0; step < 25; step++) {
-    const { ephemeralUpdate: ephemeralUpdateX } = createTestEphemeralUpdate({
+    const { ephemeralMessage: ephemeralMessageX } = createTestEphemeralMessage({
       messageType: "message",
       receiverSessionId,
     });
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
-        ...ephemeralUpdateX,
+        ...ephemeralMessageX,
         signature: "BROKEN",
-        type: "ephemeral-update",
+        type: "ephemeral-message",
       },
     });
   }
 
-  const { ephemeralUpdate: ephemeralUpdateLast } = createTestEphemeralUpdate({
-    messageType: "message",
-    receiverSessionId,
-  });
+  const { ephemeralMessage: ephemeralMessageLast } = createTestEphemeralMessage(
+    {
+      messageType: "message",
+      receiverSessionId,
+    }
+  );
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
-      ...ephemeralUpdateLast,
-      type: "ephemeral-update",
+      ...ephemeralMessageLast,
+      type: "ephemeral-message",
     },
   });
 });
@@ -631,7 +640,7 @@ test("should reset the context entries after websocket disconnect", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
-  let ephemeralUpdatesValue = new Uint8Array();
+  let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
   const syncService = interpret(
@@ -655,11 +664,11 @@ test("should reset the context entries after websocket disconnect", (done) => {
             docValue = docValue + change;
           });
         },
-        getEphemeralUpdateKey: () => key,
-        applyEphemeralUpdates: (ephemeralUpdates) => {
-          ephemeralUpdatesValue = new Uint8Array([
-            ...ephemeralUpdatesValue,
-            ...ephemeralUpdates,
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
           ]);
         },
         sodium: sodium,
@@ -668,7 +677,7 @@ test("should reset the context entries after websocket disconnect", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -694,8 +703,8 @@ test("should reset the context entries after websocket disconnect", (done) => {
       expect(state.context._sendingUpdatesClock).toEqual(-1);
       expect(state.context._updateClocks).toEqual({});
       expect(state.context._ephemeralMessagesSession).not.toBe(null);
-      expect(state.context._receivingEphemeralUpdateErrors).toEqual([]);
-      expect(state.context._creatingEphemeralUpdateErrors).toEqual([]);
+      expect(state.context._receivingEphemeralMessageErrors).toEqual([]);
+      expect(state.context._creatingEphemeralMessageErrors).toEqual([]);
       done();
     }
   });
@@ -726,7 +735,7 @@ test("should reconnect and reload the document", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
-  let ephemeralUpdatesValue = new Uint8Array();
+  let ephemeralMessagesValue = new Uint8Array();
   let reconnected = false;
 
   const syncMachine = createSyncMachine();
@@ -751,11 +760,11 @@ test("should reconnect and reload the document", (done) => {
             docValue = docValue + change;
           });
         },
-        getEphemeralUpdateKey: () => key,
-        applyEphemeralUpdates: (ephemeralUpdates) => {
-          ephemeralUpdatesValue = new Uint8Array([
-            ...ephemeralUpdatesValue,
-            ...ephemeralUpdates,
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
           ]);
         },
         sodium: sodium,
@@ -764,7 +773,7 @@ test("should reconnect and reload the document", (done) => {
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -821,11 +830,11 @@ test("should reconnect and reload the document", (done) => {
   }, 1);
 });
 
-test("should store not more than 20 failed creating ephemeral update errors", (done) => {
+test("should store not more than 20 failed creating ephemeral message errors", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
-  let ephemeralUpdatesValue = new Uint8Array();
+  let ephemeralMessagesValue = new Uint8Array();
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
@@ -850,11 +859,11 @@ test("should store not more than 20 failed creating ephemeral update errors", (d
             docValue = docValue + change;
           });
         },
-        getEphemeralUpdateKey: () => key,
-        applyEphemeralUpdates: (ephemeralUpdates) => {
-          ephemeralUpdatesValue = new Uint8Array([
-            ...ephemeralUpdatesValue,
-            ...ephemeralUpdates,
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
           ]);
         },
         sodium: sodium,
@@ -863,7 +872,7 @@ test("should store not more than 20 failed creating ephemeral update errors", (d
       .withConfig({
         actions: {
           spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralUpdateSession(
+            const ephemeralMessagesSession = createEphemeralSession(
               context.sodium
             );
             return {
@@ -880,12 +889,12 @@ test("should store not more than 20 failed creating ephemeral update errors", (d
     transitionCount = transitionCount + 1;
     // console.log("transitionCount", transitionCount);
     if (transitionCount === 27 && state.matches("connected.idle")) {
-      expect(state.context._creatingEphemeralUpdateErrors.length).toEqual(20);
-      expect(state.context._creatingEphemeralUpdateErrors[0].message).toEqual(
-        `Wrong ephemeral update key #${23}`
+      expect(state.context._creatingEphemeralMessageErrors.length).toEqual(20);
+      expect(state.context._creatingEphemeralMessageErrors[0].message).toEqual(
+        `Wrong ephemeral message key #${23}`
       );
-      expect(state.context._creatingEphemeralUpdateErrors[19].message).toEqual(
-        `Wrong ephemeral update key #${4}`
+      expect(state.context._creatingEphemeralMessageErrors[19].message).toEqual(
+        `Wrong ephemeral message key #${4}`
       );
       done();
     }
@@ -898,14 +907,14 @@ test("should store not more than 20 failed creating ephemeral update errors", (d
   for (let step = 0; step < 25; step++) {
     syncService.send({
       type: "FAILED_CREATING_EPHEMERAL_UPDATE",
-      error: new Error(`Wrong ephemeral update key #${step}`),
+      error: new Error(`Wrong ephemeral message key #${step}`),
     });
   }
 });
 
 // TODO
 // test sending the same update twice (2nd one being ignore)
-// testing sending the same ephemeral update twice
+// testing sending the same ephemeral message twice
 // tests for a broken snapshot key
 // test for a invalid contributor
-// test to verify a reply attack with older ephemeral updates are rejected
+// test to verify a reply attack with older ephemeral messages are rejected

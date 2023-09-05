@@ -1,20 +1,20 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { generateId } from "../crypto/generateId";
-import { EphemeralUpdatePublicData } from "../types";
-import { createEphemeralUpdate } from "./createEphemeralUpdate";
-import { verifyAndDecryptEphemeralUpdate } from "./verifyAndDecryptEphemeralUpdate";
+import { EphemeralMessagePublicData } from "../types";
+import { createEphemeralMessage } from "./createEphemeralMessage";
+import { verifyAndDecryptEphemeralMessage } from "./verifyAndDecryptEphemeralMessage";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
 let clientACounter: number;
 let clientASessionId: string;
-let clientAPublicData: EphemeralUpdatePublicData;
+let clientAPublicData: EphemeralMessagePublicData;
 
 let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 let clientBCounter: number;
 let clientBSessionId: string;
-let clientBPublicData: EphemeralUpdatePublicData;
+let clientBPublicData: EphemeralMessagePublicData;
 
 let clientCKeyPair: KeyPair;
 let clientCPublicKey: string;
@@ -80,7 +80,7 @@ beforeEach(async () => {
 
 test("establish authentication and send a message between clientA and clientB each", async () => {
   // Client A generates the `initialize` message
-  const ephemeralUpdate1 = createEphemeralUpdate(
+  const ephemeralMessage1 = createEphemeralMessage(
     new Uint8Array(),
     "initialize",
     clientAPublicData,
@@ -94,8 +94,8 @@ test("establish authentication and send a message between clientA and clientB ea
 
   // Client B receives the `initialize` message and generates
   // the `proofAndRequestProof` message
-  const result1 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate1,
+  const result1 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage1,
     key,
     {
       id: clientBSessionId,
@@ -113,7 +113,7 @@ test("establish authentication and send a message between clientA and clientB ea
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
-  const ephemeralUpdate2 = createEphemeralUpdate(
+  const ephemeralMessage2 = createEphemeralMessage(
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
@@ -127,8 +127,8 @@ test("establish authentication and send a message between clientA and clientB ea
 
   // Client A receives the `proofAndRequestProof` message and generates
   // the `proof` message
-  const result2 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate2,
+  const result2 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage2,
     key,
     {
       id: clientASessionId,
@@ -152,7 +152,7 @@ test("establish authentication and send a message between clientA and clientB ea
   expect(result2.requestProof).toBe(false);
 
   // Client A generates the `proof` message
-  const ephemeralUpdate3 = createEphemeralUpdate(
+  const ephemeralMessage3 = createEphemeralMessage(
     result2.proof,
     "proof",
     clientAPublicData,
@@ -165,8 +165,8 @@ test("establish authentication and send a message between clientA and clientB ea
   clientACounter++;
 
   // Client B receives the `proof` message
-  const result3 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate3,
+  const result3 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage3,
     key,
     {
       id: clientBSessionId,
@@ -189,7 +189,7 @@ test("establish authentication and send a message between clientA and clientB ea
   expect(result3.requestProof).toBe(false);
 
   // Client A generates a message
-  const ephemeralUpdate4 = createEphemeralUpdate(
+  const ephemeralMessage4 = createEphemeralMessage(
     new Uint8Array([42, 97, 97]),
     "message",
     clientAPublicData,
@@ -202,8 +202,8 @@ test("establish authentication and send a message between clientA and clientB ea
   clientACounter++;
 
   // Client B receives the message
-  const result4 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate4,
+  const result4 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage4,
     key,
     {
       id: clientBSessionId,
@@ -230,7 +230,7 @@ test("establish authentication and send a message between clientA and clientB ea
   expect(result4.requestProof).toBe(undefined);
 
   // Client B generates a message
-  const ephemeralUpdate5 = createEphemeralUpdate(
+  const ephemeralMessage5 = createEphemeralMessage(
     new Uint8Array([91, 11]),
     "message",
     clientBPublicData,
@@ -243,8 +243,8 @@ test("establish authentication and send a message between clientA and clientB ea
   clientBCounter++;
 
   // Client A receives the message
-  const result5 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate5,
+  const result5 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage5,
     key,
     {
       id: clientASessionId,
@@ -272,7 +272,7 @@ test("establish authentication and send a message between clientA and clientB ea
 
 test("establish authentication without an initialize message and send a message between clientA and clientB each", async () => {
   // Client A never generates the `initialize` message, but right away sends a message
-  const ephemeralUpdate1 = createEphemeralUpdate(
+  const ephemeralMessage1 = createEphemeralMessage(
     new Uint8Array([42, 97, 97]),
     "message",
     clientAPublicData,
@@ -286,8 +286,8 @@ test("establish authentication without an initialize message and send a message 
 
   // Client B receives the `initialize` message and generates
   // the `proofAndRequestProof` message
-  const result1 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate1,
+  const result1 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage1,
     key,
     {
       id: clientBSessionId,
@@ -305,7 +305,7 @@ test("establish authentication without an initialize message and send a message 
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
-  const ephemeralUpdate2 = createEphemeralUpdate(
+  const ephemeralMessage2 = createEphemeralMessage(
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
@@ -319,8 +319,8 @@ test("establish authentication without an initialize message and send a message 
 
   // Client A receives the `proofAndRequestProof` message and generates
   // the `proof` message
-  const result2 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate2,
+  const result2 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage2,
     key,
     {
       id: clientASessionId,
@@ -344,7 +344,7 @@ test("establish authentication without an initialize message and send a message 
   expect(result2.requestProof).toBe(false);
 
   // Client A generates the `proof` message
-  const ephemeralUpdate3 = createEphemeralUpdate(
+  const ephemeralMessage3 = createEphemeralMessage(
     result2.proof,
     "proof",
     clientAPublicData,
@@ -357,8 +357,8 @@ test("establish authentication without an initialize message and send a message 
   clientACounter++;
 
   // Client B receives the `proof` message
-  const result3 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate3,
+  const result3 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage3,
     key,
     {
       id: clientBSessionId,
@@ -381,7 +381,7 @@ test("establish authentication without an initialize message and send a message 
   expect(result3.requestProof).toBe(false);
 
   // Client A generates a message
-  const ephemeralUpdate4 = createEphemeralUpdate(
+  const ephemeralMessage4 = createEphemeralMessage(
     new Uint8Array([42, 97, 97]),
     "message",
     clientAPublicData,
@@ -394,8 +394,8 @@ test("establish authentication without an initialize message and send a message 
   clientACounter++;
 
   // Client B receives the message
-  const result4 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate4,
+  const result4 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage4,
     key,
     {
       id: clientBSessionId,
@@ -422,7 +422,7 @@ test("establish authentication without an initialize message and send a message 
   expect(result4.requestProof).toBe(undefined);
 
   // Client B generates a message
-  const ephemeralUpdate5 = createEphemeralUpdate(
+  const ephemeralMessage5 = createEphemeralMessage(
     new Uint8Array([91, 11]),
     "message",
     clientBPublicData,
@@ -435,8 +435,8 @@ test("establish authentication without an initialize message and send a message 
   clientBCounter++;
 
   // Client A receives the message
-  const result5 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate5,
+  const result5 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage5,
     key,
     {
       id: clientASessionId,
@@ -462,14 +462,14 @@ test("establish authentication without an initialize message and send a message 
   expect(result5.requestProof).toBe(undefined);
 });
 
-test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another client", async () => {
-  const publicData: EphemeralUpdatePublicData = {
+test("verifyAndDecryptEphemeralMessage ignores proof if only relevant for another client", async () => {
+  const publicData: EphemeralMessagePublicData = {
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientAPublicKey,
   };
 
   // Client A generates the `initialize` message
-  const ephemeralUpdate1 = createEphemeralUpdate(
+  const ephemeralMessage1 = createEphemeralMessage(
     new Uint8Array(),
     "initialize",
     clientAPublicData,
@@ -483,8 +483,8 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
 
   // Client B receives the `initialize` message and generates
   // the `proofAndRequestProof` message
-  const result1 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate1,
+  const result1 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage1,
     key,
     {
       id: clientBSessionId,
@@ -502,7 +502,7 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
-  const ephemeralUpdate2 = createEphemeralUpdate(
+  const ephemeralMessage2 = createEphemeralMessage(
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
@@ -515,8 +515,8 @@ test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another
   clientBCounter++;
 
   // Client C receives the `proofAndRequestProof` message and ignores it
-  const result2 = verifyAndDecryptEphemeralUpdate(
-    ephemeralUpdate2,
+  const result2 = verifyAndDecryptEphemeralMessage(
+    ephemeralMessage2,
     key,
     {
       id: clientCSessionId,

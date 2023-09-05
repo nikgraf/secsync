@@ -1,5 +1,5 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { createEphemeralUpdateProof } from "./createEphemeralSessionProof";
+import { createEphemeralMessageProof } from "./createEphemeralSessionProof";
 import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 
 let remoteClientSessionId;
@@ -22,7 +22,7 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
 
-  proof = createEphemeralUpdateProof(
+  proof = createEphemeralMessageProof(
     remoteClientSessionId,
     currentClientSessionId,
     currentClientSignatureKeyPair,

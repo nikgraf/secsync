@@ -3,44 +3,44 @@ import { KeyPair } from "libsodium-wrappers";
 import { decryptAead } from "../crypto/decryptAead";
 import { idLength } from "../crypto/generateId";
 import { verifySignature } from "../crypto/verifySignature";
-import { EphemeralMessagesSession, EphemeralUpdate } from "../types";
+import { EphemeralMessage, EphemeralMessagesSession } from "../types";
 import { extractPrefixFromUint8Array } from "../utils/extractPrefixFromUint8Array";
 import { uint8ArrayToNumber } from "../utils/uint8ArrayToInt";
-import { createEphemeralUpdateProof } from "./createEphemeralSessionProof";
-import { messageTypes } from "./createEphemeralUpdate";
+import { messageTypes } from "./createEphemeralMessage";
+import { createEphemeralMessageProof } from "./createEphemeralSessionProof";
 import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 
-export function verifyAndDecryptEphemeralUpdate(
-  ephemeralUpdate: EphemeralUpdate,
+export function verifyAndDecryptEphemeralMessage(
+  ephemeralMessage: EphemeralMessage,
   key: Uint8Array,
   ephemeralMessagesSession: EphemeralMessagesSession,
   authorSignatureKeyPair: KeyPair,
   sodium: typeof import("libsodium-wrappers")
 ) {
   const publicDataAsBase64 = sodium.to_base64(
-    canonicalize(ephemeralUpdate.publicData) as string
+    canonicalize(ephemeralMessage.publicData) as string
   );
 
-  const publicKey = sodium.from_base64(ephemeralUpdate.publicData.pubKey);
+  const publicKey = sodium.from_base64(ephemeralMessage.publicData.pubKey);
 
   const isValid = verifySignature(
     {
-      nonce: ephemeralUpdate.nonce,
-      ciphertext: ephemeralUpdate.ciphertext,
+      nonce: ephemeralMessage.nonce,
+      ciphertext: ephemeralMessage.ciphertext,
       publicData: publicDataAsBase64,
     },
-    ephemeralUpdate.signature,
+    ephemeralMessage.signature,
     publicKey,
     sodium
   );
   if (!isValid) {
-    throw new Error("Invalid ephemeral update");
+    throw new Error("Invalid ephemeral message");
   }
   const content = decryptAead(
-    sodium.from_base64(ephemeralUpdate.ciphertext),
-    sodium.to_base64(canonicalize(ephemeralUpdate.publicData) as string),
+    sodium.from_base64(ephemeralMessage.ciphertext),
+    sodium.to_base64(canonicalize(ephemeralMessage.publicData) as string),
     key,
-    ephemeralUpdate.nonce,
+    ephemeralMessage.nonce,
     sodium
   );
 
@@ -57,7 +57,7 @@ export function verifyAndDecryptEphemeralUpdate(
   const { validSessions } = ephemeralMessagesSession;
 
   if (type === messageTypes.initialize) {
-    const proof = createEphemeralUpdateProof(
+    const proof = createEphemeralMessageProof(
       sessionId,
       ephemeralMessagesSession.id,
       authorSignatureKeyPair,
@@ -91,7 +91,7 @@ export function verifyAndDecryptEphemeralUpdate(
 
       const proof =
         type === messageTypes.proofAndRequestProof
-          ? createEphemeralUpdateProof(
+          ? createEphemeralMessageProof(
               sessionId,
               ephemeralMessagesSession.id,
               authorSignatureKeyPair,
@@ -110,7 +110,7 @@ export function verifyAndDecryptEphemeralUpdate(
       validSessions[publicKeyAsBase64].sessionCounter >= sessionCounter
     ) {
       // if no session exist see it as an initialize, create a proof and request a proof
-      const proof = createEphemeralUpdateProof(
+      const proof = createEphemeralMessageProof(
         sessionId,
         ephemeralMessagesSession.id,
         authorSignatureKeyPair,
