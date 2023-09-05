@@ -14,6 +14,11 @@ let clientBPublicKey: string;
 let clientBCounter: number;
 let clientBSessionId: string;
 
+let clientCKeyPair: KeyPair;
+let clientCPublicKey: string;
+let clientCCounter: number;
+let clientCSessionId: string;
+
 let key: Uint8Array;
 
 beforeEach(async () => {
@@ -22,6 +27,8 @@ beforeEach(async () => {
   clientACounter = 1000;
   clientBSessionId = generateId(sodium);
   clientBCounter = 50;
+  clientCSessionId = generateId(sodium);
+  clientCCounter = 200;
 
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
@@ -37,6 +44,7 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientAPublicKey = sodium.to_base64(clientAKeyPair.publicKey);
+
   clientBKeyPair = {
     privateKey: sodium.from_base64(
       "ElVI9nkbOypSu2quCTXH1i1gGlcd-Sxd7S6ym9sNZj48ben-hOmefr13D9Y1Lnys3CuhwuPb6DMh_oDln913_g"
@@ -47,6 +55,17 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientBPublicKey = sodium.to_base64(clientBKeyPair.publicKey);
+
+  clientCKeyPair = {
+    privateKey: sodium.from_base64(
+      "r5hcoJlYJxIWBTFiV_Jkr2oRoxpWdFf-sJmtM0WpNCsX0AQargVmlkzv5D8loRNMV7DuWZEw7Auk5_VFiUrynA"
+    ),
+    publicKey: sodium.from_base64(
+      "F9AEGq4FZpZM7-Q_JaETTFew7lmRMOwLpOf1RYlK8pw"
+    ),
+    keyType: "ed25519",
+  };
+  clientCPublicKey = sodium.to_base64(clientCKeyPair.publicKey);
 });
 
 test("establish authentication and send a message between clientA and clientB each", async () => {
@@ -451,4 +470,77 @@ test("establish authentication without an initialize message and send a message 
   );
   expect(result5.proof).toBeUndefined();
   expect(result5.requestProof).toBe(undefined);
+});
+
+test("verifyAndDecryptEphemeralUpdate ignores proof if only relevant for another client", async () => {
+  const publicData: EphemeralUpdatePublicData = {
+    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    pubKey: clientAPublicKey,
+  };
+
+  // Client A generates the `initialize` message
+  const ephemeralUpdate1 = createEphemeralUpdate(
+    new Uint8Array(),
+    "initialize",
+    publicData,
+    key,
+    clientAKeyPair,
+    clientASessionId,
+    clientACounter,
+    sodium
+  );
+  clientACounter++;
+
+  // Client B receives the `initialize` message and generates
+  // the `proofAndRequestProof` message
+  const result1 = verifyAndDecryptEphemeralUpdate(
+    ephemeralUpdate1,
+    key,
+    clientAKeyPair.publicKey,
+    {
+      id: clientBSessionId,
+      counter: clientBCounter,
+      validSessions: {},
+    },
+    clientBKeyPair,
+    sodium
+  );
+
+  expect(result1.content).toBe(undefined);
+  expect(result1.validSessions).toStrictEqual({});
+  expect(typeof result1.proof).toBe("object");
+  expect(result1.proof.length).toBe(64);
+  expect(result1.requestProof).toBe(true);
+
+  // Client B generates the `proofAndRequestProof` message
+  const ephemeralUpdate2 = createEphemeralUpdate(
+    result1.proof,
+    "proofAndRequestProof",
+    publicData,
+    key,
+    clientBKeyPair,
+    clientBSessionId,
+    clientBCounter,
+    sodium
+  );
+  clientBCounter++;
+
+  // Client C receives the `proofAndRequestProof` message and ignores it
+  const result2 = verifyAndDecryptEphemeralUpdate(
+    ephemeralUpdate2,
+    key,
+    clientBKeyPair.publicKey,
+    {
+      id: clientCSessionId,
+      counter: clientCCounter,
+      validSessions: {},
+    },
+    clientCKeyPair,
+    sodium
+  );
+
+  expect(result2.content).toBe(undefined);
+  expect(result2.validSessions).toStrictEqual({});
+  expect(result2.proof).toBe(undefined);
+  expect(result2.requestProof).toBe(undefined);
 });
