@@ -85,7 +85,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
       return true;
     },
     sodium,
-    logging: "off", // TODO
+    logging: "debug",
   });
 
   const initiateEditor = () => {
