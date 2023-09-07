@@ -12,3 +12,31 @@ To make this design work it's important that the sessionId is stored per client 
 - validate proof -> respond with a proof
 - validate proof
 - message
+
+## Handling of missing messages and retry strategies
+
+TODO
+
+### Usecases
+
+- missing a update (e.g. update comes in not in order)
+  -> the solution: have an incoming queue
+  -> challenge: when to abort it
+- getting a snapshot that doesn't apply to a known one
+  -> precondition: what if it is an old snapshot?
+  -> the solution: reconnect and ask the server for a new version of the document
+
+### Incoming queue
+
+```tsx
+{
+  [snaphotId]: {
+    lastUpdatesPerAuthor: {
+      [authorId]: {
+        lastUpdate,
+        updatesReceived
+      }
+    },
+  }
+}
+```

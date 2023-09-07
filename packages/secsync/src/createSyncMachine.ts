@@ -175,7 +175,7 @@ const disconnectionContextReset: InternalContextReset = {
 };
 
 export const createSyncMachine = () =>
-  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGcQE4A7ADpxMgKwA2JQBYlAJnEAOTeoA0IFIgC0i9XPU29M9Vq0rdMlSoC+746ky4CxMgBBWloAfUoABQAJSixKACVAgBlQgFUI2kCAFUomViQQLh5+QWExBEkleUZHGRd1XS1GRhljUwqGqQV9RgBmFXVewd1erU9vdGw8IhJSAHVKACFyAHkAYQBpSizQ2gBJcjWV6mpKNZyGFmEivgEhAvKqtsRR3WslPS0pVQcNdRlxiAfFN-LN9odjqdznlrtxbqUHogniZEFoZPIpCpHEpGFIWiopNJAcC-DMwHIMIISBh+GgoPMlqtNttQkcTmcLjCCjcSvdQOVxGolAoZH1enoaupxFojCiEP0rDYqippSpGDj1cTJqSAhSqWAacR6cEwmsooFqABxXJXblw3llCTON6DKTi77K3oaZ4VDRyfpY3S6bTiAO9KRa3zTXWUtDU2lQOQAdxwtzpDOW6y2O3i23iAE0uRx7XdHRVQ1o5KKpK63MHxP8fb19N1gzX-uoVKMqpGQWS9XGDbxIBmmdndutUnFqDtqCsdgAxFapOhFwolhH8iR44XiHHfNX2Qk+6XNOSMRpfLTBztKJS9nUkAfxkcLTPMnYrwKpLJRFbxPYAC1KEufJi2KUtEQqQld33VQWnUY85VDKRK1dLQPi0XpensNEH2jJ9YxfCA5EICAABsyDfMcWRNUIshWUI9moI4sGYy1QgARVSSgeLXHlIK3BAmkYOQ1CDJQgywlx+l6E91RUKshgwtQvkkXp8NBckiKHSBSIoqjGSzWiQnoxi1lScgGKwUI4nIchAmtLieL421wPhPlRFRM9xODKTmxkWSTz3SsRmVDD1D6O8AS8IFtQI7T9RpPSyMo0g6LNC1rX4jdPPKESxMkvzGgCoLkJlN43RkJxgw+JQpBcTT+x05KSPYAAnTgMDgHg6U4gBXMBBtgUgIEEcliAAN04ABrckOq6nqBqGuAcogzcvIqFpRN0N1xBaPEamUJRgpkcRz2+f4QrUbCmpjJLhzazrutgXqoGW4bSDAdrOvauR2HInBeAAM04dqAFt-uepbBuGtaPLLaQ9wUODD0Q8QTww0Sqj0LsMPq-o7sIh69IWl63o+uBR2MnY6IYpiWJWNirWc3ibTA9d1ryxAVHsORGg0XQu1FXRJGC5s5Hq+x0RcZocXUInEsHVqocW16jUpkbqJp0I6fMyzrNsyh7McyhWdcjmBI28oBlE9E1XVHCVUkk7kMYBxrG+Q7xV6PpO0V59dKetWKdhqmMvNK12dhLmy0C3prFVZxMQaaRWjlGtFPDQZangvR71ikkEsDlWCANGajQXMGsDBsBKb2Ydwa1oyP110z6eY1j2PN6O7VjqCGz5i93QbJRmykGtgvquQZU0SSsSlIWNML+KtJLx6KXwcvK+r2v68b5v33HPXWQNpmjZNpzuLZ+GHQHmxRLFaqGzca8pHkrsFAcBr9t5xRNRXlGNeLUN5lwwBXOkVd2o13anXMODcwBN3SqZTKUdb6CU2nuUYYlRSaH2rIJojgfSYmqFKGwTQhi6EYHuAOIC9JgIgVAKBMC4ErQQUgkQsBeBA3JDgYGw52oAApGAAEpSBF2ASTEiDCd7QL3vAg+6DrYSGlGhKSahFA4XqpjAYChvjVXdriO8QtaFSM3tvSBu9YH70QSNTh3DhxyD4QI4RYiJHNTMTIyxcjrEKNsfQcQltcqIyaOdaSOhsI1moT6Ro8g9w1DloKRC14A4QEILAOhEBkGmkjtlNynMEZQQcAnaqeIsKYjRG2FQ8lKw1gqW4BJuJdCpPSZk0gSjuYIHqopL4UUZRemvHUJsvsqzu0GDYQKrhRieFimgTgEA4DCHcQEGOhShLVOQsKTs4Z8YVSGBPcQpjlYJlWXfISUyFAO1cH0SQ0hXbtCcHbC8ygArYlQgXCYQCPHHKNHIWBvB2ooCNKcjBAohg9LxA2C80hgzuybA0PRSpELIqGH0I58ZfkpjTFAEFyiECi3OoKZo1zxSSG+E2FUeiZQ1lcFUKoYxAF9nuscyAuLOnejlASSsvMsKIWqrLNQ6Kg76UomyxGNRTqiSvOibC6omj6CFSrMmPUNZh3gH3NZm1nDyEaNQqh7suySUxuGMSDUGrNlFl8W6jLHxK2IuY8BsiWE2KbmKge2hRK81iUGXEDgMblTVP6TsoYVSWslC0jJUi3VCSGOdGQP86iDJ+OSuUV53jomoQappAc5mBAwOTaNm1sRZ1qAMbQl45LIS9FYfo15BhnSGPGjwNri7A1TJRCAhb8oqX9KWzQ15HCVvaNKBFQZ1KClFovZenggA */
+  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGcQE4A7ADpxMgKwA2JQBYlAJnEAOTeoA0IFIgC0i9XPU29M9Vq0rdMlSoC+746ky4CxMgBBWloAfUoABQAJSixKACVAgBlQgFUI2kCAFUomViQQLh5+QWExBEkleUZHGRd1XS1GRhljUwqGqQV9RgBmFXVewd1erU9vdGw8IhJSAHVKACFyAHkAYQBpSizQ2gBJcjWV6mpKNZyGFmEivgEhAvKqtsRR3WslPS0pVQcNdRlxiAfFN-LN9odjqdznlrtxbqUHogniZEFoZPIpCpHEpGFIWiopNJAcC-DMyAAxQJ7JKUMJreKUbJ7agAcXC0ViCWSaQy2VyVwKNxK91A7TMjnEckxvSUMt6jF0IxkUmM5ScVQU4iqvVGdUcvWJk1JATkGEEJAw-DQUHmS1Wm22oSOJzOFxhgrhwrKEjUSgUMj6vT0NXU4i0RhRCH6VhsVRUYZUjBxScNvmmJrNaAtVptwTpUUCrMo5HdHE9d29FXRjClg1cKnlunEQdakYsjWs6N0Sik6lkLT6qZBZNN5rAluIUDkAHccLdrbblustjsGVl4gBNUuFcsI0DlSSjOQB3u9THOD7-Z5R-Tdbu9-7qBtaKpD40kUdZ8e8SCL+0r3Z1lSOJqB2agVh2ckVlSOhtyFCtEQQJomjkM8RikF8pBGf4lGvcRGD7VCMMcKRejqXEXzfdMP0zbNfwWJcHR2GDAlSLIohWeI9gALVpODdxFUQJEJP0tVxVQWj7cQ8LPLRrFkj4tB1ew0So0EwE-OiID-ZdHVoICQJ2BJ4k4-jigQ-dURqSURiqfQDCqPo8IMKUtEVHUviUD4ajUkdaO-SA5EICAABsyAY-9HTzUIshWUJmSOLBmTZABFVJKHSsz4UEtVmjkNRFSURUlJcfpejwpMVGPIYXzUL5D18jMx0tQLgrCnSmNCaLYqdVJyFirBQjichyECFlKFCNKMv5fIy3MvchKQvKCu7YrelKhs8K1OTbNcF91D6LyAS8IEjWojT-JaiAgtCoIQidAsixLAU5uyys3L9FaPixOVvrwpxJUYeMagI5tdEJRqaOan9rvYAAnTgMDgHhrRSgBXMAMdgUgIEEDTiAAN04ABrDT4cR5H0cxuAsq9RD8I1BxvjPeNm2bFVI0PSU-gJGpXFlA0TpJc7NIC2GEaR2AUagKmsdIMA4YRuG5HYEKcF4AAzTg4YAWxViXKYxrHaYsxbpC1BQcW+RN7EJf6cTkKo9GfLzSI8IWzvU0Wrv1impcnWW4A6gDurihKViS1lJvSzKXp3eacsQFR7DkRoNF0BsAybaTObBx3ZH+OoAyTAjIYu6HAvJyXpcD7GIt0nZQ96-qI6G4tRvG6PppNhbygGGt0UTJMyPjIrcM5gi5L7HtmiDeUhndiY0y9y6Yd96uA6NoPorWR7xue2b47e+mwzktEsKTL4CKwlQZKU-KekYcQ1G+IrF9O5e-Ir66CHHYnJ3JNrLA2swCBz2D+HWdc7QNy6vdHq4dI6pRjjNWECdKziEfHIBUQZCSaHWlIXsW0exyHDJoN+4ZnaCyXsOJqX4fa-wwP-a0gC4bALhqAre4CwCQODlFOBcU1h9QGm3EaY0JpTVjofeCvcJA2BrIGGQOgnxYnBhVBsCgmZNiBjIRQKYPaf1oVpU0+A-4AKASAsBEDsY7z3sWHuicKg9isPhNE-xdCHXjK2doGDQz5VIsqcMQZkLqDLt7NeDCmFQBYWwjh1MuE8JELAXg6sNI4A1j+OGAAKRgABKUgwsV7f2MaY5h5j2GWO4bAex6DT7WGKmoRQZEez-QGAob4iiCLiTfqE1egUIlmNYRYzhVjSCJOST+OQaSMnZLyQUr+dDwkmMYQMmJFTIH0HEFIgS6CmiShKjoHUvYn7XkaPIMSTQkzPz7G5UJEBCCwF6dpGxhZ97VMQphEhT4S4HVGLiW+kY6hSmbOGAkkh8JniULc+5jzSDOihFkN5lkEAEisD2SQ-w+jKDUHhVpWd0SEhHm4TQUKHnf1IIixaPYqpXxlIE7QLhdDXh1APAigwbAyBHqMTwJ00CcAgHAYQcyAioOPki-5YonBdGlLKWUColRSB6dDScIq6ZItcL0BQQ9XB9DBd8a8TgWXdhaK4QYOINCKoWZOOQ7DeBwxQMqj0aD6YLxIXiDBCppBGojO0IYbxpCxj7IGoYg59E0Khpa60M45w5hVabco2dNXNG1UGSQerIz9ElNIcMvZ+bKEURarSsaZEIA0NeAkclk5KVDE-XsjgQmhvfOXBZrVbpFocS4raAZXVog5fKbQCp63UMbWEyuBt-aoy3vAR1orFrOHkI0J+7iCINiKv9M8fjwYjEVGGUiVCP5hqbUY-ppTBnlOGZUtt6D+35T1HUdxtac7eINahJ8zZ4xNmCSSx5l7EJDElMqJseoXA-DTe0L4U8qgBnwl8rCoTeWBAwNXH9SLHB5R1EGA6OI3HInaCMKquDMTon6ISHRoSNZzjChAZDi0KF+ixTKU5jQlJrq6ASTd60P2kUhdyoAA */
   createMachine(
     {
       schema: {
@@ -240,23 +240,23 @@ export const createSyncMachine = () =>
         isValidCollaborator: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
-        _activeSnapshotInfo: null,
-        _latestServerVersion: null,
-        _incomingQueue: [],
-        _customMessageQueue: [],
-        _pendingChangesQueue: [],
+        _activeSnapshotInfo: null, // Why is it important?
+        _latestServerVersion: null, // Why? - just remove it
+        _incomingQueue: [], // TODO _queues.incoming
+        _customMessageQueue: [], // TODO _queues.customMessages
+        _pendingChangesQueue: [], // TODO _queues.pendingChanges
         _activeSendingSnapshotInfo: null,
-        _shouldReconnect: false,
-        _websocketRetries: 0,
-        _updatesInFlight: [],
-        _confirmedUpdatesClock: null,
-        _sendingUpdatesClock: -1,
+        _shouldReconnect: false, // TODO move to _websocket and rename to shouldReconnect
+        _websocketRetries: 0, // TODO move to _websocket and rename to retries
+        _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
+        _confirmedUpdatesClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
+        _sendingUpdatesClock: -1, // TODO move to _updates.currentClient and rename to localClock
         _updateClocks: {},
         _errorTrace: [],
-        _receivingEphemeralMessageErrors: [],
-        _creatingEphemeralMessageErrors: [],
+        _receivingEphemeralMessageErrors: [], // TODO move to _ephemeralMessages and rename to receivingErrors
+        _creatingEphemeralMessageErrors: [], // TODO move to _ephemeralMessages and rename to creatingErrors
         _documentDecryptionState: "pending",
-        _ephemeralMessagesSession: null,
+        _ephemeralMessagesSession: null, // TODO move to _ephemeralMessages and rename to _sessionInfo
       },
       initial: "connecting",
       on: {
@@ -500,7 +500,6 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-
               _receivingEphemeralMessageErrors:
                 event.data.receivingEphemeralMessageErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
