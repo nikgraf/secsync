@@ -2,7 +2,6 @@ import sodium from "libsodium-wrappers";
 import {
   CreateSnapshotParams,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
-  SecsyncSnapshotMissesUpdatesError,
   hash,
 } from "secsync";
 import { serializeSnapshot } from "../utils/serialize";
@@ -49,17 +48,11 @@ export async function createSnapshot({
           "Snapshot is out of date."
         );
       }
-      if (
-        document.activeSnapshot &&
-        activeSnapshotInfo !== undefined &&
-        document.activeSnapshot.latestVersion !==
-          activeSnapshotInfo.latestVersion
-      ) {
-        throw new SecsyncSnapshotMissesUpdatesError(
-          "Snapshot does not include the latest changes."
-        );
-      }
 
+      // TODO requires a check if all the latest changes are included
+      // throw new SecsyncSnapshotMissesUpdatesError(
+      //   "Snapshot does not include the latest changes."
+      // );
       const newSnapshot = await prisma.snapshot.create({
         data: {
           id: snapshot.publicData.snapshotId,

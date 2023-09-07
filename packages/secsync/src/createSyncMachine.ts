@@ -10,24 +10,24 @@ import {
 import { hash } from "./crypto/hash";
 import { messageTypes } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
-import { parseEphemeralMessageWithServerData } from "./ephemeralMessage/parseEphemeralMessageWithServerData";
+import { parseEphemeralMessage } from "./ephemeralMessage/parseEphemeralMessage";
 import { verifyAndDecryptEphemeralMessage } from "./ephemeralMessage/verifyAndDecryptEphemeralMessage";
 import { SecsyncProcessingEphemeralMessageError } from "./errors";
 import { createInitialSnapshot } from "./snapshot/createInitialSnapshot";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { isValidAncestorSnapshot } from "./snapshot/isValidAncestorSnapshot";
-import { parseSnapshotWithServerData } from "./snapshot/parseSnapshotWithServerData";
+import { parseSnapshot } from "./snapshot/parseSnapshot";
 import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
   EphemeralMessagesSession,
   ParentSnapshotProofInfo,
+  Snapshot,
   SnapshotPublicData,
-  SnapshotWithServerData,
   SyncMachineConfig,
-  UpdateWithServerData,
+  Update,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
-import { parseUpdatesWithServerData } from "./update/parseUpdatesWithServerData";
+import { parseUpdates } from "./update/parseUpdates";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
 import { websocketService } from "./utils/websocketService";
 
@@ -75,7 +75,6 @@ import { websocketService } from "./utils/websocketService";
 // Queue processing for sending messages is resumed.
 //
 // If an update saved event is received
-// - the `_latestServerVersion` is set to the update version
 // - the `_confirmedUpdatesClock`
 // - the update removed from the `_updatesInFlight` removed
 //
@@ -94,7 +93,6 @@ import { websocketService } from "./utils/websocketService";
 // When loading the initial document it's important to make sure these variables are correctly set:
 // - `_confirmedUpdatesClock`
 // - `_sendingUpdatesClock` (same as `_confirmedUpdatesClock`)
-// - `_latestServerVersion`
 // - `_activeSnapshotInfo`
 // Otherwise you might try to send an update that the server will reject.
 
@@ -122,7 +120,6 @@ export type DocumentDecryptionState =
 type ProcessQueueData = {
   handledQueue: "customMessage" | "incoming" | "pending" | "none";
   activeSnapshotInfo: ActiveSnapshotInfo | null;
-  latestServerVersion: number | null;
   activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
   sendingUpdatesClock: number;
   confirmedUpdatesClock: number;
@@ -135,7 +132,6 @@ type ProcessQueueData = {
 };
 
 export type InternalContextReset = {
-  _latestServerVersion: null | number;
   _activeSnapshotInfo: null | ActiveSnapshotInfo;
   _incomingQueue: any[];
   _customMessageQueue: any[];
@@ -162,7 +158,6 @@ export type Context = SyncMachineConfig &
 
 const disconnectionContextReset: InternalContextReset = {
   _activeSnapshotInfo: null,
-  _latestServerVersion: null,
   _incomingQueue: [],
   _customMessageQueue: [],
   _activeSendingSnapshotInfo: null,
@@ -241,7 +236,6 @@ export const createSyncMachine = () =>
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
         _activeSnapshotInfo: null, // Why is it important?
-        _latestServerVersion: null, // Why? - just remove it
         _incomingQueue: [], // TODO _queues.incoming
         _customMessageQueue: [], // TODO _queues.customMessages
         _pendingChangesQueue: [], // TODO _queues.pendingChanges
@@ -478,7 +472,6 @@ export const createSyncMachine = () =>
               _incomingQueue: context._incomingQueue.slice(1),
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _latestServerVersion: event.data.latestServerVersion,
               _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
               _sendingUpdatesClock: event.data.sendingUpdatesClock,
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
@@ -494,7 +487,6 @@ export const createSyncMachine = () =>
               _customMessageQueue: context._customMessageQueue.slice(1),
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _latestServerVersion: event.data.latestServerVersion,
               _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
               _sendingUpdatesClock: event.data.sendingUpdatesClock,
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
@@ -502,14 +494,13 @@ export const createSyncMachine = () =>
               _updateClocks: event.data.updateClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
-              _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
+              _documentDecryptionState: event.data.documentDecryptionState,
             };
           } else {
             return {
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _latestServerVersion: event.data.latestServerVersion,
               _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
               _sendingUpdatesClock: event.data.sendingUpdatesClock,
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
@@ -517,8 +508,8 @@ export const createSyncMachine = () =>
               _updateClocks: event.data.updateClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
-              _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
+              _documentDecryptionState: event.data.documentDecryptionState,
             };
           }
         }),
@@ -575,7 +566,6 @@ export const createSyncMachine = () =>
 
           let activeSnapshotInfo: ActiveSnapshotInfo | null =
             context._activeSnapshotInfo;
-          let latestServerVersion = context._latestServerVersion;
           let handledQueue: "customMessage" | "incoming" | "pending" | "none" =
             "none";
           let activeSendingSnapshotInfo = context._activeSendingSnapshotInfo;
@@ -626,7 +616,6 @@ export const createSyncMachine = () =>
                     // Note: send a faulty message to test the error handling
                     // ciphertext: "lala",
                     lastKnownSnapshotId: null,
-                    latestServerVersion,
                     additionalServerData: snapshotData.additionalServerData,
                   }),
                 });
@@ -665,7 +654,6 @@ export const createSyncMachine = () =>
                     // Note: send a faulty message to test the error handling
                     // ciphertext: "lala",
                     lastKnownSnapshotId: activeSnapshotInfo.id,
-                    latestServerVersion,
                     additionalServerData: snapshotData.additionalServerData,
                   }),
                 });
@@ -711,14 +699,14 @@ export const createSyncMachine = () =>
             };
 
             const processSnapshot = async (
-              rawSnapshot: SnapshotWithServerData,
+              rawSnapshot: Snapshot,
               parentSnapshotProofInfo?: ParentSnapshotProofInfo
             ) => {
               if (context.logging === "debug") {
                 console.debug("processSnapshot", rawSnapshot);
               }
               try {
-                const snapshot = parseSnapshotWithServerData(
+                const snapshot = parseSnapshot(
                   rawSnapshot,
                   context.additionalAuthenticationDataValidations?.snapshot
                 );
@@ -762,7 +750,6 @@ export const createSyncMachine = () =>
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
                 };
-                latestServerVersion = snapshot.serverData.latestVersion;
                 confirmedUpdatesClock = null;
                 sendingUpdatesClock = -1;
                 if (
@@ -784,11 +771,11 @@ export const createSyncMachine = () =>
             };
 
             const processUpdates = async (
-              rawUpdates: UpdateWithServerData[],
+              rawUpdates: Update[],
               skipIfCurrentClockIsHigher: boolean,
               skipUpdatesAuthoredByCurrentClient: boolean
             ) => {
-              const updates = parseUpdatesWithServerData(
+              const updates = parseUpdates(
                 rawUpdates,
                 context.additionalAuthenticationDataValidations?.update
               );
@@ -846,7 +833,6 @@ export const createSyncMachine = () =>
                     [update.publicData.pubKey]: clock,
                   };
 
-                  latestServerVersion = update.serverData.version;
                   if (
                     update.publicData.pubKey ===
                     context.sodium.to_base64(context.signatureKeyPair.publicKey)
@@ -956,7 +942,6 @@ export const createSyncMachine = () =>
                   }
                   activeSnapshotInfo = activeSendingSnapshotInfo;
                   activeSendingSnapshotInfo = null;
-                  latestServerVersion = null;
                   sendingUpdatesClock = -1;
                   confirmedUpdatesClock = null;
                   if (context.onSnapshotSaved) {
@@ -968,7 +953,7 @@ export const createSyncMachine = () =>
                     console.log("snapshot saving failed", event);
                   }
                   if (event.snapshot) {
-                    const snapshot = parseSnapshotWithServerData(
+                    const snapshot = parseSnapshot(
                       event.snapshot,
                       context.additionalAuthenticationDataValidations?.snapshot
                     );
@@ -1032,7 +1017,6 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.debug("update saved", event);
                   }
-                  latestServerVersion = event.serverVersion;
                   confirmedUpdatesClock = event.clock;
                   updatesInFlight = updatesInFlight.filter(
                     (updateInFlight) => updateInFlight.clock !== event.clock
@@ -1086,12 +1070,11 @@ export const createSyncMachine = () =>
                   break;
                 case "ephemeral-message":
                   try {
-                    const ephemeralMessage =
-                      parseEphemeralMessageWithServerData(
-                        event,
-                        context.additionalAuthenticationDataValidations
-                          ?.ephemeralMessage
-                      );
+                    const ephemeralMessage = parseEphemeralMessage(
+                      event,
+                      context.additionalAuthenticationDataValidations
+                        ?.ephemeralMessage
+                    );
 
                     const ephemeralMessageKey =
                       await context.getEphemeralMessageKey();
@@ -1147,11 +1130,17 @@ export const createSyncMachine = () =>
             ) {
               handledQueue = "pending";
 
+              const snapshotUpdatesCount = Object.entries(
+                context._updateClocks[activeSnapshotInfo?.id] || []
+              ).reduce((prev, curr) => {
+                return prev + curr[1];
+              }, 0);
               if (
                 activeSnapshotInfo === null ||
                 context.shouldSendSnapshot({
                   activeSnapshotId: activeSnapshotInfo?.id || null,
-                  latestServerVersion,
+                  snapshotUpdatesCount:
+                    snapshotUpdatesCount + context._confirmedUpdatesClock,
                 })
               ) {
                 if (context.logging === "debug") {
@@ -1180,7 +1169,6 @@ export const createSyncMachine = () =>
             return {
               handledQueue,
               activeSnapshotInfo,
-              latestServerVersion,
               activeSendingSnapshotInfo,
               confirmedUpdatesClock,
               sendingUpdatesClock,
@@ -1204,7 +1192,6 @@ export const createSyncMachine = () =>
               return {
                 handledQueue,
                 activeSnapshotInfo,
-                latestServerVersion,
                 activeSendingSnapshotInfo,
                 confirmedUpdatesClock,
                 sendingUpdatesClock,

@@ -694,7 +694,6 @@ test("should reset the context entries after websocket disconnect", (done) => {
     if (state.matches("connecting.retrying")) {
       expect(state.context._documentDecryptionState).toEqual("pending");
       expect(state.context._activeSnapshotInfo).toEqual(null);
-      expect(state.context._latestServerVersion).toEqual(null);
       expect(state.context._incomingQueue).toEqual([]);
       expect(state.context._customMessageQueue).toEqual([]);
       expect(state.context._activeSendingSnapshotInfo).toEqual(null);

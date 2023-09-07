@@ -27,12 +27,6 @@ export type SnapshotPublicDataWithParentSnapshotProof = z.infer<
   typeof SnapshotPublicDataWithParentSnapshotProof
 >;
 
-export const SnapshotServerData = z.object({
-  latestVersion: z.number(),
-});
-
-export type SnapshotServerData = z.infer<typeof SnapshotServerData>;
-
 export const UpdatePublicData = z.object({
   docId: z.string(),
   pubKey: z.string(), // public signing key
@@ -51,12 +45,6 @@ export const UpdatePublicDataWithClock = z.object({
 export type UpdatePublicDataWithClock = z.infer<
   typeof UpdatePublicDataWithClock
 >;
-
-export const UpdateServerData = z.object({
-  version: z.number(),
-});
-
-export type UpdateServerData = z.infer<typeof UpdateServerData>;
 
 export const EphemeralMessagePublicData = z.object({
   docId: z.string(),
@@ -78,17 +66,10 @@ export type Snapshot = z.infer<typeof Snapshot>;
 
 export const SnapshotWithClientData = Snapshot.extend({
   lastKnownSnapshotId: z.string().nullable().optional(),
-  latestServerVersion: z.number().nullable().optional(),
   additionalServerData: z.unknown().optional(),
 });
 
 export type SnapshotWithClientData = z.infer<typeof SnapshotWithClientData>;
-
-export const SnapshotWithServerData = Snapshot.extend({
-  serverData: SnapshotServerData,
-});
-
-export type SnapshotWithServerData = z.infer<typeof SnapshotWithServerData>;
 
 export const Update = z.object({
   ciphertext: z.string(),
@@ -99,12 +80,6 @@ export const Update = z.object({
 
 export type Update = z.infer<typeof Update>;
 
-export const UpdateWithServerData = Update.extend({
-  serverData: UpdateServerData,
-});
-
-export type UpdateWithServerData = z.infer<typeof UpdateWithServerData>;
-
 export const EphemeralMessage = z.object({
   ciphertext: z.string(),
   nonce: z.string(),
@@ -114,17 +89,9 @@ export const EphemeralMessage = z.object({
 
 export type EphemeralMessage = z.infer<typeof EphemeralMessage>;
 
-export const ClientEvent = z.union([Snapshot, Update, EphemeralMessage]);
+export const Event = z.union([Snapshot, Update, EphemeralMessage]);
 
-export type ClientEvent = z.infer<typeof ClientEvent>;
-
-export const ServerEvent = z.union([
-  SnapshotWithServerData,
-  UpdateWithServerData,
-  EphemeralMessage,
-]);
-
-export type ServerEvent = z.infer<typeof ServerEvent>;
+export type Event = z.infer<typeof Event>;
 
 export type ParentSnapshotProofInfo = {
   // TODO should the id be part of the proof hash?
@@ -165,7 +132,7 @@ export type SyncMachineConfig = {
   getEphemeralMessageKey: () => Promise<Uint8Array> | Uint8Array;
   shouldSendSnapshot: (info: {
     activeSnapshotId: string | null;
-    latestServerVersion: number | null;
+    snapshotUpdatesCount: number;
   }) => boolean;
   isValidCollaborator: (signingPublicKey: string) => boolean | Promise<boolean>;
   serializeChanges: (changes: any[]) => string;
@@ -182,7 +149,6 @@ export type SyncMachineConfig = {
 export type CreateSnapshotParams = {
   snapshot: SnapshotWithClientData;
   activeSnapshotInfo?: {
-    latestVersion: number;
     snapshotId: string;
   };
 };
@@ -194,7 +160,6 @@ export type CreateUpdateParams = {
 export type GetDocumentParams = {
   documentId: string;
   lastKnownSnapshotId?: string;
-  lastKnownUpdateServerVersion?: number;
 };
 
 export type HasAccessParams = {

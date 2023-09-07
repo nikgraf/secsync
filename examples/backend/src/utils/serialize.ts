@@ -1,23 +1,22 @@
-import { SnapshotWithServerData, UpdateWithServerData } from "secsync";
-import { Snapshot, Update } from "../../prisma/generated/output";
+import { Snapshot, Update } from "secsync";
+import {
+  Snapshot as DbSnapshot,
+  Update as DbUpdate,
+} from "../../prisma/generated/output";
 
-export function serializeSnapshot(snapshot: Snapshot): SnapshotWithServerData {
+export function serializeSnapshot(snapshot: DbSnapshot): Snapshot {
   return {
     ...JSON.parse(snapshot.data),
-    serverData: {
-      latestVersion: snapshot.latestVersion,
-    },
   };
 }
 
-export function serializeUpdate(update: Update): UpdateWithServerData {
+export function serializeUpdate(update: DbUpdate): Update {
   return {
     ...JSON.parse(update.data),
-    serverData: { version: update.version },
   };
 }
 
-export function serializeUpdates(updates: Update[]): UpdateWithServerData[] {
+export function serializeUpdates(updates: DbUpdate[]): Update[] {
   return updates.map((update) => {
     return serializeUpdate(update);
   });

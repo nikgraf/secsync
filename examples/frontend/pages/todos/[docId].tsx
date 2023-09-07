@@ -56,9 +56,9 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     getUpdateKey: async (update) => {
       return documentKey;
     },
-    shouldSendSnapshot: ({ latestServerVersion }) => {
-      // create a new snapshot if the active snapshot has more than 100 updates
-      return latestServerVersion !== null && latestServerVersion > 10;
+    shouldSendSnapshot: ({ snapshotUpdatesCount }) => {
+      // create a new snapshot if the active snapshot has more than 10 updates
+      return snapshotUpdatesCount > 10;
     },
     getEphemeralMessageKey: async () => {
       return documentKey;

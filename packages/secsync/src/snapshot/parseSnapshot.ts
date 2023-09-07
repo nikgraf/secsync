@@ -1,11 +1,11 @@
 import { SomeZodObject } from "zod";
-import { SnapshotWithServerData } from "../types";
+import { Snapshot } from "../types";
 
-export const parseSnapshotWithServerData = (
+export const parseSnapshot = (
   snapshot: any,
   AdditionalValidation?: SomeZodObject
 ) => {
-  const rawSnapshot = SnapshotWithServerData.parse(snapshot);
+  const rawSnapshot = Snapshot.parse(snapshot);
   if (AdditionalValidation === undefined) return rawSnapshot;
   const additionalData = AdditionalValidation.parse(snapshot.publicData);
   return {
