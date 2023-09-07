@@ -446,7 +446,7 @@ test("should process three additional ephemeral messages where the second one fa
       ephemeralMessagesValue.length === 1 &&
       state.matches("connected.idle")
     ) {
-      expect(state.context._receivingEphemeralMessageErrors.length).toEqual(1);
+      expect(state.context._ephemeralMessageReceivingErrors.length).toEqual(1);
       expect(ephemeralMessagesValue[0]).toEqual(22);
       done();
     }
@@ -572,7 +572,7 @@ test("should store not more than 20 failed ephemeral message errors", (done) => 
       ephemeralMessagesValue.length === 1 &&
       state.matches("connected.idle")
     ) {
-      expect(state.context._receivingEphemeralMessageErrors.length).toEqual(20);
+      expect(state.context._ephemeralMessageReceivingErrors.length).toEqual(20);
       expect(ephemeralMessagesValue[0]).toEqual(22);
       done();
     }
@@ -703,8 +703,8 @@ test("should reset the context entries after websocket disconnect", (done) => {
       expect(state.context._sendingUpdatesClock).toEqual(-1);
       expect(state.context._updateClocks).toEqual({});
       expect(state.context._ephemeralMessagesSession).not.toBe(null);
-      expect(state.context._receivingEphemeralMessageErrors).toEqual([]);
-      expect(state.context._creatingEphemeralMessageErrors).toEqual([]);
+      expect(state.context._ephemeralMessageReceivingErrors).toEqual([]);
+      expect(state.context._ephemeralMessageCreatingErrors).toEqual([]);
       done();
     }
   });
@@ -889,11 +889,11 @@ test("should store not more than 20 failed creating ephemeral message errors", (
     transitionCount = transitionCount + 1;
     // console.log("transitionCount", transitionCount);
     if (transitionCount === 27 && state.matches("connected.idle")) {
-      expect(state.context._creatingEphemeralMessageErrors.length).toEqual(20);
-      expect(state.context._creatingEphemeralMessageErrors[0].message).toEqual(
+      expect(state.context._ephemeralMessageCreatingErrors.length).toEqual(20);
+      expect(state.context._ephemeralMessageCreatingErrors[0].message).toEqual(
         `Wrong ephemeral message key #${23}`
       );
-      expect(state.context._creatingEphemeralMessageErrors[19].message).toEqual(
+      expect(state.context._ephemeralMessageCreatingErrors[19].message).toEqual(
         `Wrong ephemeral message key #${4}`
       );
       done();

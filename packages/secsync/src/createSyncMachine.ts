@@ -129,7 +129,7 @@ type ProcessQueueData = {
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
   updateClocks: UpdateClocks;
-  receivingEphemeralMessageErrors: SecsyncProcessingEphemeralMessageError[];
+  ephemeralMessageReceivingErrors: SecsyncProcessingEphemeralMessageError[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
@@ -154,9 +154,9 @@ export type Context = SyncMachineConfig &
     _websocketActor?: AnyActorRef;
     _pendingChangesQueue: any[];
     _shouldReconnect: boolean;
-    _errorTrace: Error[];
-    _receivingEphemeralMessageErrors: Error[];
-    _creatingEphemeralMessageErrors: Error[];
+    _snapshotAndUpdateErrors: Error[];
+    _ephemeralMessageReceivingErrors: Error[];
+    _ephemeralMessageCreatingErrors: Error[];
     logging: SyncMachineConfig["logging"];
   };
 
@@ -252,11 +252,11 @@ export const createSyncMachine = () =>
         _confirmedUpdatesClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
         _sendingUpdatesClock: -1, // TODO move to _updates.currentClient and rename to localClock
         _updateClocks: {},
-        _errorTrace: [],
-        _receivingEphemeralMessageErrors: [], // TODO move to _ephemeralMessages and rename to receivingErrors
-        _creatingEphemeralMessageErrors: [], // TODO move to _ephemeralMessages and rename to creatingErrors
+        _snapshotAndUpdateErrors: [],
+        _ephemeralMessageReceivingErrors: [],
+        _ephemeralMessageCreatingErrors: [],
+        _ephemeralMessagesSession: null,
         _documentDecryptionState: "pending",
-        _ephemeralMessagesSession: null, // TODO move to _ephemeralMessages and rename to _sessionInfo
       },
       initial: "connecting",
       on: {
@@ -276,7 +276,7 @@ export const createSyncMachine = () =>
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateCreatingEphemeralMessageErrors"],
+          actions: ["updateephemeralMessageCreatingErrors"],
         },
       },
       states: {
@@ -346,7 +346,7 @@ export const createSyncMachine = () =>
                   target: "checkingForMoreQueueItems",
                 },
                 onError: {
-                  actions: ["storeErrorInErrorTrace"],
+                  actions: ["storeErrorInSnapshotAndUpdateErrors"],
                   target: "#syncMachine.failed",
                 },
               },
@@ -484,8 +484,8 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _receivingEphemeralMessageErrors:
-                event.data.receivingEphemeralMessageErrors,
+              _ephemeralMessageReceivingErrors:
+                event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
@@ -500,8 +500,8 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _receivingEphemeralMessageErrors:
-                event.data.receivingEphemeralMessageErrors,
+              _ephemeralMessageReceivingErrors:
+                event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
@@ -515,28 +515,31 @@ export const createSyncMachine = () =>
               _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _receivingEphemeralMessageErrors:
-                event.data.receivingEphemeralMessageErrors,
+              _ephemeralMessageReceivingErrors:
+                event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
           }
         }),
         // @ts-expect-error can't type the onError differently than onDone
-        storeErrorInErrorTrace: assign((context, event) => {
+        storeErrorInSnapshotAndUpdateErrors: assign((context, event) => {
           return {
             _documentDecryptionState:
               // @ts-expect-error documentDecryptionState is dynamically added to the error event
               event.data?.documentDecryptionState ||
               context._documentDecryptionState,
-            _errorTrace: [event.data, ...context._errorTrace],
+            _snapshotAndUpdateErrors: [
+              event.data,
+              ...context._snapshotAndUpdateErrors,
+            ],
           };
         }),
-        updateCreatingEphemeralMessageErrors: assign((context, event) => {
+        updateephemeralMessageCreatingErrors: assign((context, event) => {
           return {
-            _creatingEphemeralMessageErrors: [
+            _ephemeralMessageCreatingErrors: [
               event.error,
-              ...context._creatingEphemeralMessageErrors,
+              ...context._ephemeralMessageCreatingErrors,
             ].slice(0, 20), // avoid a memory leak by storing max 20 errors
           };
         }),
@@ -1181,8 +1184,8 @@ export const createSyncMachine = () =>
               updatesInFlight,
               pendingChangesQueue,
               updateClocks,
-              receivingEphemeralMessageErrors:
-                context._receivingEphemeralMessageErrors,
+              ephemeralMessageReceivingErrors:
+                context._ephemeralMessageReceivingErrors,
               documentDecryptionState,
               ephemeralMessagesSession,
             };
@@ -1191,10 +1194,10 @@ export const createSyncMachine = () =>
               console.error("Processing queue error:", error);
             }
             if (error instanceof SecsyncProcessingEphemeralMessageError) {
-              const newReceivingEphemeralMessageErrors = [
-                ...context._receivingEphemeralMessageErrors,
+              const newephemeralMessageReceivingErrors = [
+                ...context._ephemeralMessageReceivingErrors,
               ];
-              newReceivingEphemeralMessageErrors.unshift(error);
+              newephemeralMessageReceivingErrors.unshift(error);
               return {
                 handledQueue,
                 activeSnapshotInfo,
@@ -1205,8 +1208,8 @@ export const createSyncMachine = () =>
                 updatesInFlight,
                 pendingChangesQueue,
                 updateClocks,
-                receivingEphemeralMessageErrors:
-                  newReceivingEphemeralMessageErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
+                ephemeralMessageReceivingErrors:
+                  newephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,
                 ephemeralMessagesSession,
               };
