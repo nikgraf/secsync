@@ -152,8 +152,8 @@ export type Context = SyncMachineConfig &
   InternalContextReset & {
     _websocketRetries: number;
     _websocketActor?: AnyActorRef;
+    _websocketShouldReconnect: boolean;
     _pendingChangesQueue: any[];
-    _shouldReconnect: boolean;
     _snapshotAndUpdateErrors: Error[];
     _ephemeralMessageReceivingErrors: Error[];
     _ephemeralMessageCreatingErrors: Error[];
@@ -246,8 +246,8 @@ export const createSyncMachine = () =>
         _customMessageQueue: [], // TODO _queues.customMessages
         _pendingChangesQueue: [], // TODO _queues.pendingChanges
         _activeSendingSnapshotInfo: null,
-        _shouldReconnect: false, // TODO move to _websocket and rename to shouldReconnect
-        _websocketRetries: 0, // TODO move to _websocket and rename to retries
+        _websocketShouldReconnect: false,
+        _websocketRetries: 0,
         _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
         _confirmedUpdatesClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
         _sendingUpdatesClock: -1, // TODO move to _updates.currentClient and rename to localClock
@@ -448,7 +448,7 @@ export const createSyncMachine = () =>
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
-            _shouldReconnect: event.type !== "DISCONNECT",
+            _websocketShouldReconnect: event.type !== "DISCONNECT",
           };
         }),
         addToIncomingQueue: assign((context, event) => {
@@ -548,7 +548,10 @@ export const createSyncMachine = () =>
         scheduleRetry: (context) => (callback) => {
           const delay = 100 * 1.8 ** context._websocketRetries;
           if (context.logging === "debug") {
-            console.debug("schedule websocket connection in ", delay);
+            console.debug(
+              `schedule websocket connection #${context._websocketRetries} in `,
+              delay
+            );
           }
           setTimeout(() => {
             callback("WEBSOCKET_RETRY");
@@ -1230,7 +1233,7 @@ export const createSyncMachine = () =>
           );
         },
         shouldReconnect: (context, event) => {
-          return context._shouldReconnect;
+          return context._websocketShouldReconnect;
         },
       },
     }
