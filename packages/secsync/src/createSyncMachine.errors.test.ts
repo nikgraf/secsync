@@ -572,14 +572,14 @@ test("reset the context entries after websocket disconnect", (done) => {
       expect(state.context._activeSnapshotInfo).toEqual(null);
       expect(state.context._incomingQueue).toEqual([]);
       expect(state.context._customMessageQueue).toEqual([]);
-      expect(state.context._activeSendingSnapshotInfo).toEqual(null);
+      expect(state.context._snapshotInFlight).toEqual(null);
       expect(state.context._updatesInFlight).toEqual([]);
       expect(state.context._updatesConfirmedClock).toEqual(null);
       expect(state.context._updatesLocalClock).toEqual(-1);
       expect(state.context._updateClocks).toEqual({});
       expect(state.context._ephemeralMessagesSession).not.toBe(null);
       expect(state.context._ephemeralMessageReceivingErrors).toEqual([]);
-      expect(state.context._ephemeralMessageCreatingErrors).toEqual([]);
+      expect(state.context._ephemeralMessageAuthoringErrors).toEqual([]);
       done();
     }
   });
@@ -764,13 +764,13 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
     transitionCount = transitionCount + 1;
     // console.log("transitionCount", transitionCount);
     if (transitionCount === 27 && state.matches("connected.idle")) {
-      expect(state.context._ephemeralMessageCreatingErrors.length).toEqual(20);
-      expect(state.context._ephemeralMessageCreatingErrors[0].message).toEqual(
+      expect(state.context._ephemeralMessageAuthoringErrors.length).toEqual(20);
+      expect(state.context._ephemeralMessageAuthoringErrors[0].message).toEqual(
         `Wrong ephemeral message key #${23}`
       );
-      expect(state.context._ephemeralMessageCreatingErrors[19].message).toEqual(
-        `Wrong ephemeral message key #${4}`
-      );
+      expect(
+        state.context._ephemeralMessageAuthoringErrors[19].message
+      ).toEqual(`Wrong ephemeral message key #${4}`);
       done();
     }
   });

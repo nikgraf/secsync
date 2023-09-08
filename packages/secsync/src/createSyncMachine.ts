@@ -66,12 +66,12 @@ import { websocketService } from "./utils/websocketService";
 // -------------------------
 // Once a change is added and the `_pendingChangesQueue` is processed it will collect all changes
 // and depending on `shouldSendSnapshot` either send a snapshot or an update.
-// In case a snapshot is sent `_pendingChangesQueue` is cleared and the `_activeSendingSnapshotInfo` set to the snapshot ID.
+// In case a snapshot is sent `_pendingChangesQueue` is cleared and the `_snapshotInFlight` set to the snapshot ID.
 // In case an update is sent the changes will be added to the `_updatesInFlight` and the `_updatesLocalClock` increased by one.
 //
 // If a snapshot saved event is received
 // - the `_activeSnapshotInfo` is set to the snapshot (id, parentSnapshotProof, ciphertextHash)
-// - the `_activeSendingSnapshotInfo` is cleared.
+// - the `_snapshotInFlight` is cleared.
 // Queue processing for sending messages is resumed.
 //
 // If an update saved event is received
@@ -120,7 +120,7 @@ export type DocumentDecryptionState =
 type ProcessQueueData = {
   handledQueue: "customMessage" | "incoming" | "pending" | "none";
   activeSnapshotInfo: ActiveSnapshotInfo | null;
-  activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
+  snapshotInFlight: ActiveSnapshotInfo | null;
   updatesLocalClock: number;
   updatesConfirmedClock: number;
   updatesInFlight: UpdateInFlight[];
@@ -135,7 +135,7 @@ export type InternalContextReset = {
   _activeSnapshotInfo: null | ActiveSnapshotInfo;
   _incomingQueue: any[];
   _customMessageQueue: any[];
-  _activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
+  _snapshotInFlight: ActiveSnapshotInfo | null;
   _updatesInFlight: UpdateInFlight[];
   _updatesConfirmedClock: number | null;
   _updatesLocalClock: number;
@@ -152,7 +152,7 @@ export type Context = SyncMachineConfig &
     _pendingChangesQueue: any[];
     _snapshotAndUpdateErrors: Error[];
     _ephemeralMessageReceivingErrors: Error[];
-    _ephemeralMessageCreatingErrors: Error[];
+    _ephemeralMessageAuthoringErrors: Error[];
     logging: SyncMachineConfig["logging"];
   };
 
@@ -160,7 +160,7 @@ const disconnectionContextReset: InternalContextReset = {
   _activeSnapshotInfo: null,
   _incomingQueue: [],
   _customMessageQueue: [],
-  _activeSendingSnapshotInfo: null,
+  _snapshotInFlight: null,
   _updatesInFlight: [],
   _updatesConfirmedClock: null,
   _updatesLocalClock: -1,
@@ -236,7 +236,7 @@ export const createSyncMachine = () =>
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
         _activeSnapshotInfo: null, // Why is it important?
-        _activeSendingSnapshotInfo: null, // Why is it important?
+        _snapshotInFlight: null, // Why is it important?
         _incomingQueue: [], // TODO _queues.incoming
         _customMessageQueue: [], // TODO _queues.customMessages
         _pendingChangesQueue: [], // TODO _queues.pendingChanges
@@ -245,10 +245,10 @@ export const createSyncMachine = () =>
         _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
         _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
         _updatesLocalClock: -1,
-        _updateClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _activeSendingSnapshotInfo & _activeSnapshotInfo
+        _updateClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
         _snapshotAndUpdateErrors: [],
         _ephemeralMessageReceivingErrors: [],
-        _ephemeralMessageCreatingErrors: [],
+        _ephemeralMessageAuthoringErrors: [],
         _ephemeralMessagesSession: null,
         _documentDecryptionState: "pending",
       },
@@ -270,7 +270,7 @@ export const createSyncMachine = () =>
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateEphemeralMessageCreatingErrors"],
+          actions: ["updateephemeralMessageAuthoringErrors"],
         },
       },
       states: {
@@ -472,7 +472,7 @@ export const createSyncMachine = () =>
               _incomingQueue: context._incomingQueue.slice(1),
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
+              _snapshotInFlight: event.data.snapshotInFlight,
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
@@ -487,7 +487,7 @@ export const createSyncMachine = () =>
               _customMessageQueue: context._customMessageQueue.slice(1),
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
+              _snapshotInFlight: event.data.snapshotInFlight,
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
@@ -501,7 +501,7 @@ export const createSyncMachine = () =>
             return {
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
+              _snapshotInFlight: event.data.snapshotInFlight,
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
@@ -526,11 +526,11 @@ export const createSyncMachine = () =>
             ],
           };
         }),
-        updateEphemeralMessageCreatingErrors: assign((context, event) => {
+        updateephemeralMessageAuthoringErrors: assign((context, event) => {
           return {
-            _ephemeralMessageCreatingErrors: [
+            _ephemeralMessageAuthoringErrors: [
               event.error,
-              ...context._ephemeralMessageCreatingErrors,
+              ...context._ephemeralMessageAuthoringErrors,
             ].slice(0, 20), // avoid a memory leak by storing max 20 errors
           };
         }),
@@ -568,7 +568,7 @@ export const createSyncMachine = () =>
             context._activeSnapshotInfo;
           let handledQueue: "customMessage" | "incoming" | "pending" | "none" =
             "none";
-          let activeSendingSnapshotInfo = context._activeSendingSnapshotInfo;
+          let snapshotInFlight = context._snapshotInFlight;
           let updatesLocalClock = context._updatesLocalClock;
           let updatesConfirmedClock = context._updatesConfirmedClock;
           let updatesInFlight = context._updatesInFlight;
@@ -602,7 +602,7 @@ export const createSyncMachine = () =>
                   context.sodium
                 );
 
-                activeSendingSnapshotInfo = {
+                snapshotInFlight = {
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
@@ -640,7 +640,7 @@ export const createSyncMachine = () =>
                   context.sodium
                 );
 
-                activeSendingSnapshotInfo = {
+                snapshotInFlight = {
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
@@ -933,15 +933,15 @@ export const createSyncMachine = () =>
                     console.log("snapshot saved", event);
                   }
                   // in case the event is received for a snapshot that was not active in sending
-                  // we remove the activeSendingSnapshotInfo since any activeSendingSnapshotInfo
+                  // we remove the snapshotInFlight since any snapshotInFlight
                   // that is in flight will fail
-                  if (event.snapshotId !== activeSendingSnapshotInfo?.id) {
+                  if (event.snapshotId !== snapshotInFlight?.id) {
                     throw new Error(
-                      "Received snapshot-saved for other than the current activeSendingSnapshotInfo"
+                      "Received snapshot-saved for other than the current snapshotInFlight"
                     );
                   }
-                  activeSnapshotInfo = activeSendingSnapshotInfo;
-                  activeSendingSnapshotInfo = null;
+                  activeSnapshotInfo = snapshotInFlight;
+                  snapshotInFlight = null;
                   updatesLocalClock = -1;
                   updatesConfirmedClock = null;
                   if (context.onSnapshotSaved) {
@@ -1127,7 +1127,7 @@ export const createSyncMachine = () =>
               }
             } else if (
               context._pendingChangesQueue.length > 0 &&
-              activeSendingSnapshotInfo === null
+              snapshotInFlight === null
             ) {
               handledQueue = "pending";
 
@@ -1170,7 +1170,7 @@ export const createSyncMachine = () =>
             return {
               handledQueue,
               activeSnapshotInfo,
-              activeSendingSnapshotInfo,
+              snapshotInFlight,
               updatesConfirmedClock,
               updatesLocalClock,
               updatesInFlight,
@@ -1193,7 +1193,7 @@ export const createSyncMachine = () =>
               return {
                 handledQueue,
                 activeSnapshotInfo,
-                activeSendingSnapshotInfo,
+                snapshotInFlight,
                 updatesConfirmedClock,
                 updatesLocalClock,
                 updatesInFlight,
