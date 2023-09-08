@@ -574,8 +574,8 @@ test("reset the context entries after websocket disconnect", (done) => {
       expect(state.context._customMessageQueue).toEqual([]);
       expect(state.context._activeSendingSnapshotInfo).toEqual(null);
       expect(state.context._updatesInFlight).toEqual([]);
-      expect(state.context._confirmedUpdatesClock).toEqual(null);
-      expect(state.context._sendingUpdatesClock).toEqual(-1);
+      expect(state.context._updatesConfirmedClock).toEqual(null);
+      expect(state.context._updatesLocalClock).toEqual(-1);
       expect(state.context._updateClocks).toEqual({});
       expect(state.context._ephemeralMessagesSession).not.toBe(null);
       expect(state.context._ephemeralMessageReceivingErrors).toEqual([]);

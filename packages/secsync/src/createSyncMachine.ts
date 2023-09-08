@@ -67,7 +67,7 @@ import { websocketService } from "./utils/websocketService";
 // Once a change is added and the `_pendingChangesQueue` is processed it will collect all changes
 // and depending on `shouldSendSnapshot` either send a snapshot or an update.
 // In case a snapshot is sent `_pendingChangesQueue` is cleared and the `_activeSendingSnapshotInfo` set to the snapshot ID.
-// In case an update is sent the changes will be added to the `_updatesInFlight` and the `_sendingUpdatesClock` increased by one.
+// In case an update is sent the changes will be added to the `_updatesInFlight` and the `_updatesLocalClock` increased by one.
 //
 // If a snapshot saved event is received
 // - the `_activeSnapshotInfo` is set to the snapshot (id, parentSnapshotProof, ciphertextHash)
@@ -75,7 +75,7 @@ import { websocketService } from "./utils/websocketService";
 // Queue processing for sending messages is resumed.
 //
 // If an update saved event is received
-// - the `_confirmedUpdatesClock`
+// - the `_updatesConfirmedClock`
 // - the update removed from the `_updatesInFlight` removed
 //
 // IF a snapshot failed to save
@@ -86,13 +86,13 @@ import { websocketService } from "./utils/websocketService";
 // If an update failed to save
 // - check if the update is in the `_updatesInFlight` - only if it's there a retry is necessary
 // since we know it was not handled by a new snapshot or update
-// - set the `_sendingUpdatesClock` to the `_confirmedUpdatesClock`
+// - set the `_updatesLocalClock` to the `_updatesConfirmedClock`
 // - all the changes from this failed and later updates plus the new pendingChanges are taken and a new update is created and
 // sent with the clock set to the latest confirmed clock + 1
 //
 // When loading the initial document it's important to make sure these variables are correctly set:
-// - `_confirmedUpdatesClock`
-// - `_sendingUpdatesClock` (same as `_confirmedUpdatesClock`)
+// - `_updatesConfirmedClock`
+// - `_updatesLocalClock` (same as `_updatesConfirmedClock`)
 // - `_activeSnapshotInfo`
 // Otherwise you might try to send an update that the server will reject.
 
@@ -121,8 +121,8 @@ type ProcessQueueData = {
   handledQueue: "customMessage" | "incoming" | "pending" | "none";
   activeSnapshotInfo: ActiveSnapshotInfo | null;
   activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
-  sendingUpdatesClock: number;
-  confirmedUpdatesClock: number;
+  updatesLocalClock: number;
+  updatesConfirmedClock: number;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
   updateClocks: UpdateClocks;
@@ -137,8 +137,8 @@ export type InternalContextReset = {
   _customMessageQueue: any[];
   _activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
   _updatesInFlight: UpdateInFlight[];
-  _confirmedUpdatesClock: number | null;
-  _sendingUpdatesClock: number;
+  _updatesConfirmedClock: number | null;
+  _updatesLocalClock: number;
   _updateClocks: UpdateClocks;
   _documentDecryptionState: DocumentDecryptionState;
   _ephemeralMessagesSession: EphemeralMessagesSession | null;
@@ -162,8 +162,8 @@ const disconnectionContextReset: InternalContextReset = {
   _customMessageQueue: [],
   _activeSendingSnapshotInfo: null,
   _updatesInFlight: [],
-  _confirmedUpdatesClock: null,
-  _sendingUpdatesClock: -1,
+  _updatesConfirmedClock: null,
+  _updatesLocalClock: -1,
   _updateClocks: {},
   _documentDecryptionState: "pending",
   _ephemeralMessagesSession: null,
@@ -236,16 +236,16 @@ export const createSyncMachine = () =>
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
         _activeSnapshotInfo: null, // Why is it important?
+        _activeSendingSnapshotInfo: null, // Why is it important?
         _incomingQueue: [], // TODO _queues.incoming
         _customMessageQueue: [], // TODO _queues.customMessages
         _pendingChangesQueue: [], // TODO _queues.pendingChanges
-        _activeSendingSnapshotInfo: null,
         _websocketShouldReconnect: false,
         _websocketRetries: 0,
         _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
-        _confirmedUpdatesClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
-        _sendingUpdatesClock: -1, // TODO move to _updates.currentClient and rename to localClock
-        _updateClocks: {},
+        _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
+        _updatesLocalClock: -1,
+        _updateClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _activeSendingSnapshotInfo & _activeSnapshotInfo
         _snapshotAndUpdateErrors: [],
         _ephemeralMessageReceivingErrors: [],
         _ephemeralMessageCreatingErrors: [],
@@ -473,8 +473,8 @@ export const createSyncMachine = () =>
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
               _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
-              _sendingUpdatesClock: event.data.sendingUpdatesClock,
-              _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
+              _updatesLocalClock: event.data.updatesLocalClock,
+              _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
               _ephemeralMessageReceivingErrors:
@@ -488,8 +488,8 @@ export const createSyncMachine = () =>
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
               _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
-              _sendingUpdatesClock: event.data.sendingUpdatesClock,
-              _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
+              _updatesLocalClock: event.data.updatesLocalClock,
+              _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
               _ephemeralMessageReceivingErrors:
@@ -502,8 +502,8 @@ export const createSyncMachine = () =>
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
               _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
-              _sendingUpdatesClock: event.data.sendingUpdatesClock,
-              _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
+              _updatesLocalClock: event.data.updatesLocalClock,
+              _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
               _ephemeralMessageReceivingErrors:
@@ -569,8 +569,8 @@ export const createSyncMachine = () =>
           let handledQueue: "customMessage" | "incoming" | "pending" | "none" =
             "none";
           let activeSendingSnapshotInfo = context._activeSendingSnapshotInfo;
-          let sendingUpdatesClock = context._sendingUpdatesClock;
-          let confirmedUpdatesClock = context._confirmedUpdatesClock;
+          let updatesLocalClock = context._updatesLocalClock;
+          let updatesConfirmedClock = context._updatesConfirmedClock;
           let updatesInFlight = context._updatesInFlight;
           let pendingChangesQueue = context._pendingChangesQueue;
           let updateClocks = context._updateClocks;
@@ -668,7 +668,7 @@ export const createSyncMachine = () =>
             ) => {
               // console.log("createAndSendUpdate", key);
               const update = context.serializeChanges(changes);
-              sendingUpdatesClock = clock + 1;
+              updatesLocalClock = clock + 1;
 
               const publicData = {
                 refSnapshotId,
@@ -682,12 +682,12 @@ export const createSyncMachine = () =>
                 publicData,
                 key,
                 context.signatureKeyPair,
-                sendingUpdatesClock,
+                updatesLocalClock,
                 context.sodium
               );
 
               updatesInFlight.push({
-                clock: sendingUpdatesClock,
+                clock: updatesLocalClock,
                 changes,
               });
               send({
@@ -750,8 +750,8 @@ export const createSyncMachine = () =>
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
                 };
-                confirmedUpdatesClock = null;
-                sendingUpdatesClock = -1;
+                updatesConfirmedClock = null;
+                updatesLocalClock = -1;
                 if (
                   parentSnapshotProofInfo &&
                   updateClocks[parentSnapshotProofInfo.id]
@@ -837,8 +837,8 @@ export const createSyncMachine = () =>
                     update.publicData.pubKey ===
                     context.sodium.to_base64(context.signatureKeyPair.publicKey)
                   ) {
-                    confirmedUpdatesClock = update.publicData.clock;
-                    sendingUpdatesClock = update.publicData.clock;
+                    updatesConfirmedClock = update.publicData.clock;
+                    updatesLocalClock = update.publicData.clock;
                   }
 
                   const additionalChanges = context.deserializeChanges(
@@ -942,8 +942,8 @@ export const createSyncMachine = () =>
                   }
                   activeSnapshotInfo = activeSendingSnapshotInfo;
                   activeSendingSnapshotInfo = null;
-                  sendingUpdatesClock = -1;
-                  confirmedUpdatesClock = null;
+                  updatesLocalClock = -1;
+                  updatesConfirmedClock = null;
                   if (context.onSnapshotSaved) {
                     context.onSnapshotSaved();
                   }
@@ -1018,7 +1018,7 @@ export const createSyncMachine = () =>
                     console.debug("update saved", event);
                   }
                   // TODO what if results come back out of order -> this would be wrong
-                  confirmedUpdatesClock = event.clock;
+                  updatesConfirmedClock = event.clock;
                   updatesInFlight = updatesInFlight.filter(
                     (updateInFlight) => updateInFlight.clock !== event.clock
                   );
@@ -1057,13 +1057,13 @@ export const createSyncMachine = () =>
                       if (activeSnapshotInfo === null) {
                         throw new Error("No active snapshot");
                       }
-                      sendingUpdatesClock = confirmedUpdatesClock ?? -1;
+                      updatesLocalClock = updatesConfirmedClock ?? -1;
                       updatesInFlight = [];
                       createAndSendUpdate(
                         changes,
                         key,
                         activeSnapshotInfo.id,
-                        sendingUpdatesClock
+                        updatesLocalClock
                       );
                     }
                   }
@@ -1141,7 +1141,7 @@ export const createSyncMachine = () =>
                 context.shouldSendSnapshot({
                   activeSnapshotId: activeSnapshotInfo?.id || null,
                   snapshotUpdatesCount:
-                    snapshotUpdatesCount + context._confirmedUpdatesClock,
+                    snapshotUpdatesCount + context._updatesConfirmedClock,
                 })
               ) {
                 if (context.logging === "debug") {
@@ -1162,7 +1162,7 @@ export const createSyncMachine = () =>
                   rawChanges,
                   key,
                   activeSnapshotInfo.id,
-                  sendingUpdatesClock
+                  updatesLocalClock
                 );
               }
             }
@@ -1171,8 +1171,8 @@ export const createSyncMachine = () =>
               handledQueue,
               activeSnapshotInfo,
               activeSendingSnapshotInfo,
-              confirmedUpdatesClock,
-              sendingUpdatesClock,
+              updatesConfirmedClock,
+              updatesLocalClock,
               updatesInFlight,
               pendingChangesQueue,
               updateClocks,
@@ -1194,8 +1194,8 @@ export const createSyncMachine = () =>
                 handledQueue,
                 activeSnapshotInfo,
                 activeSendingSnapshotInfo,
-                confirmedUpdatesClock,
-                sendingUpdatesClock,
+                updatesConfirmedClock,
+                updatesLocalClock,
                 updatesInFlight,
                 pendingChangesQueue,
                 updateClocks,
