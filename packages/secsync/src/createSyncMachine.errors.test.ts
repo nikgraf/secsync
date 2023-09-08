@@ -137,9 +137,11 @@ const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
 const createTestEphemeralMessage = ({
   messageType,
   receiverSessionId,
+  content,
 }: {
   messageType: "proof" | "message";
   receiverSessionId: string;
+  content?: Uint8Array;
 }) => {
   if (messageType === "proof") {
     const proof = createEphemeralMessageProof(
@@ -163,7 +165,7 @@ const createTestEphemeralMessage = ({
     return { ephemeralMessage };
   } else {
     const ephemeralMessage = createEphemeralMessage(
-      new Uint8Array([22]),
+      content ? content : new Uint8Array([22]),
       "message",
       clientAPublicData,
       key,
@@ -387,7 +389,7 @@ test("should set _documentDecryptionState to partial, if document snapshot decry
   });
 });
 
-test("should process three additional ephemeral messages where the second one fails", (done) => {
+test("should process three additional ephemeral messages where the second is ignored since the docId has been manipulated", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -447,7 +449,8 @@ test("should process three additional ephemeral messages where the second one fa
       state.matches("connected.idle")
     ) {
       expect(state.context._ephemeralMessageReceivingErrors.length).toEqual(1);
-      expect(ephemeralMessagesValue[0]).toEqual(22);
+      // the message with 44 has been ignored
+      expect(ephemeralMessagesValue[0]).toEqual(55);
       done();
     }
   });
@@ -484,6 +487,7 @@ test("should process three additional ephemeral messages where the second one fa
     const { ephemeralMessage: ephemeralMessage2 } = createTestEphemeralMessage({
       messageType: "message",
       receiverSessionId,
+      content: new Uint8Array([44]),
     });
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
@@ -501,6 +505,7 @@ test("should process three additional ephemeral messages where the second one fa
         createTestEphemeralMessage({
           messageType: "message",
           receiverSessionId,
+          content: new Uint8Array([55]),
         });
       syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
@@ -513,7 +518,7 @@ test("should process three additional ephemeral messages where the second one fa
   }, 1);
 });
 
-test("should store not more than 20 failed ephemeral message errors", (done) => {
+test("should store not more than 20 receiving failed ephemeral message errors", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";

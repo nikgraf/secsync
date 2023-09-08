@@ -1017,6 +1017,7 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.debug("update saved", event);
                   }
+                  // TODO what if results come back out of order -> this would be wrong
                   confirmedUpdatesClock = event.clock;
                   updatesInFlight = updatesInFlight.filter(
                     (updateInFlight) => updateInFlight.clock !== event.clock
