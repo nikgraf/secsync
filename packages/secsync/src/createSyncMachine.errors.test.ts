@@ -114,7 +114,7 @@ type CreateUpdateTestHelperParams = {
   version: number;
 };
 
-const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
+const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   const version = params?.version || 0;
   const publicData: UpdatePublicData = {
     refSnapshotId: snapshotId,
@@ -134,7 +134,7 @@ const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-const createTestEphemeralMessage = ({
+const createEphemeralMessageTestHelper = ({
   messageType,
   receiverSessionId,
   content,
@@ -313,8 +313,8 @@ test("set _documentDecryptionState to partial and apply the first update, if doc
       type: "document",
       snapshot,
       updates: [
-        createUpdateHelper().update,
-        createUpdateHelper({ version: 1000 }).update,
+        createUpdateTestHelper().update,
+        createUpdateTestHelper({ version: 1000 }).update,
       ],
     },
   });
@@ -384,7 +384,7 @@ test("set _documentDecryptionState to partial, if document snapshot decrypts but
     data: {
       type: "document",
       snapshot,
-      updates: [createUpdateHelper({ version: 1000 }).update],
+      updates: [createUpdateTestHelper({ version: 1000 }).update],
     },
   });
 });
@@ -470,7 +470,7 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
   const receiverSessionId =
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
-  const { ephemeralMessage } = createTestEphemeralMessage({
+  const { ephemeralMessage } = createEphemeralMessageTestHelper({
     messageType: "proof",
     receiverSessionId,
   });
@@ -483,10 +483,11 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
   });
 
   for (let step = 0; step < 25; step++) {
-    const { ephemeralMessage: ephemeralMessageX } = createTestEphemeralMessage({
-      messageType: "message",
-      receiverSessionId,
-    });
+    const { ephemeralMessage: ephemeralMessageX } =
+      createEphemeralMessageTestHelper({
+        messageType: "message",
+        receiverSessionId,
+      });
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
@@ -497,12 +498,11 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
     });
   }
 
-  const { ephemeralMessage: ephemeralMessageLast } = createTestEphemeralMessage(
-    {
+  const { ephemeralMessage: ephemeralMessageLast } =
+    createEphemeralMessageTestHelper({
       messageType: "message",
       receiverSessionId,
-    }
-  );
+    });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
@@ -595,8 +595,8 @@ test("reset the context entries after websocket disconnect", (done) => {
       type: "document",
       snapshot,
       updates: [
-        createUpdateHelper().update,
-        createUpdateHelper({ version: 1 }).update,
+        createUpdateTestHelper().update,
+        createUpdateTestHelper({ version: 1 }).update,
       ],
     },
   });
@@ -682,8 +682,8 @@ test("reconnect and reload the document", (done) => {
     type: "document",
     snapshot,
     updates: [
-      createUpdateHelper().update,
-      createUpdateHelper({ version: 1 }).update,
+      createUpdateTestHelper().update,
+      createUpdateTestHelper({ version: 1 }).update,
     ],
   };
   syncService.send({
