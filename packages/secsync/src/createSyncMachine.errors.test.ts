@@ -179,7 +179,7 @@ const createTestEphemeralMessage = ({
   }
 };
 
-test("should set _documentDecryptionState to failed if not even the snapshot can be loaded", (done) => {
+test("set _documentDecryptionState to failed if not even the snapshot can be loaded", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -248,7 +248,7 @@ test("should set _documentDecryptionState to failed if not even the snapshot can
   });
 });
 
-test("should set _documentDecryptionState to partial and apply the first update, if document snapshot decrypts but the second update fails", (done) => {
+test("set _documentDecryptionState to partial and apply the first update, if document snapshot decrypts but the second update fails", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -320,7 +320,7 @@ test("should set _documentDecryptionState to partial and apply the first update,
   });
 });
 
-test("should set _documentDecryptionState to partial, if document snapshot decrypts but the first update fails", (done) => {
+test("set _documentDecryptionState to partial, if document snapshot decrypts but the first update fails", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -389,7 +389,7 @@ test("should set _documentDecryptionState to partial, if document snapshot decry
   });
 });
 
-test("should process three additional ephemeral messages where the second is ignored since the docId has been manipulated", (done) => {
+test("process three additional ephemeral messages where the second is ignored since the docId has been manipulated", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -518,7 +518,140 @@ test("should process three additional ephemeral messages where the second is ign
   }, 1);
 });
 
-test("should store not more than 20 receiving failed ephemeral message errors", (done) => {
+test("ignore an ephemeral message coming from a reply attack", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let ephemeralMessagesValue = new Uint8Array();
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        getEphemeralMessageKey: () => key,
+        applyEphemeralMessages: (ephemeralMessages) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ...ephemeralMessages,
+          ]);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (
+      ephemeralMessagesValue.length === 2 &&
+      state.matches("connected.idle")
+    ) {
+      expect(ephemeralMessagesValue[0]).toEqual(22);
+      expect(ephemeralMessagesValue[1]).toEqual(55);
+      // the message with 22 from the reply attack is ignored
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  const receiverSessionId =
+    syncService.getSnapshot().context._ephemeralMessagesSession.id;
+
+  const { ephemeralMessage } = createTestEphemeralMessage({
+    messageType: "proof",
+    receiverSessionId,
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      ...ephemeralMessage,
+      type: "ephemeral-message",
+    },
+  });
+
+  setTimeout(() => {
+    const { ephemeralMessage: ephemeralMessage2 } = createTestEphemeralMessage({
+      messageType: "message",
+      receiverSessionId,
+    });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...ephemeralMessage2,
+        type: "ephemeral-message",
+      },
+    });
+    setTimeout(() => {
+      syncService.send({
+        type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+        data: {
+          ...ephemeralMessage2,
+          type: "ephemeral-message",
+        },
+      });
+      setTimeout(() => {
+        const { ephemeralMessage: ephemeralMessage3 } =
+          createTestEphemeralMessage({
+            messageType: "message",
+            receiverSessionId,
+            content: new Uint8Array([55]),
+          });
+        syncService.send({
+          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+          data: {
+            ...ephemeralMessage3,
+            type: "ephemeral-message",
+          },
+        });
+      }, 1);
+    }, 1);
+  }, 1);
+});
+
+test("store not more than 20 receiving failed ephemeral message errors", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -641,7 +774,7 @@ test("should store not more than 20 receiving failed ephemeral message errors", 
   });
 });
 
-test("should reset the context entries after websocket disconnect", (done) => {
+test("reset the context entries after websocket disconnect", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -735,7 +868,7 @@ test("should reset the context entries after websocket disconnect", (done) => {
   });
 });
 
-test("should reconnect and reload the document", (done) => {
+test("reconnect and reload the document", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -834,7 +967,7 @@ test("should reconnect and reload the document", (done) => {
   }, 1);
 });
 
-test("should store not more than 20 failed creating ephemeral message errors", (done) => {
+test("store not more than 20 failed creating ephemeral message errors", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -918,7 +1051,5 @@ test("should store not more than 20 failed creating ephemeral message errors", (
 
 // TODO
 // test sending the same update twice (2nd one being ignore)
-// testing sending the same ephemeral message twice
 // tests for a broken snapshot key
 // test for a invalid contributor
-// test to verify a reply attack with older ephemeral messages are rejected
