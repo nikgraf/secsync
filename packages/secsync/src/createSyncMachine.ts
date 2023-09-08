@@ -270,7 +270,7 @@ export const createSyncMachine = () =>
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateephemeralMessageCreatingErrors"],
+          actions: ["updateEphemeralMessageCreatingErrors"],
         },
       },
       states: {
@@ -526,7 +526,7 @@ export const createSyncMachine = () =>
             ],
           };
         }),
-        updateephemeralMessageCreatingErrors: assign((context, event) => {
+        updateEphemeralMessageCreatingErrors: assign((context, event) => {
           return {
             _ephemeralMessageCreatingErrors: [
               event.error,
