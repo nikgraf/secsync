@@ -117,7 +117,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-test.only("put changes in updatesInFlight when sending updates", (done) => {
+test("put changes in updatesInFlight when sending updates", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -181,16 +181,6 @@ test.only("put changes in updatesInFlight when sending updates", (done) => {
       },
     });
 
-    // TODO check for this case where changes are added before the document is processed?
-    // syncService.send({
-    //   type: "ADD_CHANGES",
-    //   data: ["H", "e"],
-    // });
-    // syncService.send({
-    //   type: "ADD_CHANGES",
-    //   data: ["llo"],
-    // });
-
     setTimeout(() => {
       syncService.send({
         type: "ADD_CHANGES",
@@ -227,6 +217,99 @@ test.only("put changes in updatesInFlight when sending updates", (done) => {
       expect(state.context._updatesInFlight).toStrictEqual([
         { clock: 0, changes: ["H", "e", "llo"] },
         { clock: 1, changes: ["World"] },
+      ]);
+      expect(state.context._pendingChangesQueue).toEqual([]);
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+test("allows to add changes before the document is loaded", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    syncService.send({
+      type: "ADD_CHANGES",
+      data: ["H", "e"],
+    });
+
+    setTimeout(() => {
+      const { snapshot } = createSnapshotTestHelper();
+      syncService.send({
+        type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+        data: {
+          type: "document",
+          snapshot,
+        },
+      });
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (
+      state.context._updatesInFlight.length === 1 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._updatesInFlight).toStrictEqual([
+        { clock: 0, changes: ["H", "e"] },
       ]);
       expect(state.context._pendingChangesQueue).toEqual([]);
       done();

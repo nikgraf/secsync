@@ -497,7 +497,7 @@ export const createSyncMachine = () =>
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
-          } else {
+          } else if (event.data.handledQueue === "pending") {
             return {
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
@@ -511,6 +511,10 @@ export const createSyncMachine = () =>
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
+          } else if (event.data.handledQueue === "none") {
+            return {};
+          } else {
+            throw new Error("Unhandled queue");
           }
         }),
         // @ts-expect-error can't type the onError differently than onDone
@@ -1130,6 +1134,13 @@ export const createSyncMachine = () =>
               context._pendingChangesQueue.length > 0 &&
               snapshotInFlight === null
             ) {
+              if (activeSnapshotInfo === null) {
+                // pending changes are ignored until the document is loaded
+                return {
+                  handledQueue: "none",
+                };
+              }
+
               handledQueue = "pending";
 
               const snapshotUpdatesCount = Object.entries(
@@ -1138,7 +1149,6 @@ export const createSyncMachine = () =>
                 return prev + curr[1];
               }, 0);
               if (
-                activeSnapshotInfo === null ||
                 context.shouldSendSnapshot({
                   activeSnapshotId: activeSnapshotInfo?.id || null,
                   snapshotUpdatesCount:
@@ -1156,9 +1166,6 @@ export const createSyncMachine = () =>
                 const key = await context.getUpdateKey(event);
                 const rawChanges = context._pendingChangesQueue;
                 pendingChangesQueue = [];
-                if (activeSnapshotInfo === null) {
-                  throw new Error("No active snapshot");
-                }
                 createAndSendUpdate(
                   rawChanges,
                   key,
@@ -1187,10 +1194,10 @@ export const createSyncMachine = () =>
               console.error("Processing queue error:", error);
             }
             if (error instanceof SecsyncProcessingEphemeralMessageError) {
-              const newephemeralMessageReceivingErrors = [
+              const newEphemeralMessageReceivingErrors = [
                 ...context._ephemeralMessageReceivingErrors,
               ];
-              newephemeralMessageReceivingErrors.unshift(error);
+              newEphemeralMessageReceivingErrors.unshift(error);
               return {
                 handledQueue,
                 activeSnapshotInfo,
@@ -1201,7 +1208,7 @@ export const createSyncMachine = () =>
                 pendingChangesQueue,
                 updateClocks,
                 ephemeralMessageReceivingErrors:
-                  newephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
+                  newEphemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,
                 ephemeralMessagesSession,
               };
