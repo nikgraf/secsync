@@ -270,7 +270,7 @@ export const createSyncMachine = () =>
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateephemeralMessageAuthoringErrors"],
+          actions: ["updateEphemeralMessageAuthoringErrors"],
         },
       },
       states: {
@@ -438,10 +438,21 @@ export const createSyncMachine = () =>
           };
         }),
         resetContext: assign((context, event) => {
+          let unconfirmedChanges = context._updatesInFlight.reduce(
+            (accumulator, updateInFlight) => {
+              return [...accumulator, ...updateInFlight.changes];
+            },
+            []
+          );
+          unconfirmedChanges = [
+            ...unconfirmedChanges,
+            ...context._pendingChangesQueue,
+          ];
           return {
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
+            _pendingChangesQueue: unconfirmedChanges,
             _websocketShouldReconnect: event.type !== "DISCONNECT",
           };
         }),
@@ -530,7 +541,7 @@ export const createSyncMachine = () =>
             ],
           };
         }),
-        updateephemeralMessageAuthoringErrors: assign((context, event) => {
+        updateEphemeralMessageAuthoringErrors: assign((context, event) => {
           return {
             _ephemeralMessageAuthoringErrors: [
               event.error,

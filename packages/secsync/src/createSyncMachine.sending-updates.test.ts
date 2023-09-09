@@ -226,6 +226,103 @@ test("put changes in updatesInFlight when sending updates", (done) => {
   syncService.start();
 });
 
+test("puts changes from updatesInFlight back to pendingChanges on Websocket disconnect", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
+      });
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["llo"],
+      });
+      setTimeout(() => {
+        syncService.send({
+          type: "DISCONNECT",
+        });
+      }, 1);
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (state.matches("disconnected")) {
+      expect(state.context._updatesInFlight).toEqual([]);
+      expect(state.context._pendingChangesQueue).toEqual(["H", "e", "llo"]);
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
 test("allows to add changes before the document is loaded", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
@@ -312,6 +409,88 @@ test("allows to add changes before the document is loaded", (done) => {
         { clock: 0, changes: ["H", "e"] },
       ]);
       expect(state.context._pendingChangesQueue).toEqual([]);
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+test("keeps pending changes upon disconnect", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    syncService.send({
+      type: "ADD_CHANGES",
+      data: ["H", "e"],
+    });
+
+    setTimeout(() => {
+      syncService.send({
+        type: "DISCONNECT",
+      });
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (state.matches("disconnected")) {
+      expect(state.context._pendingChangesQueue).toEqual(["H", "e"]);
       done();
     }
   });
