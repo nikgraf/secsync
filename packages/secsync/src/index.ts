@@ -17,5 +17,6 @@ export * from "./snapshot/verifyAndDecryptSnapshot";
 export * from "./types";
 export * from "./update/createUpdate";
 export * from "./update/verifyAndDecryptUpdate";
+export * from "./utils/compareUpdateClocks";
 export * from "./utils/deserializeUint8ArrayUpdates";
 export * from "./utils/serializeUint8ArrayUpdates";

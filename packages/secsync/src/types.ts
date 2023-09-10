@@ -151,9 +151,7 @@ export type SyncMachineConfig = {
 
 export type CreateSnapshotParams = {
   snapshot: SnapshotWithClientData;
-  activeSnapshotInfo?: {
-    snapshotId: string;
-  };
+  prevSnapshotId?: string;
 };
 
 export type CreateUpdateParams = {
