@@ -3,7 +3,7 @@ import {
   CreateSnapshotParams,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
   SecsyncSnapshotMissesUpdatesError,
-  compareUpdateClocks,
+  compareUpdatesClocks,
   hash,
 } from "secsync";
 import { serializeSnapshot } from "../utils/serialize";
@@ -51,13 +51,13 @@ export async function createSnapshot({
           );
         }
 
-        const compareUpdateClocksResult = compareUpdateClocks(
+        const compareUpdatesClocksResult = compareUpdatesClocks(
           // @ts-expect-error the values are parsed by the function
           document.activeSnapshot.clocks,
-          snapshot.publicData.parentSnapshotClocks
+          snapshot.publicData.parentSnapshotUpdatesClocks
         );
 
-        if (!compareUpdateClocksResult.equal) {
+        if (!compareUpdatesClocksResult.equal) {
           throw new SecsyncSnapshotMissesUpdatesError(
             "Snapshot does not include the latest changes."
           );
@@ -76,7 +76,8 @@ export async function createSnapshot({
           document: { connect: { id: snapshot.publicData.docId } },
           clocks: {},
           parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-          parentSnapshotClocks: snapshot.publicData.parentSnapshotClocks,
+          parentSnapshotUpdatesClocks:
+            snapshot.publicData.parentSnapshotUpdatesClocks,
         },
       });
 

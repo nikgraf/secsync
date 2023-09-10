@@ -101,7 +101,7 @@ type UpdateInFlight = {
   changes: any[];
 };
 
-type UpdateClocks = {
+type UpdatesClocks = {
   [snapshotId: string]: { [publicSigningKey: string]: number };
 };
 
@@ -125,7 +125,7 @@ type ProcessQueueData = {
   updatesConfirmedClock: number;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
-  updateClocks: UpdateClocks;
+  updatesClocks: UpdatesClocks;
   ephemeralMessageReceivingErrors: SecsyncProcessingEphemeralMessageError[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
@@ -139,7 +139,7 @@ export type InternalContextReset = {
   _updatesInFlight: UpdateInFlight[];
   _updatesConfirmedClock: number | null;
   _updatesLocalClock: number;
-  _updateClocks: UpdateClocks;
+  _updatesClocks: UpdatesClocks;
   _documentDecryptionState: DocumentDecryptionState;
   _ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
@@ -164,7 +164,7 @@ const disconnectionContextReset: InternalContextReset = {
   _updatesInFlight: [],
   _updatesConfirmedClock: null,
   _updatesLocalClock: -1,
-  _updateClocks: {},
+  _updatesClocks: {},
   _documentDecryptionState: "pending",
   _ephemeralMessagesSession: null,
 };
@@ -243,9 +243,9 @@ export const createSyncMachine = () =>
         _websocketShouldReconnect: false,
         _websocketRetries: 0,
         _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
-        _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
+        _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updatesClocks?)
         _updatesLocalClock: -1,
-        _updateClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
+        _updatesClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
         _snapshotAndUpdateErrors: [],
         _ephemeralMessageReceivingErrors: [],
         _ephemeralMessageAuthoringErrors: [],
@@ -487,7 +487,7 @@ export const createSyncMachine = () =>
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
-              _updateClocks: event.data.updateClocks,
+              _updatesClocks: event.data.updatesClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
@@ -502,7 +502,7 @@ export const createSyncMachine = () =>
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
-              _updateClocks: event.data.updateClocks,
+              _updatesClocks: event.data.updatesClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
@@ -516,7 +516,7 @@ export const createSyncMachine = () =>
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
-              _updateClocks: event.data.updateClocks,
+              _updatesClocks: event.data.updatesClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
@@ -566,7 +566,7 @@ export const createSyncMachine = () =>
         },
         processQueues: (context, event) => async (send) => {
           if (context.logging === "debug") {
-            console.debug("clocks", JSON.stringify(context._updateClocks));
+            console.debug("clocks", JSON.stringify(context._updatesClocks));
             console.debug("processQueues event", event);
             console.debug("_incomingQueue", context._incomingQueue.length);
             console.debug(
@@ -588,7 +588,7 @@ export const createSyncMachine = () =>
           let updatesConfirmedClock = context._updatesConfirmedClock;
           let updatesInFlight = context._updatesInFlight;
           let pendingChangesQueue = context._pendingChangesQueue;
-          let updateClocks = context._updateClocks;
+          let updatesClocks = context._updatesClocks;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
 
@@ -607,7 +607,7 @@ export const createSyncMachine = () =>
                   pubKey: context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   ),
-                  parentSnapshotClocks: {},
+                  parentSnapshotUpdatesClocks: {},
                 };
                 const snapshot = createInitialSnapshot(
                   snapshotData.data,
@@ -646,9 +646,9 @@ export const createSyncMachine = () =>
                   snapshotId: snapshotData.id,
                   docId: context.documentId,
                   pubKey: currentClientPublicKey,
-                  parentSnapshotClocks:
+                  parentSnapshotUpdatesClocks:
                     {
-                      ...updateClocks[activeSnapshotInfo.id],
+                      ...updatesClocks[activeSnapshotInfo.id],
                       ...currentClientClock,
                     } || currentClientClock,
                 };
@@ -744,13 +744,13 @@ export const createSyncMachine = () =>
 
                 if (
                   parentSnapshotProofInfo &&
-                  updateClocks[parentSnapshotProofInfo.id]
+                  updatesClocks[parentSnapshotProofInfo.id]
                 ) {
                   const currentClientPublicKey = context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   );
                   parentSnapshotUpdateClock =
-                    updateClocks[parentSnapshotProofInfo.id][
+                    updatesClocks[parentSnapshotProofInfo.id][
                       currentClientPublicKey
                     ];
                 }
@@ -776,10 +776,10 @@ export const createSyncMachine = () =>
                 updatesLocalClock = -1;
                 if (
                   parentSnapshotProofInfo &&
-                  updateClocks[parentSnapshotProofInfo.id]
+                  updatesClocks[parentSnapshotProofInfo.id]
                 ) {
-                  // cleanup the updateClocks to avoid a memory leak
-                  delete updateClocks[parentSnapshotProofInfo.id];
+                  // cleanup the updatesClocks to avoid a memory leak
+                  delete updatesClocks[parentSnapshotProofInfo.id];
                 }
               } catch (err) {
                 if (
@@ -819,13 +819,13 @@ export const createSyncMachine = () =>
                   }
 
                   const currentClock =
-                    updateClocks[activeSnapshotInfo.id] &&
+                    updatesClocks[activeSnapshotInfo.id] &&
                     Number.isInteger(
-                      updateClocks[activeSnapshotInfo.id][
+                      updatesClocks[activeSnapshotInfo.id][
                         update.publicData.pubKey
                       ]
                     )
-                      ? updateClocks[activeSnapshotInfo.id][
+                      ? updatesClocks[activeSnapshotInfo.id][
                           update.publicData.pubKey
                         ]
                       : -1;
@@ -849,8 +849,8 @@ export const createSyncMachine = () =>
                   const { content, clock } = decryptUpdateResult;
 
                   const existingClocks =
-                    updateClocks[activeSnapshotInfo.id] || {};
-                  updateClocks[activeSnapshotInfo.id] = {
+                    updatesClocks[activeSnapshotInfo.id] || {};
+                  updatesClocks[activeSnapshotInfo.id] = {
                     ...existingClocks,
                     [update.publicData.pubKey]: clock,
                   };
@@ -1162,7 +1162,7 @@ export const createSyncMachine = () =>
               handledQueue = "pending";
 
               const snapshotUpdatesCount = Object.entries(
-                context._updateClocks[activeSnapshotInfo?.id] || []
+                context._updatesClocks[activeSnapshotInfo?.id] || []
               ).reduce((prev, curr) => {
                 return prev + curr[1];
               }, 0);
@@ -1205,7 +1205,7 @@ export const createSyncMachine = () =>
               updatesLocalClock,
               updatesInFlight,
               pendingChangesQueue,
-              updateClocks,
+              updatesClocks,
               ephemeralMessageReceivingErrors:
                 context._ephemeralMessageReceivingErrors,
               documentDecryptionState,
@@ -1228,7 +1228,7 @@ export const createSyncMachine = () =>
                 updatesLocalClock,
                 updatesInFlight,
                 pendingChangesQueue,
-                updateClocks,
+                updatesClocks,
                 ephemeralMessageReceivingErrors:
                   newEphemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,

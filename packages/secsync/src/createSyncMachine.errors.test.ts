@@ -8,8 +8,8 @@ import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralS
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralMessagePublicData,
-  SnapshotClocks,
   SnapshotPublicData,
+  SnapshotUpdatesClocks,
   UpdatePublicData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
@@ -69,7 +69,7 @@ type CreateSnapshotTestHelperParams = {
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
-  parentSnapshotClocks?: SnapshotClocks;
+  parentSnapshotUpdatesClocks?: SnapshotUpdatesClocks;
 };
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
@@ -78,7 +78,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     parentSnapshotCiphertext,
     grandParentSnapshotProof,
     content,
-    parentSnapshotClocks,
+    parentSnapshotUpdatesClocks,
   } = params || {};
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
@@ -88,7 +88,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientAPublicKey,
-    parentSnapshotClocks: parentSnapshotClocks || {},
+    parentSnapshotUpdatesClocks: parentSnapshotUpdatesClocks || {},
   };
 
   const snapshot = createSnapshot(
@@ -576,7 +576,7 @@ test("reset the context entries after websocket disconnect", (done) => {
       expect(state.context._updatesInFlight).toEqual([]);
       expect(state.context._updatesConfirmedClock).toEqual(null);
       expect(state.context._updatesLocalClock).toEqual(-1);
-      expect(state.context._updateClocks).toEqual({});
+      expect(state.context._updatesClocks).toEqual({});
       expect(state.context._ephemeralMessagesSession).not.toBe(null);
       expect(state.context._ephemeralMessageReceivingErrors).toEqual([]);
       expect(state.context._ephemeralMessageAuthoringErrors).toEqual([]);

@@ -54,7 +54,7 @@ type CreateSnapshotTestHelperParams = {
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
-  // Note: lacks the `parentSnapshotClocks` param from other test suites
+  // Note: lacks the `parentSnapshotUpdatesClocks` param from other test suites
 };
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
@@ -69,7 +69,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientAPublicKey,
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(

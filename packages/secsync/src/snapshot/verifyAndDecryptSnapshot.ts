@@ -50,8 +50,9 @@ export function verifyAndDecryptSnapshot(
     );
 
     if (
-      snapshot.publicData.parentSnapshotClocks[currentClientPublicKeyString] !==
-      parentSnapshotUpdateClock
+      snapshot.publicData.parentSnapshotUpdatesClocks[
+        currentClientPublicKeyString
+      ] !== parentSnapshotUpdateClock
     ) {
       throw new Error("Invalid updateClock for the parent snapshot");
     }
