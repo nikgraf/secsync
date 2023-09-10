@@ -1145,7 +1145,7 @@ export const createSyncMachine = () =>
               context._pendingChangesQueue.length > 0 &&
               snapshotInFlight === null
             ) {
-              if (activeSnapshotInfo === null) {
+              if (documentDecryptionState !== "complete") {
                 // pending changes are ignored until the document is loaded
                 return {
                   handledQueue: "none",
@@ -1160,6 +1160,7 @@ export const createSyncMachine = () =>
                 return prev + curr[1];
               }, 0);
               if (
+                activeSnapshotInfo === null ||
                 context.shouldSendSnapshot({
                   activeSnapshotId: activeSnapshotInfo?.id || null,
                   snapshotUpdatesCount:
@@ -1173,6 +1174,9 @@ export const createSyncMachine = () =>
               } else {
                 if (context.logging === "debug") {
                   console.debug("send update");
+                }
+                if (activeSnapshotInfo === null) {
+                  throw new Error("No active snapshot");
                 }
                 const key = await context.getUpdateKey(event);
                 const rawChanges = context._pendingChangesQueue;
