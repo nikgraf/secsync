@@ -635,15 +635,22 @@ export const createSyncMachine = () =>
                   }),
                 });
               } else {
+                const currentClientPublicKey = context.sodium.to_base64(
+                  context.signatureKeyPair.publicKey
+                );
+                const currentClientClock = {
+                  [currentClientPublicKey]: updatesConfirmedClock,
+                };
                 const publicData: SnapshotPublicData = {
                   ...snapshotData.publicData,
                   snapshotId: snapshotData.id,
                   docId: context.documentId,
-                  pubKey: context.sodium.to_base64(
-                    context.signatureKeyPair.publicKey
-                  ),
+                  pubKey: currentClientPublicKey,
                   parentSnapshotClocks:
-                    updateClocks[activeSnapshotInfo.id] || {},
+                    {
+                      ...updateClocks[activeSnapshotInfo.id],
+                      ...currentClientClock,
+                    } || currentClientClock,
                 };
                 const snapshot = createSnapshot(
                   snapshotData.data,
