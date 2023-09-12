@@ -53,8 +53,8 @@ export interface Typegen0 {
       | "WEBSOCKET_DOCUMENT_NOT_FOUND"
       | "WEBSOCKET_UNAUTHORIZED"
       | "error.platform.processQueues";
-    storeErrorInErrorTrace: "error.platform.processQueues";
-    updateCreatingEphemeralMessageErrors: "FAILED_CREATING_EPHEMERAL_UPDATE";
+    storeErrorInSnapshotAndUpdateErrors: "error.platform.processQueues";
+    updateephemeralMessageAuthoringErrors: "FAILED_CREATING_EPHEMERAL_UPDATE";
   };
   eventsCausingDelays: {};
   eventsCausingGuards: {

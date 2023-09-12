@@ -114,7 +114,7 @@ type CreateUpdateTestHelperParams = {
   version: number;
 };
 
-const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
+const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   const version = params?.version || 0;
   const publicData: UpdatePublicData = {
     refSnapshotId: snapshotId,
@@ -134,12 +134,14 @@ const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-const createTestEphemeralMessage = ({
+const createEphemeralMessageTestHelper = ({
   messageType,
   receiverSessionId,
+  content,
 }: {
   messageType: "proof" | "message";
   receiverSessionId: string;
+  content?: Uint8Array;
 }) => {
   if (messageType === "proof") {
     const proof = createEphemeralMessageProof(
@@ -163,7 +165,7 @@ const createTestEphemeralMessage = ({
     return { ephemeralMessage };
   } else {
     const ephemeralMessage = createEphemeralMessage(
-      new Uint8Array([22]),
+      content ? content : new Uint8Array([22]),
       "message",
       clientAPublicData,
       key,
@@ -395,8 +397,8 @@ test("should load a document with updates", (done) => {
       type: "document",
       snapshot,
       updates: [
-        createUpdateHelper().update,
-        createUpdateHelper({ version: 1 }).update,
+        createUpdateTestHelper().update,
+        createUpdateTestHelper({ version: 1 }).update,
       ],
     },
   });
@@ -472,7 +474,7 @@ test("should load a document and two additional updates", (done) => {
     },
   });
 
-  const { update } = createUpdateHelper();
+  const { update } = createUpdateTestHelper();
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
@@ -481,7 +483,7 @@ test("should load a document and two additional updates", (done) => {
     },
   });
 
-  const { update: update2 } = createUpdateHelper({ version: 1 });
+  const { update: update2 } = createUpdateTestHelper({ version: 1 });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
@@ -633,13 +635,13 @@ test("should load a document with updates and two additional updates", (done) =>
       type: "document",
       snapshot,
       updates: [
-        createUpdateHelper().update,
-        createUpdateHelper({ version: 1 }).update,
+        createUpdateTestHelper().update,
+        createUpdateTestHelper({ version: 1 }).update,
       ],
     },
   });
 
-  const { update } = createUpdateHelper({ version: 2 });
+  const { update } = createUpdateTestHelper({ version: 2 });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
@@ -648,7 +650,7 @@ test("should load a document with updates and two additional updates", (done) =>
     },
   });
 
-  const { update: update2 } = createUpdateHelper({ version: 3 });
+  const { update: update2 } = createUpdateTestHelper({ version: 3 });
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
@@ -721,8 +723,8 @@ test("should load a document with updates and two two additional snapshots", (do
       type: "document",
       snapshot,
       updates: [
-        createUpdateHelper().update,
-        createUpdateHelper({ version: 1 }).update,
+        createUpdateTestHelper().update,
+        createUpdateTestHelper({ version: 1 }).update,
       ],
     },
   });
@@ -835,7 +837,7 @@ test("should load a document and process three additional ephemeral messages", (
   const receiverSessionId =
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
-  const { ephemeralMessage } = createTestEphemeralMessage({
+  const { ephemeralMessage } = createEphemeralMessageTestHelper({
     messageType: "proof",
     receiverSessionId,
   });
@@ -848,10 +850,11 @@ test("should load a document and process three additional ephemeral messages", (
   });
 
   setTimeout(() => {
-    const { ephemeralMessage: ephemeralMessage2 } = createTestEphemeralMessage({
-      messageType: "message",
-      receiverSessionId,
-    });
+    const { ephemeralMessage: ephemeralMessage2 } =
+      createEphemeralMessageTestHelper({
+        messageType: "message",
+        receiverSessionId,
+      });
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
@@ -861,7 +864,7 @@ test("should load a document and process three additional ephemeral messages", (
     });
     setTimeout(() => {
       const { ephemeralMessage: ephemeralMessage3 } =
-        createTestEphemeralMessage({
+        createEphemeralMessageTestHelper({
           messageType: "message",
           receiverSessionId,
         });

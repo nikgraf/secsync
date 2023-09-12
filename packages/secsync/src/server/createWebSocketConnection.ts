@@ -14,16 +14,16 @@ import {
   CreateUpdateParams,
   GetDocumentParams,
   HasAccessParams,
-  SnapshotWithServerData,
-  UpdateWithServerData,
+  Snapshot,
+  Update,
 } from "../types";
 import { parseUpdate } from "../update/parseUpdate";
 import { retryAsyncFunction } from "../utils/retryAsyncFunction";
 import { addConnection, addUpdate, removeConnection } from "./store";
 
 type GetDocumentResult = {
-  snapshot?: SnapshotWithServerData;
-  updates: UpdateWithServerData[];
+  snapshot?: Snapshot;
+  updates: Update[];
   snapshotProofChain: {
     id: string;
     parentSnapshotProof: string;
@@ -35,12 +35,8 @@ type WebsocketConnectionParams = {
   getDocument(
     getDocumentParams: GetDocumentParams
   ): Promise<GetDocumentResult | undefined>;
-  createSnapshot(
-    createSnapshotParams: CreateSnapshotParams
-  ): Promise<SnapshotWithServerData>;
-  createUpdate(
-    createUpdateParams: CreateUpdateParams
-  ): Promise<UpdateWithServerData>;
+  createSnapshot(createSnapshotParams: CreateSnapshotParams): Promise<Snapshot>;
+  createUpdate(createUpdateParams: CreateUpdateParams): Promise<Update>;
   hasAccess(hasAccessParams: HasAccessParams): Promise<boolean>;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
   /** default: "off" */
@@ -91,13 +87,6 @@ export const createWebSocketConnection =
         lastKnownSnapshotId: Array.isArray(urlParts.query.lastKnownSnapshotId)
           ? urlParts.query.lastKnownSnapshotId[0]
           : urlParts.query.lastKnownSnapshotId,
-        lastKnownUpdateServerVersion: Array.isArray(
-          urlParts.query.latestServerVersion
-        )
-          ? parseInt(urlParts.query.latestServerVersion[0], 10)
-          : urlParts.query.latestServerVersion
-          ? parseInt(urlParts.query.latestServerVersion, 10)
-          : undefined,
       });
 
       if (!doc) {
@@ -129,15 +118,12 @@ export const createWebSocketConnection =
             additionalAuthenticationDataValidations?.snapshot
           );
           try {
-            const activeSnapshotInfo =
-              snapshotMessage.lastKnownSnapshotId &&
-              snapshotMessage.latestServerVersion
-                ? {
-                    latestVersion: snapshotMessage.latestServerVersion,
-                    snapshotId: snapshotMessage.lastKnownSnapshotId,
-                  }
-                : undefined;
-            const snapshot: SnapshotWithServerData = await createSnapshot({
+            const activeSnapshotInfo = snapshotMessage.lastKnownSnapshotId
+              ? {
+                  snapshotId: snapshotMessage.lastKnownSnapshotId,
+                }
+              : undefined;
+            const snapshot: Snapshot = await createSnapshot({
               snapshot: snapshotMessage,
               activeSnapshotInfo,
             });
@@ -147,14 +133,11 @@ export const createWebSocketConnection =
                 snapshotId: snapshot.publicData.snapshotId,
               })
             );
-            const snapshotMsgForOtherClients: SnapshotWithServerData = {
+            const snapshotMsgForOtherClients: Snapshot = {
               ciphertext: snapshotMessage.ciphertext,
               nonce: snapshotMessage.nonce,
               publicData: snapshotMessage.publicData,
               signature: snapshotMessage.signature,
-              serverData: {
-                latestVersion: snapshot.serverData.latestVersion,
-              },
             };
             addUpdate(
               documentId,
@@ -196,7 +179,6 @@ export const createWebSocketConnection =
               const document = await getDocument({
                 documentId,
                 lastKnownSnapshotId: data.lastKnownSnapshotId,
-                lastKnownUpdateServerVersion: data.latestServerVersion,
               });
               if (document) {
                 connection.send(
@@ -252,7 +234,7 @@ export const createWebSocketConnection =
             data,
             additionalAuthenticationDataValidations?.update
           );
-          let savedUpdate: undefined | UpdateWithServerData = undefined;
+          let savedUpdate: undefined | Update = undefined;
           try {
             // const random = Math.floor(Math.random() * 10);
             // if (random < 8) {
@@ -275,7 +257,6 @@ export const createWebSocketConnection =
                 type: "update-saved",
                 snapshotId: savedUpdate.publicData.refSnapshotId,
                 clock: savedUpdate.publicData.clock,
-                serverVersion: savedUpdate.serverData.version,
               })
             );
             addUpdate(

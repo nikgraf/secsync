@@ -10,24 +10,24 @@ import {
 import { hash } from "./crypto/hash";
 import { messageTypes } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
-import { parseEphemeralMessageWithServerData } from "./ephemeralMessage/parseEphemeralMessageWithServerData";
+import { parseEphemeralMessage } from "./ephemeralMessage/parseEphemeralMessage";
 import { verifyAndDecryptEphemeralMessage } from "./ephemeralMessage/verifyAndDecryptEphemeralMessage";
 import { SecsyncProcessingEphemeralMessageError } from "./errors";
 import { createInitialSnapshot } from "./snapshot/createInitialSnapshot";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { isValidAncestorSnapshot } from "./snapshot/isValidAncestorSnapshot";
-import { parseSnapshotWithServerData } from "./snapshot/parseSnapshotWithServerData";
+import { parseSnapshot } from "./snapshot/parseSnapshot";
 import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
   EphemeralMessagesSession,
   ParentSnapshotProofInfo,
+  Snapshot,
   SnapshotPublicData,
-  SnapshotWithServerData,
   SyncMachineConfig,
-  UpdateWithServerData,
+  Update,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
-import { parseUpdatesWithServerData } from "./update/parseUpdatesWithServerData";
+import { parseUpdates } from "./update/parseUpdates";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
 import { websocketService } from "./utils/websocketService";
 
@@ -66,17 +66,16 @@ import { websocketService } from "./utils/websocketService";
 // -------------------------
 // Once a change is added and the `_pendingChangesQueue` is processed it will collect all changes
 // and depending on `shouldSendSnapshot` either send a snapshot or an update.
-// In case a snapshot is sent `_pendingChangesQueue` is cleared and the `_activeSendingSnapshotInfo` set to the snapshot ID.
-// In case an update is sent the changes will be added to the `_updatesInFlight` and the `_sendingUpdatesClock` increased by one.
+// In case a snapshot is sent `_pendingChangesQueue` is cleared and the `_snapshotInFlight` set to the snapshot ID.
+// In case an update is sent the changes will be added to the `_updatesInFlight` and the `_updatesLocalClock` increased by one.
 //
 // If a snapshot saved event is received
 // - the `_activeSnapshotInfo` is set to the snapshot (id, parentSnapshotProof, ciphertextHash)
-// - the `_activeSendingSnapshotInfo` is cleared.
+// - the `_snapshotInFlight` is cleared.
 // Queue processing for sending messages is resumed.
 //
 // If an update saved event is received
-// - the `_latestServerVersion` is set to the update version
-// - the `_confirmedUpdatesClock`
+// - the `_updatesConfirmedClock`
 // - the update removed from the `_updatesInFlight` removed
 //
 // IF a snapshot failed to save
@@ -87,14 +86,13 @@ import { websocketService } from "./utils/websocketService";
 // If an update failed to save
 // - check if the update is in the `_updatesInFlight` - only if it's there a retry is necessary
 // since we know it was not handled by a new snapshot or update
-// - set the `_sendingUpdatesClock` to the `_confirmedUpdatesClock`
+// - set the `_updatesLocalClock` to the `_updatesConfirmedClock`
 // - all the changes from this failed and later updates plus the new pendingChanges are taken and a new update is created and
 // sent with the clock set to the latest confirmed clock + 1
 //
 // When loading the initial document it's important to make sure these variables are correctly set:
-// - `_confirmedUpdatesClock`
-// - `_sendingUpdatesClock` (same as `_confirmedUpdatesClock`)
-// - `_latestServerVersion`
+// - `_updatesConfirmedClock`
+// - `_updatesLocalClock` (same as `_updatesConfirmedClock`)
 // - `_activeSnapshotInfo`
 // Otherwise you might try to send an update that the server will reject.
 
@@ -122,27 +120,25 @@ export type DocumentDecryptionState =
 type ProcessQueueData = {
   handledQueue: "customMessage" | "incoming" | "pending" | "none";
   activeSnapshotInfo: ActiveSnapshotInfo | null;
-  latestServerVersion: number | null;
-  activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
-  sendingUpdatesClock: number;
-  confirmedUpdatesClock: number;
+  snapshotInFlight: ActiveSnapshotInfo | null;
+  updatesLocalClock: number;
+  updatesConfirmedClock: number;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
   updateClocks: UpdateClocks;
-  receivingEphemeralMessageErrors: SecsyncProcessingEphemeralMessageError[];
+  ephemeralMessageReceivingErrors: SecsyncProcessingEphemeralMessageError[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
 
 export type InternalContextReset = {
-  _latestServerVersion: null | number;
   _activeSnapshotInfo: null | ActiveSnapshotInfo;
   _incomingQueue: any[];
   _customMessageQueue: any[];
-  _activeSendingSnapshotInfo: ActiveSnapshotInfo | null;
+  _snapshotInFlight: ActiveSnapshotInfo | null;
   _updatesInFlight: UpdateInFlight[];
-  _confirmedUpdatesClock: number | null;
-  _sendingUpdatesClock: number;
+  _updatesConfirmedClock: number | null;
+  _updatesLocalClock: number;
   _updateClocks: UpdateClocks;
   _documentDecryptionState: DocumentDecryptionState;
   _ephemeralMessagesSession: EphemeralMessagesSession | null;
@@ -152,30 +148,29 @@ export type Context = SyncMachineConfig &
   InternalContextReset & {
     _websocketRetries: number;
     _websocketActor?: AnyActorRef;
+    _websocketShouldReconnect: boolean;
     _pendingChangesQueue: any[];
-    _shouldReconnect: boolean;
-    _errorTrace: Error[];
-    _receivingEphemeralMessageErrors: Error[];
-    _creatingEphemeralMessageErrors: Error[];
+    _snapshotAndUpdateErrors: Error[];
+    _ephemeralMessageReceivingErrors: Error[];
+    _ephemeralMessageAuthoringErrors: Error[];
     logging: SyncMachineConfig["logging"];
   };
 
 const disconnectionContextReset: InternalContextReset = {
   _activeSnapshotInfo: null,
-  _latestServerVersion: null,
   _incomingQueue: [],
   _customMessageQueue: [],
-  _activeSendingSnapshotInfo: null,
+  _snapshotInFlight: null,
   _updatesInFlight: [],
-  _confirmedUpdatesClock: null,
-  _sendingUpdatesClock: -1,
+  _updatesConfirmedClock: null,
+  _updatesLocalClock: -1,
   _updateClocks: {},
   _documentDecryptionState: "pending",
   _ephemeralMessagesSession: null,
 };
 
 export const createSyncMachine = () =>
-  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGcQE4A7ADpxMgKwA2JQBYlAJnEAOTeoA0IFIgC0i9XPU29M9Vq0rdMlSoC+746ky4CxMgBBWloAfUoABQAJSixKACVAgBlQgFUI2kCAFUomViQQLh5+QWExBEkleUZHGRd1XS1GRhljUwqGqQV9RgBmFXVewd1erU9vdGw8IhJSAHVKACFyAHkAYQBpSizQ2gBJcjWV6mpKNZyGFmEivgEhAvKqtsRR3WslPS0pVQcNdRlxiAfFN-LN9odjqdznlrtxbqUHogniZEFoZPIpCpHEpGFIWiopNJAcC-DMwHIMIISBh+GgoPMlqtNttQkcTmcLjCCjcSvdQOVxGolAoZH1enoaupxFojCiEP0rDYqippSpGDj1cTJqSAhSqWAacR6cEwmsooFqABxXJXblw3llCTON6DKTi77K3oaZ4VDRyfpY3S6bTiAO9KRa3zTXWUtDU2lQOQAdxwtzpDOW6y2O3i23iAE0uRx7XdHRVQ1o5KKpK63MHxP8fb19N1gzX-uoVKMqpGQWS9XGDbxIBmmdndutUnFqDtqCsdgAxFapOhFwolhH8iR44XiHHfNX2Qk+6XNOSMRpfLTBztKJS9nUkAfxkcLTPMnYrwKpLJRFbxPYAC1KEufJi2KUtEQqQld33VQWnUY85VDKRK1dLQPi0XpensNEH2jJ9YxfCA5EICAABsyDfMcWRNUIshWUI9moI4sGYy1QgARVSSgeLXHlIK3BAmkYOQ1CDJQgywlx+l6E91RUKshgwtQvkkXp8NBckiKHSBSIoqjGSzWiQnoxi1lScgGKwUI4nIchAmtLieL421wPhPlRFRM9xODKTmxkWSTz3SsRmVDD1D6O8AS8IFtQI7T9RpPSyMo0g6LNC1rX4jdPPKESxMkvzGgCoLkJlN43RkJxgw+JQpBcTT+x05KSPYAAnTgMDgHg6U4gBXMBBtgUgIEEcliAAN04ABrckOq6nqBqGuAcogzcvIqFpRN0N1xBaPEamUJRgpkcRz2+f4QrUbCmpjJLhzazrutgXqoGW4bSDAdrOvauR2HInBeAAM04dqAFt-uepbBuGtaPLLaQ9wUODD0Q8QTww0Sqj0LsMPq-o7sIh69IWl63o+uBR2MnY6IYpiWJWNirWc3ibTA9d1ryxAVHsORGg0XQu1FXRJGC5s5Hq+x0RcZocXUInEsHVqocW16jUpkbqJp0I6fMyzrNsyh7McyhWdcjmBI28oBlE9E1XVHCVUkk7kMYBxrG+Q7xV6PpO0V59dKetWKdhqmMvNK12dhLmy0C3prFVZxMQaaRWjlGtFPDQZangvR71ikkEsDlWCANGajQXMGsDBsBKb2Ydwa1oyP110z6eY1j2PN6O7VjqCGz5i93QbJRmykGtgvquQZU0SSsSlIWNML+KtJLx6KXwcvK+r2v68b5v33HPXWQNpmjZNpzuLZ+GHQHmxRLFaqGzca8pHkrsFAcBr9t5xRNRXlGNeLUN5lwwBXOkVd2o13anXMODcwBN3SqZTKUdb6CU2nuUYYlRSaH2rIJojgfSYmqFKGwTQhi6EYHuAOIC9JgIgVAKBMC4ErQQUgkQsBeBA3JDgYGw52oAApGAAEpSBF2ASTEiDCd7QL3vAg+6DrYSGlGhKSahFA4XqpjAYChvjVXdriO8QtaFSM3tvSBu9YH70QSNTh3DhxyD4QI4RYiJHNTMTIyxcjrEKNsfQcQltcqIyaOdaSOhsI1moT6Ro8g9w1DloKRC14A4QEILAOhEBkGmkjtlNynMEZQQcAnaqeIsKYjRG2FQ8lKw1gqW4BJuJdCpPSZk0gSjuYIHqopL4UUZRemvHUJsvsqzu0GDYQKrhRieFimgTgEA4DCHcQEGOhShLVOQsKTs4Z8YVSGBPcQpjlYJlWXfISUyFAO1cH0SQ0hXbtCcHbC8ygArYlQgXCYQCPHHKNHIWBvB2ooCNKcjBAohg9LxA2C80hgzuybA0PRSpELIqGH0I58ZfkpjTFAEFyiECi3OoKZo1zxSSG+E2FUeiZQ1lcFUKoYxAF9nuscyAuLOnejlASSsvMsKIWqrLNQ6Kg76UomyxGNRTqiSvOibC6omj6CFSrMmPUNZh3gH3NZm1nDyEaNQqh7suySUxuGMSDUGrNlFl8W6jLHxK2IuY8BsiWE2KbmKge2hRK81iUGXEDgMblTVP6TsoYVSWslC0jJUi3VCSGOdGQP86iDJ+OSuUV53jomoQappAc5mBAwOTaNm1sRZ1qAMbQl45LIS9FYfo15BhnSGPGjwNri7A1TJRCAhb8oqX9KWzQ15HCVvaNKBFQZ1KClFovZenggA */
+  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGcQE4A7ADpxMgKwA2JQBYlAJnEAOTeoA0IFIgC0i9XPU29M9Vq0rdMlSoC+746ky4CxMgBBWloAfUoABQAJSixKACVAgBlQgFUI2kCAFUomViQQLh5+QWExBEkleUZHGRd1XS1GRhljUwqGqQV9RgBmFXVewd1erU9vdGw8IhJSAHVKACFyAHkAYQBpSizQ2gBJcjWV6mpKNZyGFmEivgEhAvKqtsRR3WslPS0pVQcNdRlxiAfFN-LN9odjqdznlrtxbqUHogniZEFoZPIpCpHEpGFIWiopNJAcC-DMyAAxQJ7JKUMJreKUbJ7agAcXC0ViCWSaQy2VyVwKNxK91A7TMjnEckxvSUMt6jF0IxkUmM5ScVQU4iqvVGdUcvWJk1JATkGEEJAw-DQUHmS1Wm22oSOJzOFxhgrhwrKEjUSgUMj6vT0NXU4i0RhRCH6VhsVRUYZUjBxScNvmmJrNaAtVptwTpUUCrMo5HdHE9d29FXRjClg1cKnlunEQdakYsjWs6N0Sik6lkLT6qZBZNN5rAluIUDkAHccLdrbblustjsGVl4gBNUuFcsI0DlSSjOQB3u9THOD7-Z5R-Tdbu9-7qBtaKpD40kUdZ8e8SCL+0r3Z1lSOJqB2agVh2ckVlSOhtyFCtEQQJomjkM8RikF8pBGf4lGvcRGD7VCMMcKRejqXEXzfdMP0zbNfwWJcHR2GDAlSLIohWeI9gALVpODdxFUQJEJP0tVxVQWj7cQ8LPLRrFkj4tB1ew0So0EwE-OiID-ZdHVoICQJ2BJ4k4-jigQ-dURqSURiqfQDCqPo8IMKUtEVHUviUD4ajUkdaO-SA5EICAABsyAY-9HTzUIshWUJmSOLBmTZABFVJKHSsz4UEtVmjkNRFSURUlJcfpejwpMVGPIYXzUL5D18jMx0tQLgrCnSmNCaLYqdVJyFirBQjichyECFlKFCNKMv5fIy3MvchKQvKCu7YrelKhs8K1OTbNcF91D6LyAS8IEjWojT-JaiAgtCoIQidAsixLAU5uyys3L9FaPixOVvrwpxJUYeMagI5tdEJRqaOan9rvYAAnTgMDgHhrRSgBXMAMdgUgIEEDTiAAN04ABrDT4cR5H0cxuAsq9RD8I1BxvjPeNm2bFVI0PSU-gJGpXFlA0TpJc7NIC2GEaR2AUagKmsdIMA4YRuG5HYEKcF4AAzTg4YAWxViXKYxrHaYsxbpC1BQcW+RN7EJf6cTkKo9GfLzSI8IWzvU0Wrv1impcnWW4A6gDurihKViS1lJvSzKXp3eacsQFR7DkRoNF0BsAybaTObBx3ZH+OoAyTAjIYu6HAvJyXpcD7GIt0nZQ96-qI6G4tRvG6PppNhbygGGt0UTJMyPjIrcM5gi5L7HtmiDeUhndiY0y9y6Yd96uA6NoPorWR7xue2b47e+mwzktEsKTL4CKwlQZKU-KekYcQ1G+IrF9O5e-Ir66CHHYnJ3JNrLA2swCBz2D+HWdc7QNy6vdHq4dI6pRjjNWECdKziEfHIBUQZCSaHWlIXsW0exyHDJoN+4ZnaCyXsOJqX4fa-wwP-a0gC4bALhqAre4CwCQODlFOBcU1h9QGm3EaY0JpTVjofeCvcJA2BrIGGQOgnxYnBhVBsCgmZNiBjIRQKYPaf1oVpU0+A-4AKASAsBEDsY7z3sWHuicKg9isPhNE-xdCHXjK2doGDQz5VIsqcMQZkLqDLt7NeDCmFQBYWwjh1MuE8JELAXg6sNI4A1j+OGAAKRgABKUgwsV7f2MaY5h5j2GWO4bAex6DT7WGKmoRQZEez-QGAob4iiCLiTfqE1egUIlmNYRYzhVjSCJOST+OQaSMnZLyQUr+dDwkmMYQMmJFTIH0HEFIgS6CmiShKjoHUvYn7XkaPIMSTQkzPz7G5UJEBCCwF6dpGxhZ97VMQphEhT4S4HVGLiW+kY6hSmbOGAkkh8JniULc+5jzSDOihFkN5lkEAEisD2SQ-w+jKDUHhVpWd0SEhHm4TQUKHnf1IIixaPYqpXxlIE7QLhdDXh1APAigwbAyBHqMTwJ00CcAgHAYQcyAioOPki-5YonBdGlLKWUColRSB6dDScIq6ZItcL0BQQ9XB9DBd8a8TgWXdhaK4QYOINCKoWZOOQ7DeBwxQMqj0aD6YLxIXiDBCppBGojO0IYbxpCxj7IGoYg59E0Khpa60M45w5hVabco2dNXNG1UGSQerIz9ElNIcMvZ+bKEURarSsaZEIA0NeAkclk5KVDE-XsjgQmhvfOXBZrVbpFocS4raAZXVog5fKbQCp63UMbWEyuBt-aoy3vAR1orFrOHkI0J+7iCINiKv9M8fjwYjEVGGUiVCP5hqbUY-ppTBnlOGZUtt6D+35T1HUdxtac7eINahJ8zZ4xNmCSSx5l7EJDElMqJseoXA-DTe0L4U8qgBnwl8rCoTeWBAwNXH9SLHB5R1EGA6OI3HInaCMKquDMTon6ISHRoSNZzjChAZDi0KF+ixTKU5jQlJrq6ASTd60P2kUhdyoAA */
   createMachine(
     {
       schema: {
@@ -240,23 +235,22 @@ export const createSyncMachine = () =>
         isValidCollaborator: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
-        _activeSnapshotInfo: null,
-        _latestServerVersion: null,
-        _incomingQueue: [],
-        _customMessageQueue: [],
-        _pendingChangesQueue: [],
-        _activeSendingSnapshotInfo: null,
-        _shouldReconnect: false,
+        _activeSnapshotInfo: null, // Why is it important?
+        _snapshotInFlight: null, // Why is it important?
+        _incomingQueue: [], // TODO _queues.incoming
+        _customMessageQueue: [], // TODO _queues.customMessages
+        _pendingChangesQueue: [], // TODO _queues.pendingChanges
+        _websocketShouldReconnect: false,
         _websocketRetries: 0,
-        _updatesInFlight: [],
-        _confirmedUpdatesClock: null,
-        _sendingUpdatesClock: -1,
-        _updateClocks: {},
-        _errorTrace: [],
-        _receivingEphemeralMessageErrors: [],
-        _creatingEphemeralMessageErrors: [],
-        _documentDecryptionState: "pending",
+        _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
+        _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
+        _updatesLocalClock: -1,
+        _updateClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
+        _snapshotAndUpdateErrors: [],
+        _ephemeralMessageReceivingErrors: [],
+        _ephemeralMessageAuthoringErrors: [],
         _ephemeralMessagesSession: null,
+        _documentDecryptionState: "pending",
       },
       initial: "connecting",
       on: {
@@ -276,7 +270,7 @@ export const createSyncMachine = () =>
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateCreatingEphemeralMessageErrors"],
+          actions: ["updateephemeralMessageAuthoringErrors"],
         },
       },
       states: {
@@ -346,7 +340,7 @@ export const createSyncMachine = () =>
                   target: "checkingForMoreQueueItems",
                 },
                 onError: {
-                  actions: ["storeErrorInErrorTrace"],
+                  actions: ["storeErrorInSnapshotAndUpdateErrors"],
                   target: "#syncMachine.failed",
                 },
               },
@@ -448,7 +442,7 @@ export const createSyncMachine = () =>
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
-            _shouldReconnect: event.type !== "DISCONNECT",
+            _websocketShouldReconnect: event.type !== "DISCONNECT",
           };
         }),
         addToIncomingQueue: assign((context, event) => {
@@ -478,14 +472,13 @@ export const createSyncMachine = () =>
               _incomingQueue: context._incomingQueue.slice(1),
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _latestServerVersion: event.data.latestServerVersion,
-              _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
-              _sendingUpdatesClock: event.data.sendingUpdatesClock,
-              _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
+              _snapshotInFlight: event.data.snapshotInFlight,
+              _updatesLocalClock: event.data.updatesLocalClock,
+              _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _receivingEphemeralMessageErrors:
-                event.data.receivingEphemeralMessageErrors,
+              _ephemeralMessageReceivingErrors:
+                event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
             };
@@ -494,50 +487,50 @@ export const createSyncMachine = () =>
               _customMessageQueue: context._customMessageQueue.slice(1),
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _latestServerVersion: event.data.latestServerVersion,
-              _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
-              _sendingUpdatesClock: event.data.sendingUpdatesClock,
-              _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
+              _snapshotInFlight: event.data.snapshotInFlight,
+              _updatesLocalClock: event.data.updatesLocalClock,
+              _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-
-              _receivingEphemeralMessageErrors:
-                event.data.receivingEphemeralMessageErrors,
-              _documentDecryptionState: event.data.documentDecryptionState,
+              _ephemeralMessageReceivingErrors:
+                event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
+              _documentDecryptionState: event.data.documentDecryptionState,
             };
           } else {
             return {
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
-              _latestServerVersion: event.data.latestServerVersion,
-              _activeSendingSnapshotInfo: event.data.activeSendingSnapshotInfo,
-              _sendingUpdatesClock: event.data.sendingUpdatesClock,
-              _confirmedUpdatesClock: event.data.confirmedUpdatesClock,
+              _snapshotInFlight: event.data.snapshotInFlight,
+              _updatesLocalClock: event.data.updatesLocalClock,
+              _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
               _updateClocks: event.data.updateClocks,
-              _receivingEphemeralMessageErrors:
-                event.data.receivingEphemeralMessageErrors,
-              _documentDecryptionState: event.data.documentDecryptionState,
+              _ephemeralMessageReceivingErrors:
+                event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
+              _documentDecryptionState: event.data.documentDecryptionState,
             };
           }
         }),
         // @ts-expect-error can't type the onError differently than onDone
-        storeErrorInErrorTrace: assign((context, event) => {
+        storeErrorInSnapshotAndUpdateErrors: assign((context, event) => {
           return {
             _documentDecryptionState:
               // @ts-expect-error documentDecryptionState is dynamically added to the error event
               event.data?.documentDecryptionState ||
               context._documentDecryptionState,
-            _errorTrace: [event.data, ...context._errorTrace],
+            _snapshotAndUpdateErrors: [
+              event.data,
+              ...context._snapshotAndUpdateErrors,
+            ],
           };
         }),
-        updateCreatingEphemeralMessageErrors: assign((context, event) => {
+        updateephemeralMessageAuthoringErrors: assign((context, event) => {
           return {
-            _creatingEphemeralMessageErrors: [
+            _ephemeralMessageAuthoringErrors: [
               event.error,
-              ...context._creatingEphemeralMessageErrors,
+              ...context._ephemeralMessageAuthoringErrors,
             ].slice(0, 20), // avoid a memory leak by storing max 20 errors
           };
         }),
@@ -546,7 +539,10 @@ export const createSyncMachine = () =>
         scheduleRetry: (context) => (callback) => {
           const delay = 100 * 1.8 ** context._websocketRetries;
           if (context.logging === "debug") {
-            console.debug("schedule websocket connection in ", delay);
+            console.debug(
+              `schedule websocket connection #${context._websocketRetries} in `,
+              delay
+            );
           }
           setTimeout(() => {
             callback("WEBSOCKET_RETRY");
@@ -570,12 +566,11 @@ export const createSyncMachine = () =>
 
           let activeSnapshotInfo: ActiveSnapshotInfo | null =
             context._activeSnapshotInfo;
-          let latestServerVersion = context._latestServerVersion;
           let handledQueue: "customMessage" | "incoming" | "pending" | "none" =
             "none";
-          let activeSendingSnapshotInfo = context._activeSendingSnapshotInfo;
-          let sendingUpdatesClock = context._sendingUpdatesClock;
-          let confirmedUpdatesClock = context._confirmedUpdatesClock;
+          let snapshotInFlight = context._snapshotInFlight;
+          let updatesLocalClock = context._updatesLocalClock;
+          let updatesConfirmedClock = context._updatesConfirmedClock;
           let updatesInFlight = context._updatesInFlight;
           let pendingChangesQueue = context._pendingChangesQueue;
           let updateClocks = context._updateClocks;
@@ -607,7 +602,7 @@ export const createSyncMachine = () =>
                   context.sodium
                 );
 
-                activeSendingSnapshotInfo = {
+                snapshotInFlight = {
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
@@ -621,7 +616,6 @@ export const createSyncMachine = () =>
                     // Note: send a faulty message to test the error handling
                     // ciphertext: "lala",
                     lastKnownSnapshotId: null,
-                    latestServerVersion,
                     additionalServerData: snapshotData.additionalServerData,
                   }),
                 });
@@ -646,7 +640,7 @@ export const createSyncMachine = () =>
                   context.sodium
                 );
 
-                activeSendingSnapshotInfo = {
+                snapshotInFlight = {
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
@@ -660,7 +654,6 @@ export const createSyncMachine = () =>
                     // Note: send a faulty message to test the error handling
                     // ciphertext: "lala",
                     lastKnownSnapshotId: activeSnapshotInfo.id,
-                    latestServerVersion,
                     additionalServerData: snapshotData.additionalServerData,
                   }),
                 });
@@ -675,7 +668,7 @@ export const createSyncMachine = () =>
             ) => {
               // console.log("createAndSendUpdate", key);
               const update = context.serializeChanges(changes);
-              sendingUpdatesClock = clock + 1;
+              updatesLocalClock = clock + 1;
 
               const publicData = {
                 refSnapshotId,
@@ -689,12 +682,12 @@ export const createSyncMachine = () =>
                 publicData,
                 key,
                 context.signatureKeyPair,
-                sendingUpdatesClock,
+                updatesLocalClock,
                 context.sodium
               );
 
               updatesInFlight.push({
-                clock: sendingUpdatesClock,
+                clock: updatesLocalClock,
                 changes,
               });
               send({
@@ -706,14 +699,14 @@ export const createSyncMachine = () =>
             };
 
             const processSnapshot = async (
-              rawSnapshot: SnapshotWithServerData,
+              rawSnapshot: Snapshot,
               parentSnapshotProofInfo?: ParentSnapshotProofInfo
             ) => {
               if (context.logging === "debug") {
                 console.debug("processSnapshot", rawSnapshot);
               }
               try {
-                const snapshot = parseSnapshotWithServerData(
+                const snapshot = parseSnapshot(
                   rawSnapshot,
                   context.additionalAuthenticationDataValidations?.snapshot
                 );
@@ -757,9 +750,8 @@ export const createSyncMachine = () =>
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
                 };
-                latestServerVersion = snapshot.serverData.latestVersion;
-                confirmedUpdatesClock = null;
-                sendingUpdatesClock = -1;
+                updatesConfirmedClock = null;
+                updatesLocalClock = -1;
                 if (
                   parentSnapshotProofInfo &&
                   updateClocks[parentSnapshotProofInfo.id]
@@ -779,11 +771,11 @@ export const createSyncMachine = () =>
             };
 
             const processUpdates = async (
-              rawUpdates: UpdateWithServerData[],
+              rawUpdates: Update[],
               skipIfCurrentClockIsHigher: boolean,
               skipUpdatesAuthoredByCurrentClient: boolean
             ) => {
-              const updates = parseUpdatesWithServerData(
+              const updates = parseUpdates(
                 rawUpdates,
                 context.additionalAuthenticationDataValidations?.update
               );
@@ -841,13 +833,12 @@ export const createSyncMachine = () =>
                     [update.publicData.pubKey]: clock,
                   };
 
-                  latestServerVersion = update.serverData.version;
                   if (
                     update.publicData.pubKey ===
                     context.sodium.to_base64(context.signatureKeyPair.publicKey)
                   ) {
-                    confirmedUpdatesClock = update.publicData.clock;
-                    sendingUpdatesClock = update.publicData.clock;
+                    updatesConfirmedClock = update.publicData.clock;
+                    updatesLocalClock = update.publicData.clock;
                   }
 
                   const additionalChanges = context.deserializeChanges(
@@ -942,18 +933,17 @@ export const createSyncMachine = () =>
                     console.log("snapshot saved", event);
                   }
                   // in case the event is received for a snapshot that was not active in sending
-                  // we remove the activeSendingSnapshotInfo since any activeSendingSnapshotInfo
+                  // we remove the snapshotInFlight since any snapshotInFlight
                   // that is in flight will fail
-                  if (event.snapshotId !== activeSendingSnapshotInfo?.id) {
+                  if (event.snapshotId !== snapshotInFlight?.id) {
                     throw new Error(
-                      "Received snapshot-saved for other than the current activeSendingSnapshotInfo"
+                      "Received snapshot-saved for other than the current snapshotInFlight"
                     );
                   }
-                  activeSnapshotInfo = activeSendingSnapshotInfo;
-                  activeSendingSnapshotInfo = null;
-                  latestServerVersion = null;
-                  sendingUpdatesClock = -1;
-                  confirmedUpdatesClock = null;
+                  activeSnapshotInfo = snapshotInFlight;
+                  snapshotInFlight = null;
+                  updatesLocalClock = -1;
+                  updatesConfirmedClock = null;
                   if (context.onSnapshotSaved) {
                     context.onSnapshotSaved();
                   }
@@ -963,7 +953,7 @@ export const createSyncMachine = () =>
                     console.log("snapshot saving failed", event);
                   }
                   if (event.snapshot) {
-                    const snapshot = parseSnapshotWithServerData(
+                    const snapshot = parseSnapshot(
                       event.snapshot,
                       context.additionalAuthenticationDataValidations?.snapshot
                     );
@@ -1027,8 +1017,8 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.debug("update saved", event);
                   }
-                  latestServerVersion = event.serverVersion;
-                  confirmedUpdatesClock = event.clock;
+                  // TODO what if results come back out of order -> this would be wrong
+                  updatesConfirmedClock = event.clock;
                   updatesInFlight = updatesInFlight.filter(
                     (updateInFlight) => updateInFlight.clock !== event.clock
                   );
@@ -1067,13 +1057,13 @@ export const createSyncMachine = () =>
                       if (activeSnapshotInfo === null) {
                         throw new Error("No active snapshot");
                       }
-                      sendingUpdatesClock = confirmedUpdatesClock ?? -1;
+                      updatesLocalClock = updatesConfirmedClock ?? -1;
                       updatesInFlight = [];
                       createAndSendUpdate(
                         changes,
                         key,
                         activeSnapshotInfo.id,
-                        sendingUpdatesClock
+                        updatesLocalClock
                       );
                     }
                   }
@@ -1081,12 +1071,11 @@ export const createSyncMachine = () =>
                   break;
                 case "ephemeral-message":
                   try {
-                    const ephemeralMessage =
-                      parseEphemeralMessageWithServerData(
-                        event,
-                        context.additionalAuthenticationDataValidations
-                          ?.ephemeralMessage
-                      );
+                    const ephemeralMessage = parseEphemeralMessage(
+                      event,
+                      context.additionalAuthenticationDataValidations
+                        ?.ephemeralMessage
+                    );
 
                     const ephemeralMessageKey =
                       await context.getEphemeralMessageKey();
@@ -1138,15 +1127,21 @@ export const createSyncMachine = () =>
               }
             } else if (
               context._pendingChangesQueue.length > 0 &&
-              activeSendingSnapshotInfo === null
+              snapshotInFlight === null
             ) {
               handledQueue = "pending";
 
+              const snapshotUpdatesCount = Object.entries(
+                context._updateClocks[activeSnapshotInfo?.id] || []
+              ).reduce((prev, curr) => {
+                return prev + curr[1];
+              }, 0);
               if (
                 activeSnapshotInfo === null ||
                 context.shouldSendSnapshot({
                   activeSnapshotId: activeSnapshotInfo?.id || null,
-                  latestServerVersion,
+                  snapshotUpdatesCount:
+                    snapshotUpdatesCount + context._updatesConfirmedClock,
                 })
               ) {
                 if (context.logging === "debug") {
@@ -1167,7 +1162,7 @@ export const createSyncMachine = () =>
                   rawChanges,
                   key,
                   activeSnapshotInfo.id,
-                  sendingUpdatesClock
+                  updatesLocalClock
                 );
               }
             }
@@ -1175,15 +1170,14 @@ export const createSyncMachine = () =>
             return {
               handledQueue,
               activeSnapshotInfo,
-              latestServerVersion,
-              activeSendingSnapshotInfo,
-              confirmedUpdatesClock,
-              sendingUpdatesClock,
+              snapshotInFlight,
+              updatesConfirmedClock,
+              updatesLocalClock,
               updatesInFlight,
               pendingChangesQueue,
               updateClocks,
-              receivingEphemeralMessageErrors:
-                context._receivingEphemeralMessageErrors,
+              ephemeralMessageReceivingErrors:
+                context._ephemeralMessageReceivingErrors,
               documentDecryptionState,
               ephemeralMessagesSession,
             };
@@ -1192,22 +1186,21 @@ export const createSyncMachine = () =>
               console.error("Processing queue error:", error);
             }
             if (error instanceof SecsyncProcessingEphemeralMessageError) {
-              const newReceivingEphemeralMessageErrors = [
-                ...context._receivingEphemeralMessageErrors,
+              const newephemeralMessageReceivingErrors = [
+                ...context._ephemeralMessageReceivingErrors,
               ];
-              newReceivingEphemeralMessageErrors.unshift(error);
+              newephemeralMessageReceivingErrors.unshift(error);
               return {
                 handledQueue,
                 activeSnapshotInfo,
-                latestServerVersion,
-                activeSendingSnapshotInfo,
-                confirmedUpdatesClock,
-                sendingUpdatesClock,
+                snapshotInFlight,
+                updatesConfirmedClock,
+                updatesLocalClock,
                 updatesInFlight,
                 pendingChangesQueue,
                 updateClocks,
-                receivingEphemeralMessageErrors:
-                  newReceivingEphemeralMessageErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
+                ephemeralMessageReceivingErrors:
+                  newephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,
                 ephemeralMessagesSession,
               };
@@ -1228,7 +1221,7 @@ export const createSyncMachine = () =>
           );
         },
         shouldReconnect: (context, event) => {
-          return context._shouldReconnect;
+          return context._websocketShouldReconnect;
         },
       },
     }

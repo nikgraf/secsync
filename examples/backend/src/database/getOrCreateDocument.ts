@@ -5,7 +5,6 @@ import { prisma } from "./prisma";
 export async function getOrCreateDocument({
   documentId,
   lastKnownSnapshotId,
-  lastKnownUpdateServerVersion,
 }: GetDocumentParams) {
   return prisma.$transaction(async (prisma) => {
     const doc = await prisma.document.findUnique({
@@ -15,7 +14,6 @@ export async function getOrCreateDocument({
           include: {
             updates: {
               orderBy: { version: "asc" },
-              where: { version: { gt: lastKnownUpdateServerVersion } },
             },
           },
         },

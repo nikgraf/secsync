@@ -18,7 +18,7 @@ model Document {
 }
 
 model Snapshot {
-  id                     String    @id @default(uuid())
+  id                     String    @id
   latestVersion          Int
   data                   String
   ciphertextHash         String
@@ -33,7 +33,6 @@ model Snapshot {
 }
 
 model Update {
-  id              String   @id @default(uuid())
   version         Int
   data            String
   snapshot        Snapshot @relation(fields: [snapshotId], references: [id])
@@ -41,6 +40,6 @@ model Update {
   snapshotVersion Int
   pubKey          String
 
-  @@unique([snapshotId, version])
+  @@id([snapshotId, version])
   @@unique([snapshotId, pubKey, snapshotVersion])
 }

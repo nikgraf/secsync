@@ -97,7 +97,7 @@ type CreateUpdateTestHelperParams = {
   signatureKeyPair?: KeyPair;
 };
 
-const createUpdateHelper = (params?: CreateUpdateTestHelperParams) => {
+const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   const version = params?.version || 0;
   const signatureKeyPair = params?.signatureKeyPair || clientAKeyPair;
   const publicData: UpdatePublicData = {
@@ -410,7 +410,7 @@ test("should apply update from snapshot-save-failed", (done) => {
         syncService.send({
           type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
           data: {
-            updates: [createUpdateHelper().update],
+            updates: [createUpdateTestHelper().update],
             type: "snapshot-save-failed",
           },
         });
@@ -505,8 +505,8 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
       },
     });
 
-    const update = createUpdateHelper().update;
-    const update2 = createUpdateHelper({ version: 1 }).update;
+    const update = createUpdateTestHelper().update;
+    const update2 = createUpdateTestHelper({ version: 1 }).update;
 
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
@@ -627,7 +627,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
     // this would usually break the clock checks
     // this case can happen when an update was sent, saved on the server,
     // but the confirmation `updated-saved` not yet received
-    const update = createUpdateHelper({
+    const update = createUpdateTestHelper({
       version: 22,
       signatureKeyPair: clientBKeyPair,
     }).update;
