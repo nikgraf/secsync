@@ -6,7 +6,7 @@ import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import React, { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
-import { useYjsSync } from "secsync-react-yjs";
+import { generateWeakYjsClientId, useYjsSync } from "secsync-react-yjs";
 import {
   redo,
   undo,
@@ -46,6 +46,10 @@ const YjsProsemirrorExample: React.FC<Props> = ({
 
   const editorRef = useRef<HTMLDivElement>(null);
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
+  yDocRef.current.clientID = generateWeakYjsClientId({
+    sodium,
+    clientPublicKey: authorKeyPair.publicKey,
+  });
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
   const [state, send] = useYjsSync({
