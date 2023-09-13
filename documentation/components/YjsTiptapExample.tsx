@@ -4,7 +4,7 @@ import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
-import { useYjsSync } from "secsync-react-yjs";
+import { deriveClientId, useYjsSync } from "secsync-react-yjs";
 import { YAwarenessExtension } from "tiptap-extension-y-awareness";
 import { Awareness } from "y-protocols/awareness";
 import * as Yjs from "yjs";
@@ -45,6 +45,11 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
   });
 
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
+  // allows to connect a change to a client (but can't be cryptographically verified)
+  yDocRef.current.clientID = deriveClientId({
+    sodium,
+    clientPublicKey: authorKeyPair.publicKey,
+  });
   const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
   const [state, send] = useYjsSync({

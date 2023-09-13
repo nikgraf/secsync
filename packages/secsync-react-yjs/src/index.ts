@@ -1,3 +1,3 @@
-export * from "./generateWeakYjsClientId";
-export * from "./isValidWeakYjsClientId";
+export * from "./clientIdMatchesPublicKey";
+export * from "./deriveClientId";
 export * from "./useYjsSync";

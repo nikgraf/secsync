@@ -339,6 +339,9 @@ importers:
       '@xstate/react':
         specifier: ^3.2.2
         version: 3.2.2(@types/react@18.2.20)(react@18.2.0)
+      libsodium-wrappers:
+        specifier: ^0.7.11
+        version: 0.7.11
       react:
         specifier: '*'
         version: 18.2.0
@@ -361,6 +364,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.3
         version: 29.5.3
+      '@types/libsodium-wrappers':
+        specifier: ^0.7.10
+        version: 0.7.10
       '@types/react':
         specifier: ^18.2.20
         version: 18.2.20

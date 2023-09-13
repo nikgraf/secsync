@@ -66,7 +66,7 @@ export async function createSnapshot({
           clocks: {},
           parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
           // TODO additionally could verify that the parentSnapshotClocks of the saved parent snapshot
-          parentSnapshotUpdatesClocks: snapshot.publicData.parentSnapshotClocks,
+          parentSnapshotClocks: snapshot.publicData.parentSnapshotClocks,
         },
       });
 

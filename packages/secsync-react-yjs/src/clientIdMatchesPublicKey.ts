@@ -19,7 +19,7 @@ type Params = {
   clientPublicKey: Uint8Array;
 };
 
-export const isValidWeakYjsClientId = ({
+export const clientIdMatchesPublicKey = ({
   clientId,
   clientPublicKey,
 }: Params) => {

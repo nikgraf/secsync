@@ -1,6 +1,6 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { generateWeakYjsClientId } from "./generateWeakYjsClientId";
-import { isValidWeakYjsClientId } from "./isValidWeakYjsClientId";
+import { clientIdMatchesPublicKey } from "./clientIdMatchesPublicKey";
+import { deriveClientId } from "./deriveClientId";
 
 let clientAKeyPair: KeyPair;
 let clientBKeyPair: KeyPair;
@@ -30,18 +30,18 @@ beforeEach(async () => {
 });
 
 test("", () => {
-  const clientId = generateWeakYjsClientId({
+  const clientId = deriveClientId({
     sodium,
     clientPublicKey: clientAKeyPair.publicKey,
   });
   expect(
-    isValidWeakYjsClientId({
+    clientIdMatchesPublicKey({
       clientId,
       clientPublicKey: clientAKeyPair.publicKey,
     })
   ).toBe(true);
   expect(
-    isValidWeakYjsClientId({
+    clientIdMatchesPublicKey({
       clientId,
       clientPublicKey: clientBKeyPair.publicKey,
     })

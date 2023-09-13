@@ -5,10 +5,7 @@ type Params = {
   clientPublicKey: Uint8Array;
 };
 
-export const generateWeakYjsClientId = ({
-  sodium,
-  clientPublicKey,
-}: Params) => {
+export const deriveClientId = ({ sodium, clientPublicKey }: Params) => {
   const part1 = clientPublicKey.slice(0, 4);
   // should be a sufficient large enough space to avoid collisions
   const part2 = sodium.randombytes_buf(3);
