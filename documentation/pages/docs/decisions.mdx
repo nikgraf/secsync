@@ -17,6 +17,8 @@ To make this design work it's important that the sessionId is stored per client 
 
 TODO
 
+TODO: the snapshots are stored in order - old snapshots can be cleaned out (or at least the updates)
+
 ### Usecases
 
 - missing a update (e.g. update comes in not in order)
@@ -40,3 +42,27 @@ TODO
   }
 }
 ```
+
+## Behaviour
+
+### States
+
+#### syncing
+
+-> new local changes get sent as updates
+-> new incoming updates get applied
+-> if an update fails then send it again
+
+#### snapshot-in-flight
+
+-> goal: get back to `syncing`
+
+-> wait for the snapshot to be confirmed
+
+-> if it failed apply the document: try again
+
+#### error
+
+-> goal: get back to `syncing`
+
+-> load the document again and try to get back to `syncing` (send along latest known info)
