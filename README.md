@@ -212,6 +212,18 @@ flyctl secrets set DATABASE_URL=<db_connection_url>/secsync
 
 Update DATABASE_URL in Github secrets with <db_connection_url>/secsync
 
+## Wipe the DB @ fly.io
+
+```sh
+flyctl postgres connect --app secsync-db
+# in the psql console run
+SELECT pg_terminate_backend(pg_stat_activity.pid)
+FROM pg_stat_activity
+WHERE pg_stat_activity.datname = 'secsync';
+
+drop database secsync;
+```
+
 ## Credits
 
 Secsync is proudly sponsored by [NGI Assure](https://nlnet.nl/assure/) via [NLNet](https://nlnet.nl).
