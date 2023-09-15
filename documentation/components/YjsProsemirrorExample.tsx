@@ -6,7 +6,7 @@ import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import React, { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
-import { deriveClientId, useYjsSync } from "secsync-react-yjs";
+import { useYjsSync } from "secsync-react-yjs";
 import {
   redo,
   undo,
@@ -14,7 +14,6 @@ import {
   ySyncPlugin,
   yUndoPlugin,
 } from "y-prosemirror";
-import { Awareness } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
 const websocketHost =
@@ -25,6 +24,20 @@ const websocketHost =
 type Props = {
   documentId: string;
   documentKey: Uint8Array;
+};
+
+export const cursorBuilder = (user) => {
+  const cursor = document.createElement("span");
+  cursor.classList.add("ProseMirror-yjs-cursor");
+  cursor.setAttribute("style", `border-color: #444`);
+  const userDiv = document.createElement("div");
+  userDiv.setAttribute("style", `background-color: #444;`);
+  userDiv.insertBefore(
+    document.createTextNode(`Client PublicKey: ${user.publicKey}`),
+    null
+  );
+  cursor.insertBefore(userDiv, null);
+  return cursor;
 };
 
 const YjsProsemirrorExample: React.FC<Props> = ({
@@ -46,16 +59,9 @@ const YjsProsemirrorExample: React.FC<Props> = ({
 
   const editorRef = useRef<HTMLDivElement>(null);
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  // allows to connect a change to a client (but can't be cryptographically verified)
-  yDocRef.current.clientID = deriveClientId({
-    sodium,
-    clientPublicKey: authorKeyPair.publicKey,
-  });
-  const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
-  const [state, send] = useYjsSync({
+  const [state, send, , yAwareness] = useYjsSync({
     yDoc: yDocRef.current,
-    yAwareness: yAwarenessRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
     websocketHost,
@@ -101,7 +107,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
       schema,
       plugins: [
         ySyncPlugin(yXmlFragment),
-        yCursorPlugin(yAwarenessRef.current),
+        yCursorPlugin(yAwareness, { cursorBuilder }),
         yUndoPlugin(),
         keymap({
           "Mod-z": undo,
@@ -115,10 +121,6 @@ const YjsProsemirrorExample: React.FC<Props> = ({
   };
 
   useEffect(() => {
-    yAwarenessRef.current.setLocalStateField("user", {
-      name: `User ${yDocRef.current.clientID}`,
-    });
-
     const editorView = initiateEditor();
 
     return () => {
