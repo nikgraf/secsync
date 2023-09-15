@@ -348,7 +348,6 @@ test("should load a document with updates", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -422,7 +421,6 @@ test("should load a document and two additional updates", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -511,7 +509,6 @@ test("should load a document and an additional snapshot", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -590,7 +587,6 @@ test("should load a document with updates and two additional updates", (done) =>
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -678,7 +674,6 @@ test("should load a document with updates and two two additional snapshots", (do
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -778,7 +773,6 @@ test("should load a document and process three additional ephemeral messages", (
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -787,7 +781,6 @@ test("should load a document and process three additional ephemeral messages", (
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,

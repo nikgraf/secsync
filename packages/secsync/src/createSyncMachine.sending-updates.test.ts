@@ -152,7 +152,6 @@ test("put changes in updatesInFlight when sending updates", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         logging: "error",
@@ -261,7 +260,6 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         logging: "error",
@@ -358,7 +356,6 @@ test("allows to add changes before the document is loaded", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         logging: "error",
@@ -451,7 +448,6 @@ test("keeps pending changes upon disconnect", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         logging: "error",

@@ -199,7 +199,6 @@ test("set _documentDecryptionState to failed if not even the snapshot can be loa
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -266,7 +265,6 @@ test("set _documentDecryptionState to partial and apply the first update, if doc
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -338,7 +336,6 @@ test("set _documentDecryptionState to partial, if document snapshot decrypts but
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -408,7 +405,6 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -417,7 +413,6 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
@@ -531,7 +526,6 @@ test("reset the context entries after websocket disconnect", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -540,7 +534,6 @@ test("reset the context entries after websocket disconnect", (done) => {
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
@@ -626,7 +619,6 @@ test("reconnect and reload the document", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -635,7 +627,6 @@ test("reconnect and reload the document", (done) => {
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
@@ -725,7 +716,6 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -734,7 +724,6 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
@@ -805,7 +794,6 @@ test("fails in case the collaborator is not valid", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },

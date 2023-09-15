@@ -56,15 +56,9 @@ const AutomergeTodosExample: React.FC<Props> = ({
     getSnapshotKey: async (snapshot) => {
       return documentKey;
     },
-    getUpdateKey: async (update) => {
-      return documentKey;
-    },
     shouldSendSnapshot: ({ snapshotUpdatesCount }) => {
       // create a new snapshot if the active snapshot has more than 100 updates
       return snapshotUpdatesCount > 100;
-    },
-    getEphemeralMessageKey: async () => {
-      return documentKey;
     },
     isValidCollaborator: (signingPublicKey) => {
       return true;

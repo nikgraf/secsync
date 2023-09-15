@@ -53,15 +53,9 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     getSnapshotKey: async (snapshot) => {
       return documentKey;
     },
-    getUpdateKey: async (update) => {
-      return documentKey;
-    },
     shouldSendSnapshot: ({ snapshotUpdatesCount }) => {
       // create a new snapshot if the active snapshot has more than 10 updates
       return snapshotUpdatesCount > 10;
-    },
-    getEphemeralMessageKey: async () => {
-      return documentKey;
     },
     isValidCollaborator: (signingPublicKey) => {
       return true;
