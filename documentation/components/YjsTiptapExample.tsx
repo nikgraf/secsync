@@ -2,11 +2,10 @@ import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
 import { YAwarenessExtension } from "tiptap-extension-y-awareness";
-import { Awareness } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
 const websocketHost =
@@ -45,11 +44,9 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
   });
 
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
-  const [state, send] = useYjsSync({
+  const [state, send, , yAwareness] = useYjsSync({
     yDoc: yDocRef.current,
-    yAwareness: yAwarenessRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
     websocketHost,
@@ -98,16 +95,10 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
         field: "page",
       }),
       YAwarenessExtension.configure({
-        awareness: yAwarenessRef.current,
+        awareness: yAwareness,
       }),
     ],
   });
-
-  useEffect(() => {
-    yAwarenessRef.current.setLocalStateField("user", {
-      name: `User ${yDocRef.current.clientID}`,
-    });
-  }, []);
 
   return (
     <>

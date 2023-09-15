@@ -13,7 +13,7 @@ export type AutomergeSyncConfig<T> = Omit<
   SyncMachineConfig,
   | "applySnapshot"
   | "applyChanges"
-  | "applyEphemeralMessages"
+  | "applyEphemeralMessage"
   | "serializeChanges"
   | "deserializeChanges"
 > & {
@@ -67,7 +67,7 @@ export const useAutomergeSync = <T>(config: AutomergeSyncConfig<T>) => {
         );
         updateDocRefAndRender(newDoc);
       },
-      applyEphemeralMessages: (decryptedEphemeralMessages) => {},
+      applyEphemeralMessage: (decryptedEphemeralMessage) => {},
       serializeChanges: (updates: Uint8Array[]) =>
         serializeUint8ArrayUpdates(updates, config.sodium),
       deserializeChanges: (serialized: string) =>

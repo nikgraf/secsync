@@ -418,10 +418,10 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,
@@ -541,10 +541,10 @@ test("reset the context entries after websocket disconnect", (done) => {
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,
@@ -636,10 +636,10 @@ test("reconnect and reload the document", (done) => {
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,
@@ -735,10 +735,10 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,

@@ -8,7 +8,6 @@ import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
 import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
-import { Awareness, removeAwarenessStates } from "y-protocols/awareness";
 import * as Yjs from "yjs";
 
 const websocketHost =
@@ -33,11 +32,9 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
   const documentKey = sodium.from_base64(window.location.hash.slice(1));
 
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
-  const yAwarenessRef = useRef<Awareness>(new Awareness(yDocRef.current));
 
-  const [state, send] = useYjsSync({
+  const [state, send, , yAwareness] = useYjsSync({
     yDoc: yDocRef.current,
-    yAwareness: yAwarenessRef.current,
     documentId: docId,
     signatureKeyPair: authorKeyPair,
     websocketHost,
@@ -87,29 +84,6 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       }),
     ],
   });
-
-  useEffect(() => {
-    yAwarenessRef.current.setLocalStateField("user", {
-      name: `User ${yDocRef.current.clientID}`,
-    });
-
-    // remove awareness state when closing the window
-    window.addEventListener("beforeunload", () => {
-      removeAwarenessStates(
-        yAwarenessRef.current,
-        [yDocRef.current.clientID],
-        "window unload"
-      );
-    });
-
-    return () => {
-      removeAwarenessStates(
-        yAwarenessRef.current,
-        [yDocRef.current.clientID],
-        "document unmount"
-      );
-    };
-  }, []);
 
   return (
     <>

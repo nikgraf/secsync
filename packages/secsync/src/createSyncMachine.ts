@@ -225,7 +225,7 @@ export const createSyncMachine = () =>
             publicData: {},
           }),
         getUpdateKey: () => Promise.resolve(new Uint8Array()),
-        applyEphemeralMessages: () => undefined,
+        applyEphemeralMessage: () => undefined,
         getEphemeralMessageKey: () => Promise.resolve(new Uint8Array()),
         shouldSendSnapshot: () => false,
         sodium: {},
@@ -1113,9 +1113,10 @@ export const createSyncMachine = () =>
                     // content can be undefined if it's a new session or the
                     // session data was invalid
                     if (ephemeralMessageResult.content) {
-                      context.applyEphemeralMessages([
+                      context.applyEphemeralMessage(
                         ephemeralMessageResult.content,
-                      ]);
+                        ephemeralMessage.publicData.pubKey
+                      );
                     }
                   } catch (err) {
                     throw new SecsyncProcessingEphemeralMessageError(

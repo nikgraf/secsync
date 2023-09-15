@@ -788,10 +788,10 @@ test("should load a document and process three additional ephemeral messages", (
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,

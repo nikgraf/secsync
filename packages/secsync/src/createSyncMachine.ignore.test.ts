@@ -210,10 +210,10 @@ test("process three additional ephemeral messages where the second is ignored si
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,
@@ -340,10 +340,10 @@ test("ignore an ephemeral message coming from a reply attack", (done) => {
           });
         },
         getEphemeralMessageKey: () => key,
-        applyEphemeralMessages: (ephemeralMessages) => {
+        applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
-            ...ephemeralMessages,
+            ephemeralMessage,
           ]);
         },
         sodium: sodium,
