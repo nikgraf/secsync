@@ -9,16 +9,9 @@ export async function getOrCreateDocument({
   return prisma.$transaction(async (prisma) => {
     const doc = await prisma.document.findUnique({
       where: { id: documentId },
-      include: {
-        activeSnapshot: {
-          include: {
-            updates: {
-              orderBy: { version: "asc" },
-            },
-          },
-        },
-      },
+      include: { activeSnapshot: { select: { id: true } } },
     });
+
     if (!doc) {
       await prisma.document.create({
         data: { id: documentId },
@@ -55,9 +48,18 @@ export async function getOrCreateDocument({
       });
     }
 
+    const activeSnapshot = await prisma.snapshot.findUnique({
+      where: { id: doc.activeSnapshot.id },
+      include: {
+        updates: {
+          orderBy: { version: "asc" },
+        },
+      },
+    });
+
     return {
-      snapshot: serializeSnapshot(doc.activeSnapshot),
-      updates: serializeUpdates(doc.activeSnapshot.updates),
+      snapshot: serializeSnapshot(activeSnapshot),
+      updates: serializeUpdates(activeSnapshot.updates),
       snapshotProofChain: snapshotProofChain.map((snapshotProofChainEntry) => {
         return {
           id: snapshotProofChainEntry.id,
