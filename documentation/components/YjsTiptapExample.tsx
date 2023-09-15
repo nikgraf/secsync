@@ -67,15 +67,9 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
     getSnapshotKey: async (snapshot) => {
       return documentKey;
     },
-    getUpdateKey: async (update) => {
-      return documentKey;
-    },
     shouldSendSnapshot: ({ snapshotUpdatesCount }) => {
       // create a new snapshot if the active snapshot has more than 10 updates
       return snapshotUpdatesCount > 10;
-    },
-    getEphemeralMessageKey: async () => {
-      return documentKey;
     },
     isValidCollaborator: async (signingPublicKey: string) => {
       return true;

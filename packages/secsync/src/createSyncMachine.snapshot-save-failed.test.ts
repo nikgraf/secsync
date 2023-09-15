@@ -369,7 +369,6 @@ test("should apply update from snapshot-save-failed", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -469,7 +468,6 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -588,7 +586,6 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },

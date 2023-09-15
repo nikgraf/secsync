@@ -13,18 +13,18 @@ export const websocketService =
     let ephemeralSessionCounter = ephemeralMessagesSession.counter;
     const prepareAndSendEphemeralMessage = async (
       data,
-      messageType: keyof typeof messageTypes
+      messageType: keyof typeof messageTypes,
+      key: Uint8Array
     ) => {
       const publicData = {
         docId: context.documentId,
         pubKey: context.sodium.to_base64(context.signatureKeyPair.publicKey),
       };
-      const ephemeralMessageKey = await context.getEphemeralMessageKey();
       const ephemeralMessage = createEphemeralMessage(
         data,
         messageType,
         publicData,
-        ephemeralMessageKey,
+        key,
         context.signatureKeyPair,
         ephemeralMessagesSession.id,
         ephemeralSessionCounter,
@@ -76,14 +76,17 @@ export const websocketService =
           // the document, so we can start sending ephemeral messages.
           // An empty ephemeralMessage right away to initiate the session signing.
           // NOTE: There is no break and send with WEBSOCKET_ADD_TO_INCOMING_QUEUE is still invoked
-          prepareAndSendEphemeralMessage(new Uint8Array(), "initialize").catch(
-            (reason) => {
-              if (context.logging === "debug" || context.logging === "error") {
-                console.error(reason);
-              }
-              send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          const key = await context.getSnapshotKey(data.snapshot);
+          prepareAndSendEphemeralMessage(
+            new Uint8Array(),
+            "initialize",
+            key
+          ).catch((reason) => {
+            if (context.logging === "debug" || context.logging === "error") {
+              console.error(reason);
             }
-          );
+            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          });
         case "snapshot":
         case "snapshot-saved":
         case "snapshot-save-failed":
@@ -119,20 +122,23 @@ export const websocketService =
       send({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
-    onReceive((event: any) => {
+    onReceive(async (event: any) => {
       if (event.type === "SEND") {
         websocketConnection.send(event.message);
       }
       if (event.type === "SEND_EPHEMERAL_UPDATE") {
         try {
-          prepareAndSendEphemeralMessage(event.data, event.messageType).catch(
-            (reason) => {
-              if (context.logging === "debug" || context.logging === "error") {
-                console.error(reason);
-              }
-              send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          const key = await event.getKey();
+          prepareAndSendEphemeralMessage(
+            event.data,
+            event.messageType,
+            key
+          ).catch((reason) => {
+            if (context.logging === "debug" || context.logging === "error") {
+              console.error(reason);
             }
-          );
+            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+          });
         } catch (error) {
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);

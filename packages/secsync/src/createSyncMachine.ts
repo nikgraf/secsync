@@ -109,6 +109,7 @@ type ActiveSnapshotInfo = {
   id: string;
   ciphertext: string;
   parentSnapshotProof: string;
+  snapshot: Snapshot;
 };
 
 export type DocumentDecryptionState =
@@ -195,7 +196,7 @@ export const createSyncMachine = () =>
               type: "SEND_EPHEMERAL_UPDATE";
               data: any;
               messageType: keyof typeof messageTypes;
-              getEphemeralMessageKey: () => Uint8Array | Promise<Uint8Array>;
+              getKey: () => Uint8Array | Promise<Uint8Array>;
             }
           | {
               type: "FAILED_CREATING_EPHEMERAL_UPDATE";
@@ -224,9 +225,7 @@ export const createSyncMachine = () =>
             key: new Uint8Array(),
             publicData: {},
           }),
-        getUpdateKey: () => Promise.resolve(new Uint8Array()),
         applyEphemeralMessage: () => undefined,
-        getEphemeralMessageKey: () => Promise.resolve(new Uint8Array()),
         shouldSendSnapshot: () => false,
         sodium: {},
         serializeChanges: () => "",
@@ -263,7 +262,12 @@ export const createSyncMachine = () =>
               type: "SEND_EPHEMERAL_UPDATE",
               data: event.data,
               messageType: event.messageType || "message",
-              getEphemeralMessageKey: context.getEphemeralMessageKey,
+              getKey: async () => {
+                const key = await context.getSnapshotKey(
+                  context._activeSnapshotInfo?.snapshot
+                );
+                return key;
+              },
             };
           }),
         },
@@ -621,6 +625,7 @@ export const createSyncMachine = () =>
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                  snapshot,
                 };
                 pendingChangesQueue = [];
 
@@ -666,6 +671,7 @@ export const createSyncMachine = () =>
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                  snapshot,
                 };
                 pendingChangesQueue = [];
 
@@ -771,6 +777,7 @@ export const createSyncMachine = () =>
                   id: snapshot.publicData.snapshotId,
                   ciphertext: snapshot.ciphertext,
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                  snapshot,
                 };
                 updatesConfirmedClock = null;
                 updatesLocalClock = -1;
@@ -794,6 +801,7 @@ export const createSyncMachine = () =>
 
             const processUpdates = async (
               rawUpdates: Update[],
+              key: Uint8Array,
               skipIfCurrentClockIsHigher: boolean,
               skipUpdatesAuthoredByCurrentClient: boolean
             ) => {
@@ -805,7 +813,6 @@ export const createSyncMachine = () =>
 
               try {
                 for (let update of updates) {
-                  const key = await context.getUpdateKey(update);
                   // console.log("processUpdates key", key);
                   if (activeSnapshotInfo === null) {
                     throw new Error("No active snapshot");
@@ -916,15 +923,13 @@ export const createSyncMachine = () =>
                     throw new Error("Document has no snapshot but has updates");
                   }
                   if (event.snapshot) {
-                    activeSnapshotInfo = {
-                      id: event.snapshot.publicData.snapshotId,
-                      ciphertext: event.snapshot.ciphertext,
-                      parentSnapshotProof:
-                        event.snapshot.publicData.parentSnapshotProof,
-                    };
-
                     await processSnapshot(event.snapshot);
+
                     documentDecryptionState = "partial";
+
+                    const snapshotKey = await context.getSnapshotKey(
+                      event.snapshot
+                    );
 
                     if (event.updates) {
                       // skipIfCurrentClockIsHigher to false since the document would
@@ -932,7 +937,12 @@ export const createSyncMachine = () =>
                       // value multiple times
                       // skipUpdatesAuthoredByCurrentClient is set to false since the server
                       // should never send an update made by the current client in this case
-                      await processUpdates(event.updates, false, false);
+                      await processUpdates(
+                        event.updates,
+                        snapshotKey,
+                        false,
+                        false
+                      );
                     }
                   }
                   documentDecryptionState = "complete";
@@ -1014,12 +1024,18 @@ export const createSyncMachine = () =>
                   }
 
                   if (event.updates) {
+                    const key = await context.getSnapshotKey(
+                      event.snapshot
+                        ? event.snapshot
+                        : activeSnapshotInfo?.snapshot
+                    );
+
                     // skipIfCurrentClockIsHigher to true since the update might already
                     // have been received via update message
                     // skipUpdatesAuthoredByCurrentClient is set to true since it can happen
                     // that an update was sent, saved on the server, but the confirmation
                     // `updated-saved` not yet received
-                    await processUpdates(event.updates, true, true);
+                    await processUpdates(event.updates, key, true, true);
                   }
 
                   if (context.logging === "debug") {
@@ -1033,7 +1049,11 @@ export const createSyncMachine = () =>
                   // have been received via snapshot-save-failed message
                   // skipUpdatesAuthoredByCurrentClient is set to false since the server
                   // should never send an update made by the current client in this case
-                  await processUpdates([event], true, false);
+                  const snapshotKey = await context.getSnapshotKey(
+                    activeSnapshotInfo?.snapshot
+                  );
+
+                  await processUpdates([event], snapshotKey, true, false);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {
@@ -1074,7 +1094,9 @@ export const createSyncMachine = () =>
                       changes.push(...context._pendingChangesQueue);
                       pendingChangesQueue = [];
 
-                      const key = await context.getUpdateKey(event);
+                      const key = await context.getSnapshotKey(
+                        activeSnapshotInfo?.snapshot
+                      );
 
                       if (activeSnapshotInfo === null) {
                         throw new Error("No active snapshot");
@@ -1099,9 +1121,9 @@ export const createSyncMachine = () =>
                         ?.ephemeralMessage
                     );
 
-                    const ephemeralMessageKey =
-                      await context.getEphemeralMessageKey();
-
+                    const key = await context.getSnapshotKey(
+                      activeSnapshotInfo?.snapshot
+                    );
                     const isValidCollaborator =
                       await context.isValidCollaborator(
                         ephemeralMessage.publicData.pubKey
@@ -1113,7 +1135,7 @@ export const createSyncMachine = () =>
                     const ephemeralMessageResult =
                       verifyAndDecryptEphemeralMessage(
                         ephemeralMessage,
-                        ephemeralMessageKey,
+                        key,
                         context._ephemeralMessagesSession,
                         context.signatureKeyPair,
                         context.sodium
@@ -1185,7 +1207,9 @@ export const createSyncMachine = () =>
                 if (activeSnapshotInfo === null) {
                   throw new Error("No active snapshot");
                 }
-                const key = await context.getUpdateKey(event);
+                const key = await context.getSnapshotKey(
+                  activeSnapshotInfo?.snapshot
+                );
                 const rawChanges = context._pendingChangesQueue;
                 pendingChangesQueue = [];
                 createAndSendUpdate(

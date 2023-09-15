@@ -127,12 +127,10 @@ export type SyncMachineConfig = {
     readonly additionalServerData?: any;
   }>;
   applyChanges: (updates: any[]) => void;
-  getUpdateKey: (update: any) => Promise<Uint8Array> | Uint8Array;
   applyEphemeralMessage: (
     ephemeralMessages: any,
     authorPublicKey: string
   ) => void;
-  getEphemeralMessageKey: () => Promise<Uint8Array> | Uint8Array;
   shouldSendSnapshot: (info: {
     activeSnapshotId: string | null;
     snapshotUpdatesCount: number;

@@ -152,7 +152,6 @@ test("send initial snapshot if received document didn't include one", (done) => 
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         logging: "error",
@@ -242,7 +241,6 @@ test("send initial snapshot if received document didn't include one, but changes
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         logging: "error",

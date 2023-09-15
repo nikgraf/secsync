@@ -200,7 +200,6 @@ test("process three additional ephemeral messages where the second is ignored si
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -209,7 +208,6 @@ test("process three additional ephemeral messages where the second is ignored si
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
@@ -330,7 +328,6 @@ test("ignore an ephemeral message coming from a reply attack", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -339,7 +336,6 @@ test("ignore an ephemeral message coming from a reply attack", (done) => {
             docValue = docValue + change;
           });
         },
-        getEphemeralMessageKey: () => key,
         applyEphemeralMessage: (ephemeralMessage) => {
           ephemeralMessagesValue = new Uint8Array([
             ...ephemeralMessagesValue,
@@ -463,7 +459,6 @@ test("should ignore an update in case it's a reply attack with the same update",
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
@@ -565,7 +560,6 @@ test("should ignore an update in case it's a different update, but the same cloc
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
-        getUpdateKey: () => key,
         deserializeChanges: (changes) => {
           return changes;
         },
