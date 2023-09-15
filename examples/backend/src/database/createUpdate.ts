@@ -58,6 +58,7 @@ export async function createUpdate({ update }: CreateUpdateParams) {
       return serializeUpdate(
         await prisma.update.create({
           data: {
+            id: `${update.publicData.refSnapshotId}-${update.publicData.pubKey}-${update.publicData.clock}`,
             data: JSON.stringify(update),
             version: snapshot.latestVersion + 1,
             snapshot: {
@@ -65,7 +66,7 @@ export async function createUpdate({ update }: CreateUpdateParams) {
                 id: update.publicData.refSnapshotId,
               },
             },
-            snapshotVersion: update.publicData.clock,
+            clock: update.publicData.clock,
             pubKey: update.publicData.pubKey,
           },
         })

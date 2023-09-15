@@ -12,10 +12,12 @@ CREATE TABLE "Snapshot" (
     "id" TEXT NOT NULL,
     "latestVersion" INTEGER NOT NULL,
     "data" TEXT NOT NULL,
-    "preview" TEXT NOT NULL,
+    "ciphertextHash" TEXT NOT NULL,
     "documentId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "clocks" JSONB NOT NULL,
+    "parentSnapshotUpdatesClocks" JSONB NOT NULL,
+    "parentSnapshotProof" TEXT NOT NULL,
 
     CONSTRAINT "Snapshot_pkey" PRIMARY KEY ("id")
 );
@@ -26,20 +28,24 @@ CREATE TABLE "Update" (
     "version" INTEGER NOT NULL,
     "data" TEXT NOT NULL,
     "snapshotId" TEXT NOT NULL,
-    "snapshotVersion" INTEGER NOT NULL,
-    "pubKey" TEXT NOT NULL,
-
-    CONSTRAINT "Update_pkey" PRIMARY KEY ("id")
+    "clock" INTEGER NOT NULL,
+    "pubKey" TEXT NOT NULL
 );
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Document_activeSnapshotId_key" ON "Document"("activeSnapshotId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "Update_id_key" ON "Update"("id");
+
+-- CreateIndex
+CREATE INDEX "Update_id_version_idx" ON "Update"("id", "version");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Update_snapshotId_version_key" ON "Update"("snapshotId", "version");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Update_snapshotId_pubKey_snapshotVersion_key" ON "Update"("snapshotId", "pubKey", "snapshotVersion");
+CREATE UNIQUE INDEX "Update_snapshotId_pubKey_clock_key" ON "Update"("snapshotId", "pubKey", "clock");
 
 -- AddForeignKey
 ALTER TABLE "Document" ADD CONSTRAINT "Document_activeSnapshotId_fkey" FOREIGN KEY ("activeSnapshotId") REFERENCES "Snapshot"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -33,13 +33,15 @@ model Snapshot {
 }
 
 model Update {
-  version         Int
-  data            String
-  snapshot        Snapshot @relation(fields: [snapshotId], references: [id])
-  snapshotId      String
-  snapshotVersion Int
-  pubKey          String
+  id         String   @unique // composed out of snapshotId, pubKey, clock
+  version    Int
+  data       String
+  snapshot   Snapshot @relation(fields: [snapshotId], references: [id])
+  snapshotId String
+  clock      Int
+  pubKey     String
 
-  @@id([snapshotId, version])
-  @@unique([snapshotId, pubKey, snapshotVersion])
+  @@unique([snapshotId, version])
+  @@unique([snapshotId, pubKey, clock]) // matches the id
+  @@index([id, version])
 }
