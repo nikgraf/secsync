@@ -159,6 +159,7 @@ export type CreateUpdateParams = {
 export type GetDocumentParams = {
   documentId: string;
   lastKnownSnapshotId?: string;
+  lastKnownSnapshotUpdatesClocks?: SnapshotUpdatesClocks;
 };
 
 export type HasAccessParams = {

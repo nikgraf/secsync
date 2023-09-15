@@ -15,6 +15,7 @@ import {
   GetDocumentParams,
   HasAccessParams,
   Snapshot,
+  SnapshotUpdatesClocks,
   Update,
 } from "../types";
 import { parseUpdate } from "../update/parseUpdate";
@@ -82,11 +83,27 @@ export const createWebSocketConnection =
         return;
       }
 
+      let lastKnownSnapshotUpdatesClocks: SnapshotUpdatesClocks | undefined =
+        undefined;
+      try {
+        const lastKnownSnapshotUpdatesClocksQueryEntry = Array.isArray(
+          urlParts.query.lastKnownSnapshotUpdatesClocks
+        )
+          ? urlParts.query.lastKnownSnapshotUpdatesClocks[0]
+          : urlParts.query.lastKnownSnapshotUpdatesClocks;
+        if (lastKnownSnapshotUpdatesClocksQueryEntry) {
+          lastKnownSnapshotUpdatesClocks = SnapshotUpdatesClocks.parse(
+            JSON.parse(lastKnownSnapshotUpdatesClocksQueryEntry)
+          );
+        }
+      } catch (err) {}
+
       const doc = await getDocument({
         documentId,
         lastKnownSnapshotId: Array.isArray(urlParts.query.lastKnownSnapshotId)
           ? urlParts.query.lastKnownSnapshotId[0]
           : urlParts.query.lastKnownSnapshotId,
+        lastKnownSnapshotUpdatesClocks,
       });
 
       if (!doc) {
