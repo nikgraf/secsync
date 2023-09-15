@@ -2,6 +2,8 @@ import sodium from "libsodium-wrappers";
 import {
   CreateSnapshotParams,
   SecsyncSnapshotBasedOnOutdatedSnapshotError,
+  SecsyncSnapshotMissesUpdatesError,
+  compareUpdatesClocks,
   hash,
 } from "secsync";
 import { serializeSnapshot } from "../utils/serialize";
@@ -9,7 +11,7 @@ import { Prisma, prisma } from "./prisma";
 
 export async function createSnapshot({
   snapshot,
-  activeSnapshotInfo,
+  prevSnapshotId,
 }: CreateSnapshotParams) {
   return await prisma.$transaction(
     async (prisma) => {
@@ -39,20 +41,29 @@ export async function createSnapshot({
       //   );
       // }
 
-      if (
-        document.activeSnapshot &&
-        activeSnapshotInfo !== undefined &&
-        document.activeSnapshot.id !== activeSnapshotInfo.snapshotId
-      ) {
-        throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
-          "Snapshot is out of date."
+      if (document.activeSnapshot) {
+        if (
+          prevSnapshotId !== undefined &&
+          document.activeSnapshot.id !== prevSnapshotId
+        ) {
+          throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
+            "Snapshot is out of date."
+          );
+        }
+
+        const compareUpdatesClocksResult = compareUpdatesClocks(
+          // @ts-expect-error the values are parsed by the function
+          document.activeSnapshot.clocks,
+          snapshot.publicData.parentSnapshotUpdatesClocks
         );
+
+        if (!compareUpdatesClocksResult.equal) {
+          throw new SecsyncSnapshotMissesUpdatesError(
+            "Snapshot does not include the latest changes."
+          );
+        }
       }
 
-      // TODO requires a check if all the latest changes are included
-      // throw new SecsyncSnapshotMissesUpdatesError(
-      //   "Snapshot does not include the latest changes."
-      // );
       const newSnapshot = await prisma.snapshot.create({
         data: {
           id: snapshot.publicData.snapshotId,
@@ -65,8 +76,8 @@ export async function createSnapshot({
           document: { connect: { id: snapshot.publicData.docId } },
           clocks: {},
           parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-          // TODO additionally could verify that the parentSnapshotClocks of the saved parent snapshot
-          parentSnapshotClocks: snapshot.publicData.parentSnapshotClocks,
+          parentSnapshotUpdatesClocks:
+            snapshot.publicData.parentSnapshotUpdatesClocks,
         },
       });
 

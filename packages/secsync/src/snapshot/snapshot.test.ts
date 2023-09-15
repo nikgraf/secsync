@@ -32,7 +32,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -63,7 +63,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -95,7 +95,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -127,7 +127,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -145,7 +145,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     snapshotId: snapshotId2,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
   const snapshot2 = createSnapshot(
     "Hello World2",
@@ -162,7 +162,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     snapshotId: snapshotId3,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
   const snapshot3 = createSnapshot(
     "Hello World3",
@@ -227,7 +227,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -245,7 +245,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     snapshotId: snapshotId2,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot2 = createSnapshot(
@@ -319,7 +319,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
   const snapshot = createSnapshot(
     "Hello World",
@@ -336,7 +336,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     snapshotId: snapshotId2,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
   const snapshot2 = createSnapshot(
     "Hello World2",
@@ -353,7 +353,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     snapshotId: snapshotId3,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
   const snapshot3 = createSnapshot(
     "Hello World3",
@@ -420,13 +420,13 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   ).toThrowError();
 });
 
-test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotClocks", () => {
+test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotUpdatesClocks", () => {
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -444,7 +444,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     snapshotId: snapshotId2,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {
+    parentSnapshotUpdatesClocks: {
       [sodium.to_base64(signatureKeyPairA.publicKey)]: 10,
     },
   };
@@ -474,13 +474,13 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
   expect(sodium.to_string(result2)).toBe("Hello World2");
 });
 
-test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshotClocks", () => {
+test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshotUpdatesClocks", () => {
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {},
+    parentSnapshotUpdatesClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -498,7 +498,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     snapshotId: snapshotId2,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
-    parentSnapshotClocks: {
+    parentSnapshotUpdatesClocks: {
       [sodium.to_base64(signatureKeyPairA.publicKey)]: 10,
     },
   };

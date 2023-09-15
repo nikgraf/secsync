@@ -2,15 +2,15 @@ import type { KeyPair } from "libsodium-wrappers";
 import { z } from "zod";
 import { SnapshotProofChainEntry } from "./snapshot/isValidAncestorSnapshot";
 
-export const SnapshotClocks = z.record(z.string(), z.number());
+export const SnapshotUpdatesClocks = z.record(z.string(), z.number());
 
-export type SnapshotClocks = z.infer<typeof SnapshotClocks>;
+export type SnapshotUpdatesClocks = z.infer<typeof SnapshotUpdatesClocks>;
 
 export const SnapshotPublicData = z.object({
   docId: z.string(),
   pubKey: z.string(), // public signing key
   snapshotId: z.string(),
-  parentSnapshotClocks: SnapshotClocks,
+  parentSnapshotUpdatesClocks: SnapshotUpdatesClocks,
 });
 
 export type SnapshotPublicData = z.infer<typeof SnapshotPublicData>;
@@ -20,7 +20,7 @@ export const SnapshotPublicDataWithParentSnapshotProof = z.object({
   pubKey: z.string(), // public signing key
   snapshotId: z.string(),
   parentSnapshotProof: z.string(),
-  parentSnapshotClocks: SnapshotClocks,
+  parentSnapshotUpdatesClocks: SnapshotUpdatesClocks,
 });
 
 export type SnapshotPublicDataWithParentSnapshotProof = z.infer<
@@ -151,9 +151,7 @@ export type SyncMachineConfig = {
 
 export type CreateSnapshotParams = {
   snapshot: SnapshotWithClientData;
-  activeSnapshotInfo?: {
-    snapshotId: string;
-  };
+  prevSnapshotId?: string;
 };
 
 export type CreateUpdateParams = {

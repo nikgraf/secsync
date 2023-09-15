@@ -2,7 +2,6 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { assign, interpret, spawn } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
-import { hash } from "./crypto/hash";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   SnapshotPublicData,
@@ -118,7 +117,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   return { update: { ...update, serverData: { version } } };
 };
 
-test("should apply snapshot from snapshot-save-failed", (done) => {
+test("put changes in updatesInFlight when sending updates", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -153,8 +152,10 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
+        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
+        logging: "error",
       })
       .withConfig({
         actions: {
@@ -181,27 +182,19 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
     });
 
     setTimeout(() => {
-      const { snapshot: snapshot2 } = createSnapshotTestHelper({
-        content: "Hello World1",
-        grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-        parentSnapshotCiphertext: snapshot.ciphertext,
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
+      });
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["llo"],
       });
 
       setTimeout(() => {
         syncService.send({
-          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-          data: {
-            snapshot: snapshot2,
-            snapshotProofChain: [
-              {
-                id: snapshot2.publicData.snapshotId,
-                parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
-                snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
-              },
-            ],
-            updates: [],
-            type: "snapshot-save-failed",
-          },
+          type: "ADD_CHANGES",
+          data: ["World"],
         });
       }, 1);
     }, 1);
@@ -213,9 +206,19 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
       runEvents();
     }
 
-    if (transitionCount === 10) {
-      expect(state.matches("connected.idle")).toBe(true);
-      expect(docValue).toBe("Hello World1");
+    if (state.context._updatesInFlight.length === 1) {
+      expect(state.context._updatesInFlight).toStrictEqual([
+        { clock: 0, changes: ["H", "e", "llo"] },
+      ]);
+    } else if (
+      state.context._updatesInFlight.length === 2 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._updatesInFlight).toStrictEqual([
+        { clock: 0, changes: ["H", "e", "llo"] },
+        { clock: 1, changes: ["World"] },
+      ]);
+      expect(state.context._pendingChangesQueue).toEqual([]);
       done();
     }
   });
@@ -223,7 +226,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
   syncService.start();
 });
 
-test("should ignore snapshot from snapshot-save-failed if already applied", (done) => {
+test("puts changes from updatesInFlight back to pendingChanges on Websocket disconnect", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -258,8 +261,10 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
         applySnapshot: (snapshot) => {
           docValue = sodium.to_string(snapshot);
         },
+        getUpdateKey: () => key,
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
+        logging: "error",
       })
       .withConfig({
         actions: {
@@ -286,36 +291,107 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
     });
 
     setTimeout(() => {
-      const { snapshot: snapshot2 } = createSnapshotTestHelper({
-        content: "Hello World1",
-        grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-        parentSnapshotCiphertext: snapshot.ciphertext,
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
       });
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["llo"],
+      });
+      setTimeout(() => {
+        syncService.send({
+          type: "DISCONNECT",
+        });
+      }, 1);
+    }, 1);
+  };
 
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (state.matches("disconnected")) {
+      expect(state.context._updatesInFlight).toEqual([]);
+      expect(state.context._pendingChangesQueue).toEqual(["H", "e", "llo"]);
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+test("allows to add changes before the document is loaded", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidCollaborator: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        getUpdateKey: () => key,
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    syncService.send({
+      type: "ADD_CHANGES",
+      data: ["H", "e"],
+    });
+
+    setTimeout(() => {
+      const { snapshot } = createSnapshotTestHelper();
       syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
-          snapshot: snapshot2,
-          type: "snapshot",
+          type: "document",
+          snapshot,
         },
       });
-      setTimeout(() => {
-        syncService.send({
-          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-          data: {
-            snapshot: snapshot2,
-            snapshotProofChain: [
-              {
-                id: snapshot2.publicData.snapshotId,
-                parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
-                snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
-              },
-            ],
-            updates: [],
-            type: "snapshot-save-failed",
-          },
-        });
-      }, 1);
     }, 1);
   };
 
@@ -325,8 +401,14 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
       runEvents();
     }
 
-    if (transitionCount === 13) {
-      expect(state.matches("connected.idle")).toBe(true);
+    if (
+      state.context._updatesInFlight.length === 1 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._updatesInFlight).toStrictEqual([
+        { clock: 0, changes: ["H", "e"] },
+      ]);
+      expect(state.context._pendingChangesQueue).toEqual([]);
       done();
     }
   });
@@ -334,7 +416,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
   syncService.start();
 });
 
-test("should apply update from snapshot-save-failed", (done) => {
+test("keeps pending changes upon disconnect", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -370,16 +452,9 @@ test("should apply update from snapshot-save-failed", (done) => {
           docValue = sodium.to_string(snapshot);
         },
         getUpdateKey: () => key,
-        deserializeChanges: (changes) => {
-          return changes;
-        },
-        applyChanges: (changes) => {
-          changes.forEach((change) => {
-            docValue = docValue + change;
-          });
-        },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
+        logging: "error",
       })
       .withConfig({
         actions: {
@@ -396,25 +471,15 @@ test("should apply update from snapshot-save-failed", (done) => {
   );
 
   const runEvents = () => {
-    const { snapshot } = createSnapshotTestHelper();
     syncService.send({
-      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-      data: {
-        type: "document",
-        snapshot,
-      },
+      type: "ADD_CHANGES",
+      data: ["H", "e"],
     });
 
     setTimeout(() => {
-      setTimeout(() => {
-        syncService.send({
-          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-          data: {
-            updates: [createUpdateTestHelper().update],
-            type: "snapshot-save-failed",
-          },
-        });
-      }, 1);
+      syncService.send({
+        type: "DISCONNECT",
+      });
     }, 1);
   };
 
@@ -424,236 +489,8 @@ test("should apply update from snapshot-save-failed", (done) => {
       runEvents();
     }
 
-    if (transitionCount === 10) {
-      expect(state.matches("connected.idle")).toBe(true);
-      expect(docValue).toBe("Hello Worldu");
-      done();
-    }
-  });
-
-  syncService.start();
-});
-
-test("should ignore update from snapshot-save-failed if already applied", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-
-      send({ type: "WEBSOCKET_CONNECTED" });
-
-      return () => {};
-    };
-
-  let docValue = "";
-  let transitionCount = 0;
-
-  const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
-        websocketHost: url,
-        websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
-          clientAPublicKey === signingPublicKey ||
-          clientBPublicKey === signingPublicKey,
-        getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
-          return {
-            data: "New Snapshot Data",
-            id: generateId(sodium),
-            key,
-            publicData: {},
-          };
-        },
-        applySnapshot: (snapshot) => {
-          docValue = sodium.to_string(snapshot);
-        },
-        getUpdateKey: () => key,
-        deserializeChanges: (changes) => {
-          return changes;
-        },
-        applyChanges: (changes) => {
-          changes.forEach((change) => {
-            docValue = docValue + change;
-          });
-        },
-        sodium: sodium,
-        signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  );
-
-  const runEvents = () => {
-    const { snapshot } = createSnapshotTestHelper();
-    syncService.send({
-      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-      data: {
-        type: "document",
-        snapshot,
-      },
-    });
-
-    const update = createUpdateTestHelper().update;
-    const update2 = createUpdateTestHelper({ version: 1 }).update;
-
-    syncService.send({
-      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-      data: {
-        ...update,
-        type: "update",
-      },
-    });
-
-    syncService.send({
-      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-      data: {
-        ...update2,
-        type: "update",
-      },
-    });
-
-    setTimeout(() => {
-      setTimeout(() => {
-        syncService.send({
-          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-          data: {
-            updates: [update],
-            type: "snapshot-save-failed",
-          },
-        });
-      }, 1);
-    }, 1);
-  };
-
-  syncService.onTransition((state, event) => {
-    transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
-      runEvents();
-    }
-
-    if (transitionCount === 16) {
-      expect(state.matches("connected.idle")).toBe(true);
-      expect(docValue).toBe("Hello Worlduu");
-      done();
-    }
-  });
-
-  syncService.start();
-});
-
-test("should ignore update from snapshot-save-failed if it was created by the current client", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-
-      send({ type: "WEBSOCKET_CONNECTED" });
-
-      return () => {};
-    };
-
-  let docValue = "";
-  let transitionCount = 0;
-
-  const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
-        websocketHost: url,
-        websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
-          clientAPublicKey === signingPublicKey ||
-          clientBPublicKey === signingPublicKey,
-        getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
-          return {
-            data: "New Snapshot Data",
-            id: generateId(sodium),
-            key,
-            publicData: {},
-          };
-        },
-        applySnapshot: (snapshot) => {
-          docValue = sodium.to_string(snapshot);
-        },
-        getUpdateKey: () => key,
-        deserializeChanges: (changes) => {
-          return changes;
-        },
-        applyChanges: (changes) => {
-          changes.forEach((change) => {
-            docValue = docValue + change;
-          });
-        },
-        sodium: sodium,
-        signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  );
-
-  const runEvents = () => {
-    const { snapshot } = createSnapshotTestHelper();
-    syncService.send({
-      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-      data: {
-        type: "document",
-        snapshot,
-      },
-    });
-
-    // this would usually break the clock checks
-    // this case can happen when an update was sent, saved on the server,
-    // but the confirmation `updated-saved` not yet received
-    const update = createUpdateTestHelper({
-      version: 22,
-      signatureKeyPair: clientBKeyPair,
-    }).update;
-
-    setTimeout(() => {
-      setTimeout(() => {
-        syncService.send({
-          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-          data: {
-            updates: [update],
-            type: "snapshot-save-failed",
-          },
-        });
-      }, 1);
-    }, 1);
-  };
-
-  syncService.onTransition((state, event) => {
-    transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
-      runEvents();
-    }
-
-    if (transitionCount === 10) {
-      expect(state.matches("connected.idle")).toBe(true);
-      expect(docValue).toBe("Hello World");
+    if (state.matches("disconnected")) {
+      expect(state.context._pendingChangesQueue).toEqual(["H", "e"]);
       done();
     }
   });

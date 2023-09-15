@@ -118,14 +118,9 @@ export const createWebSocketConnection =
             additionalAuthenticationDataValidations?.snapshot
           );
           try {
-            const activeSnapshotInfo = snapshotMessage.lastKnownSnapshotId
-              ? {
-                  snapshotId: snapshotMessage.lastKnownSnapshotId,
-                }
-              : undefined;
             const snapshot: Snapshot = await createSnapshot({
               snapshot: snapshotMessage,
-              activeSnapshotInfo,
+              prevSnapshotId: snapshotMessage.lastKnownSnapshotId,
             });
             connection.send(
               JSON.stringify({

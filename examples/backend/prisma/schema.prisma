@@ -18,18 +18,18 @@ model Document {
 }
 
 model Snapshot {
-  id                     String    @id
-  latestVersion          Int
-  data                   String
-  ciphertextHash         String
-  document               Document  @relation(fields: [documentId], references: [id])
-  documentId             String
-  updates                Update[]
-  activeSnapshotDocument Document? @relation("activeSnapshot")
-  createdAt              DateTime  @default(now())
-  clocks                 Json
-  parentSnapshotClocks   Json
-  parentSnapshotProof    String
+  id                          String    @id
+  latestVersion               Int
+  data                        String
+  ciphertextHash              String
+  document                    Document  @relation(fields: [documentId], references: [id])
+  documentId                  String
+  updates                     Update[]
+  activeSnapshotDocument      Document? @relation("activeSnapshot")
+  createdAt                   DateTime  @default(now())
+  clocks                      Json
+  parentSnapshotUpdatesClocks Json
+  parentSnapshotProof         String
 }
 
 model Update {

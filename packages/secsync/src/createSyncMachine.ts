@@ -101,7 +101,7 @@ type UpdateInFlight = {
   changes: any[];
 };
 
-type UpdateClocks = {
+type UpdatesClocks = {
   [snapshotId: string]: { [publicSigningKey: string]: number };
 };
 
@@ -125,7 +125,7 @@ type ProcessQueueData = {
   updatesConfirmedClock: number;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
-  updateClocks: UpdateClocks;
+  updatesClocks: UpdatesClocks;
   ephemeralMessageReceivingErrors: SecsyncProcessingEphemeralMessageError[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
@@ -139,7 +139,7 @@ export type InternalContextReset = {
   _updatesInFlight: UpdateInFlight[];
   _updatesConfirmedClock: number | null;
   _updatesLocalClock: number;
-  _updateClocks: UpdateClocks;
+  _updatesClocks: UpdatesClocks;
   _documentDecryptionState: DocumentDecryptionState;
   _ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
@@ -164,7 +164,7 @@ const disconnectionContextReset: InternalContextReset = {
   _updatesInFlight: [],
   _updatesConfirmedClock: null,
   _updatesLocalClock: -1,
-  _updateClocks: {},
+  _updatesClocks: {},
   _documentDecryptionState: "pending",
   _ephemeralMessagesSession: null,
 };
@@ -243,9 +243,9 @@ export const createSyncMachine = () =>
         _websocketShouldReconnect: false,
         _websocketRetries: 0,
         _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
-        _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updateClocks?)
+        _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updatesClocks?)
         _updatesLocalClock: -1,
-        _updateClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
+        _updatesClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
         _snapshotAndUpdateErrors: [],
         _ephemeralMessageReceivingErrors: [],
         _ephemeralMessageAuthoringErrors: [],
@@ -270,7 +270,7 @@ export const createSyncMachine = () =>
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
         FAILED_CREATING_EPHEMERAL_UPDATE: {
-          actions: ["updateephemeralMessageAuthoringErrors"],
+          actions: ["updateEphemeralMessageAuthoringErrors"],
         },
       },
       states: {
@@ -438,10 +438,21 @@ export const createSyncMachine = () =>
           };
         }),
         resetContext: assign((context, event) => {
+          let unconfirmedChanges = context._updatesInFlight.reduce(
+            (accumulator, updateInFlight) => {
+              return [...accumulator, ...updateInFlight.changes];
+            },
+            []
+          );
+          unconfirmedChanges = [
+            ...unconfirmedChanges,
+            ...context._pendingChangesQueue,
+          ];
           return {
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
+            _pendingChangesQueue: unconfirmedChanges,
             _websocketShouldReconnect: event.type !== "DISCONNECT",
           };
         }),
@@ -476,7 +487,7 @@ export const createSyncMachine = () =>
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
-              _updateClocks: event.data.updateClocks,
+              _updatesClocks: event.data.updatesClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
@@ -491,13 +502,13 @@ export const createSyncMachine = () =>
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
-              _updateClocks: event.data.updateClocks,
+              _updatesClocks: event.data.updatesClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
-          } else {
+          } else if (event.data.handledQueue === "pending") {
             return {
               _pendingChangesQueue: event.data.pendingChangesQueue,
               _activeSnapshotInfo: event.data.activeSnapshotInfo,
@@ -505,12 +516,16 @@ export const createSyncMachine = () =>
               _updatesLocalClock: event.data.updatesLocalClock,
               _updatesConfirmedClock: event.data.updatesConfirmedClock,
               _updatesInFlight: event.data.updatesInFlight,
-              _updateClocks: event.data.updateClocks,
+              _updatesClocks: event.data.updatesClocks,
               _ephemeralMessageReceivingErrors:
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
             };
+          } else if (event.data.handledQueue === "none") {
+            return {};
+          } else {
+            throw new Error("Unhandled queue");
           }
         }),
         // @ts-expect-error can't type the onError differently than onDone
@@ -526,7 +541,7 @@ export const createSyncMachine = () =>
             ],
           };
         }),
-        updateephemeralMessageAuthoringErrors: assign((context, event) => {
+        updateEphemeralMessageAuthoringErrors: assign((context, event) => {
           return {
             _ephemeralMessageAuthoringErrors: [
               event.error,
@@ -551,7 +566,7 @@ export const createSyncMachine = () =>
         },
         processQueues: (context, event) => async (send) => {
           if (context.logging === "debug") {
-            console.debug("clocks", JSON.stringify(context._updateClocks));
+            console.debug("clocks", JSON.stringify(context._updatesClocks));
             console.debug("processQueues event", event);
             console.debug("_incomingQueue", context._incomingQueue.length);
             console.debug(
@@ -573,7 +588,7 @@ export const createSyncMachine = () =>
           let updatesConfirmedClock = context._updatesConfirmedClock;
           let updatesInFlight = context._updatesInFlight;
           let pendingChangesQueue = context._pendingChangesQueue;
-          let updateClocks = context._updateClocks;
+          let updatesClocks = context._updatesClocks;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
 
@@ -592,7 +607,7 @@ export const createSyncMachine = () =>
                   pubKey: context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   ),
-                  parentSnapshotClocks: {},
+                  parentSnapshotUpdatesClocks: {},
                 };
                 const snapshot = createInitialSnapshot(
                   snapshotData.data,
@@ -620,15 +635,22 @@ export const createSyncMachine = () =>
                   }),
                 });
               } else {
+                const currentClientPublicKey = context.sodium.to_base64(
+                  context.signatureKeyPair.publicKey
+                );
+                const currentClientClock = {
+                  [currentClientPublicKey]: updatesConfirmedClock,
+                };
                 const publicData: SnapshotPublicData = {
                   ...snapshotData.publicData,
                   snapshotId: snapshotData.id,
                   docId: context.documentId,
-                  pubKey: context.sodium.to_base64(
-                    context.signatureKeyPair.publicKey
-                  ),
-                  parentSnapshotClocks:
-                    updateClocks[activeSnapshotInfo.id] || {},
+                  pubKey: currentClientPublicKey,
+                  parentSnapshotUpdatesClocks:
+                    {
+                      ...updatesClocks[activeSnapshotInfo.id],
+                      ...currentClientClock,
+                    } || currentClientClock,
                 };
                 const snapshot = createSnapshot(
                   snapshotData.data,
@@ -722,13 +744,13 @@ export const createSyncMachine = () =>
 
                 if (
                   parentSnapshotProofInfo &&
-                  updateClocks[parentSnapshotProofInfo.id]
+                  updatesClocks[parentSnapshotProofInfo.id]
                 ) {
                   const currentClientPublicKey = context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   );
                   parentSnapshotUpdateClock =
-                    updateClocks[parentSnapshotProofInfo.id][
+                    updatesClocks[parentSnapshotProofInfo.id][
                       currentClientPublicKey
                     ];
                 }
@@ -754,10 +776,10 @@ export const createSyncMachine = () =>
                 updatesLocalClock = -1;
                 if (
                   parentSnapshotProofInfo &&
-                  updateClocks[parentSnapshotProofInfo.id]
+                  updatesClocks[parentSnapshotProofInfo.id]
                 ) {
-                  // cleanup the updateClocks to avoid a memory leak
-                  delete updateClocks[parentSnapshotProofInfo.id];
+                  // cleanup the updatesClocks to avoid a memory leak
+                  delete updatesClocks[parentSnapshotProofInfo.id];
                 }
               } catch (err) {
                 if (
@@ -797,13 +819,13 @@ export const createSyncMachine = () =>
                   }
 
                   const currentClock =
-                    updateClocks[activeSnapshotInfo.id] &&
+                    updatesClocks[activeSnapshotInfo.id] &&
                     Number.isInteger(
-                      updateClocks[activeSnapshotInfo.id][
+                      updatesClocks[activeSnapshotInfo.id][
                         update.publicData.pubKey
                       ]
                     )
-                      ? updateClocks[activeSnapshotInfo.id][
+                      ? updatesClocks[activeSnapshotInfo.id][
                           update.publicData.pubKey
                         ]
                       : -1;
@@ -827,8 +849,8 @@ export const createSyncMachine = () =>
                   const { content, clock } = decryptUpdateResult;
 
                   const existingClocks =
-                    updateClocks[activeSnapshotInfo.id] || {};
-                  updateClocks[activeSnapshotInfo.id] = {
+                    updatesClocks[activeSnapshotInfo.id] || {};
+                  updatesClocks[activeSnapshotInfo.id] = {
                     ...existingClocks,
                     [update.publicData.pubKey]: clock,
                   };
@@ -1130,10 +1152,17 @@ export const createSyncMachine = () =>
               context._pendingChangesQueue.length > 0 &&
               snapshotInFlight === null
             ) {
+              if (documentDecryptionState !== "complete") {
+                // pending changes are ignored until the document is loaded
+                return {
+                  handledQueue: "none",
+                };
+              }
+
               handledQueue = "pending";
 
               const snapshotUpdatesCount = Object.entries(
-                context._updateClocks[activeSnapshotInfo?.id] || []
+                context._updatesClocks[activeSnapshotInfo?.id] || []
               ).reduce((prev, curr) => {
                 return prev + curr[1];
               }, 0);
@@ -1153,12 +1182,12 @@ export const createSyncMachine = () =>
                 if (context.logging === "debug") {
                   console.debug("send update");
                 }
-                const key = await context.getUpdateKey(event);
-                const rawChanges = context._pendingChangesQueue;
-                pendingChangesQueue = [];
                 if (activeSnapshotInfo === null) {
                   throw new Error("No active snapshot");
                 }
+                const key = await context.getUpdateKey(event);
+                const rawChanges = context._pendingChangesQueue;
+                pendingChangesQueue = [];
                 createAndSendUpdate(
                   rawChanges,
                   key,
@@ -1176,7 +1205,7 @@ export const createSyncMachine = () =>
               updatesLocalClock,
               updatesInFlight,
               pendingChangesQueue,
-              updateClocks,
+              updatesClocks,
               ephemeralMessageReceivingErrors:
                 context._ephemeralMessageReceivingErrors,
               documentDecryptionState,
@@ -1187,10 +1216,10 @@ export const createSyncMachine = () =>
               console.error("Processing queue error:", error);
             }
             if (error instanceof SecsyncProcessingEphemeralMessageError) {
-              const newephemeralMessageReceivingErrors = [
+              const newEphemeralMessageReceivingErrors = [
                 ...context._ephemeralMessageReceivingErrors,
               ];
-              newephemeralMessageReceivingErrors.unshift(error);
+              newEphemeralMessageReceivingErrors.unshift(error);
               return {
                 handledQueue,
                 activeSnapshotInfo,
@@ -1199,9 +1228,9 @@ export const createSyncMachine = () =>
                 updatesLocalClock,
                 updatesInFlight,
                 pendingChangesQueue,
-                updateClocks,
+                updatesClocks,
                 ephemeralMessageReceivingErrors:
-                  newephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
+                  newEphemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
                 documentDecryptionState,
                 ephemeralMessagesSession,
               };
