@@ -1,7 +1,9 @@
 ## Visualize which user made which change
 
 - In Automerge the user or device public should be used as an ID.
-- In Yjs the clientID seems to be generated (TODO ask Kevin if it's possible to set it manually and the implications if two clients would have the same ID and edit offline)
+- One idea was to leverage the clientID for it and assign it the publicKey. This approach would not work.
+  - The main issue for the userId is that it's only a uin32 which results in only 4 bytes. The publicKey itself is way longer and also some randomness would be good in case users have multiple tabs open on the same web-device using the same publicKey. In the long run it's probably better to build a parallel structure allowing users to sign a transaction and make it verifyable instead of manipulating the `clientID` directly.
+  - Note: For EphemeralMessages we already have validation. In the user state the publicKey is injected and verified within the `useYjsSync` hook. Details can be found here: https://github.com/serenity-kit/secsync/pull/47
 
 ### Possible Meta data issues
 

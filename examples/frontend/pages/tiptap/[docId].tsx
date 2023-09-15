@@ -33,7 +33,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
 
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
 
-  const [state, send, , yAwareness] = useYjsSync({
+  const [state, send] = useYjsSync({
     yDoc: yDocRef.current,
     documentId: docId,
     signatureKeyPair: authorKeyPair,
