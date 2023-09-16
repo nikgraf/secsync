@@ -102,6 +102,7 @@ export type ParentSnapshotProofInfo = {
 
 type KnownSnapshotInfo = SnapshotProofChainEntry & {
   id: string;
+  updatesClocks?: SnapshotUpdatesClocks;
 };
 
 export type AdditionalAuthenticationDataValidations = {
