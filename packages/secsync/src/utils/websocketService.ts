@@ -2,7 +2,11 @@ import {
   createEphemeralMessage,
   messageTypes,
 } from "../ephemeralMessage/createEphemeralMessage";
-import { EphemeralMessagesSession, SyncMachineConfig } from "../types";
+import {
+  EphemeralMessagesSession,
+  SnapshotUpdatesClocks,
+  SyncMachineConfig,
+} from "../types";
 
 export const websocketService =
   (
@@ -52,11 +56,30 @@ export const websocketService =
     }, 5000);
 
     const knownSnapshotIdParam = context.knownSnapshotInfo
-      ? `&knownSnapshotId={context.knownSnapshotInfo.id}`
+      ? `&knownSnapshotId=${context.knownSnapshotInfo.id}`
       : "";
 
+    let knownSnapshotUpdatesClocks = "";
+    if (
+      knownSnapshotIdParam !== "" &&
+      context.knownSnapshotInfo.updatesClocks
+    ) {
+      try {
+        const updatesClocks = SnapshotUpdatesClocks.parse(
+          context.knownSnapshotInfo.updatesClocks
+        );
+        knownSnapshotUpdatesClocks = `&knownSnapshotUpdatesClocks=${encodeURIComponent(
+          JSON.stringify(updatesClocks)
+        )}`;
+      } catch (err) {}
+    }
+
     const websocketConnection = new WebSocket(
-      `${context.websocketHost}/${context.documentId}?sessionKey=${context.websocketSessionKey}${knownSnapshotIdParam}`
+      `${context.websocketHost}/${context.documentId}?sessionKey=${
+        context.websocketSessionKey
+      }${knownSnapshotIdParam}${
+        knownSnapshotUpdatesClocks ? `&${knownSnapshotUpdatesClocks}` : ""
+      }`
     );
 
     const onWebsocketMessage = async (event: any) => {
