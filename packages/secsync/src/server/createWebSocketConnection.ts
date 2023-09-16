@@ -93,7 +93,9 @@ export const createWebSocketConnection =
           : urlParts.query.lastKnownSnapshotUpdatesClocks;
         if (lastKnownSnapshotUpdatesClocksQueryEntry) {
           lastKnownSnapshotUpdatesClocks = SnapshotUpdatesClocks.parse(
-            JSON.parse(lastKnownSnapshotUpdatesClocksQueryEntry)
+            JSON.parse(
+              decodeURIComponent(lastKnownSnapshotUpdatesClocksQueryEntry)
+            )
           );
         }
       } catch (err) {}
