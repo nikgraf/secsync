@@ -662,6 +662,7 @@ export const createSyncMachine = () =>
                   publicData,
                   snapshotData.key,
                   context.signatureKeyPair,
+                  activeSnapshotInfo.id,
                   activeSnapshotInfo.ciphertext,
                   activeSnapshotInfo.parentSnapshotProof,
                   context.sodium
@@ -905,6 +906,7 @@ export const createSyncMachine = () =>
                           context.knownSnapshotInfo.parentSnapshotProof,
                         snapshotCiphertextHash:
                           context.knownSnapshotInfo.snapshotCiphertextHash,
+                        snapshotId: context.knownSnapshotInfo.snapshotId,
                       },
                       snapshotProofChain: event.snapshotProofChain,
                       currentSnapshot: event.snapshot,
@@ -1007,6 +1009,7 @@ export const createSyncMachine = () =>
                               activeSnapshotInfo.ciphertext,
                               context.sodium
                             ),
+                            snapshotId: activeSnapshotInfo.id,
                           },
                           snapshotProofChain: event.snapshotProofChain,
                           currentSnapshot: snapshot,

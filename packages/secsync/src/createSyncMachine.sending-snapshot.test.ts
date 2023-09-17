@@ -51,6 +51,7 @@ beforeEach(async () => {
 });
 
 type CreateSnapshotTestHelperParams = {
+  parentSnapshotId: string;
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
@@ -59,8 +60,12 @@ type CreateSnapshotTestHelperParams = {
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
-  const { parentSnapshotCiphertext, grandParentSnapshotProof, content } =
-    params || {};
+  const {
+    parentSnapshotId,
+    parentSnapshotCiphertext,
+    grandParentSnapshotProof,
+    content,
+  } = params || {};
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
   );
@@ -77,6 +82,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
+    parentSnapshotId || "",
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium

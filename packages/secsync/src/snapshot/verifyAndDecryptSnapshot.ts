@@ -36,6 +36,7 @@ export function verifyAndDecryptSnapshot(
     const isValid = isValidParentSnapshot({
       snapshot,
       parentSnapshotCiphertext: parentSnapshotProofInfo.ciphertext,
+      parentSnapshotId: parentSnapshotProofInfo.id,
       grandParentSnapshotProof: parentSnapshotProofInfo.parentSnapshotProof,
       sodium,
     });

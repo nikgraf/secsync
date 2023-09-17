@@ -66,6 +66,7 @@ beforeEach(async () => {
 });
 
 type CreateSnapshotTestHelperParams = {
+  parentSnapshotId: string;
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
@@ -75,6 +76,7 @@ type CreateSnapshotTestHelperParams = {
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
   const {
+    parentSnapshotId,
     parentSnapshotCiphertext,
     grandParentSnapshotProof,
     content,
@@ -96,6 +98,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
+    parentSnapshotId || "",
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium
@@ -556,6 +559,7 @@ test("should load a document and an additional snapshot", (done) => {
   });
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotCiphertext: snapshot.ciphertext,
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
@@ -725,6 +729,7 @@ test("should load a document with updates and two two additional snapshots", (do
   });
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotCiphertext: snapshot.ciphertext,
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
@@ -741,6 +746,7 @@ test("should load a document with updates and two two additional snapshots", (do
   });
 
   const { snapshot: snapshot3 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot2.publicData.snapshotId,
     parentSnapshotCiphertext: snapshot2.ciphertext,
     grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
     content: "Hello World again and again",

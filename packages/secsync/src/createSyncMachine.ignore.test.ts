@@ -66,6 +66,7 @@ beforeEach(async () => {
 });
 
 type CreateSnapshotTestHelperParams = {
+  parentSnapshotId: string;
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
@@ -75,6 +76,7 @@ type CreateSnapshotTestHelperParams = {
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
   const {
+    parentSnapshotId,
     parentSnapshotCiphertext,
     grandParentSnapshotProof,
     content,
@@ -96,6 +98,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
+    parentSnapshotId || "",
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium

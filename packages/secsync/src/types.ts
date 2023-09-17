@@ -94,14 +94,12 @@ export const Event = z.union([Snapshot, Update, EphemeralMessage]);
 export type Event = z.infer<typeof Event>;
 
 export type ParentSnapshotProofInfo = {
-  // TODO should the id be part of the proof hash?
-  id: string; // used for the clocks
+  id: string;
   ciphertext: string;
   parentSnapshotProof: string;
 };
 
 type KnownSnapshotInfo = SnapshotProofChainEntry & {
-  id: string;
   updatesClocks?: SnapshotUpdatesClocks;
 };
 
