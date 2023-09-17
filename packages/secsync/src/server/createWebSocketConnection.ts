@@ -20,7 +20,7 @@ import {
 } from "../types";
 import { parseUpdate } from "../update/parseUpdate";
 import { retryAsyncFunction } from "../utils/retryAsyncFunction";
-import { addConnection, addUpdate, removeConnection } from "./store";
+import { addConnection, broadcastMessage, removeConnection } from "./store";
 
 type GetDocumentResult = {
   snapshot?: Snapshot;
@@ -60,7 +60,7 @@ export const createWebSocketConnection =
     const handleDocumentError = () => {
       connection.send(JSON.stringify({ type: "document-error" }));
       connection.close();
-      removeConnection(documentId, connection);
+      removeConnection({ documentId, currentClientConnection: connection });
     };
 
     try {
@@ -114,7 +114,7 @@ export const createWebSocketConnection =
         return;
       }
 
-      addConnection(documentId, connection);
+      addConnection({ documentId, currentClientConnection: connection });
       connection.send(JSON.stringify({ type: "document", ...doc }));
 
       connection.on("message", async function message(messageContent) {
@@ -153,11 +153,14 @@ export const createWebSocketConnection =
               publicData: snapshotMessage.publicData,
               signature: snapshotMessage.signature,
             };
-            addUpdate(
+            broadcastMessage({
               documentId,
-              { type: "snapshot", snapshot: snapshotMsgForOtherClients },
-              connection
-            );
+              message: {
+                type: "snapshot",
+                snapshot: snapshotMsgForOtherClients,
+              },
+              currentClientConnection: connection,
+            });
           } catch (error) {
             if (logging === "error") {
               console.error("SNAPSHOT FAILED ERROR:", error);
@@ -273,11 +276,11 @@ export const createWebSocketConnection =
                 clock: savedUpdate.publicData.clock,
               })
             );
-            addUpdate(
+            broadcastMessage({
               documentId,
-              { ...savedUpdate, type: "update" },
-              connection
-            );
+              message: { ...savedUpdate, type: "update" },
+              currentClientConnection: connection,
+            });
           } catch (err) {
             if (logging === "error") {
               console.error("update failed", err);
@@ -310,16 +313,16 @@ export const createWebSocketConnection =
             data,
             additionalAuthenticationDataValidations?.ephemeralMessage
           );
-          addUpdate(
+          broadcastMessage({
             documentId,
-            { ...ephemeralMessageMessage, type: "ephemeral-message" },
-            connection
-          );
+            message: { ...ephemeralMessageMessage, type: "ephemeral-message" },
+            currentClientConnection: connection,
+          });
         }
       });
 
       connection.on("close", function () {
-        removeConnection(documentId, connection);
+        removeConnection({ documentId, currentClientConnection: connection });
       });
     } catch (error) {
       if (logging === "error") {
