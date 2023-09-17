@@ -115,3 +115,25 @@ test("it returns false to due a manipulated parentSnapshotProof", () => {
   });
   expect(isValid).toBe(false);
 });
+
+test("it returns false for a changed parentSnapshotId", () => {
+  const isValid = isValidParentSnapshot({
+    grandParentSnapshotProof,
+    parentSnapshotId: "WRONG_ID",
+    parentSnapshotCiphertext,
+    snapshot: {
+      nonce: "nonce",
+      ciphertext: "ciphertext",
+      publicData: {
+        parentSnapshotProof,
+        docId: "docId",
+        snapshotId: "snapshotId",
+        pubKey: "pubKey",
+        parentSnapshotUpdatesClocks: {},
+      },
+      signature: "signature",
+    },
+    sodium,
+  });
+  expect(isValid).toBe(false);
+});
