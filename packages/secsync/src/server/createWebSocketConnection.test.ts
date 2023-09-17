@@ -2,7 +2,7 @@ import { IncomingMessage } from "http";
 import sodium from "libsodium-wrappers";
 import { WebSocket } from "ws";
 import { createWebSocketConnection } from "./createWebSocketConnection";
-import { addConnection, addUpdate, removeConnection } from "./store";
+import { addConnection, broadcastMessage, removeConnection } from "./store";
 
 // mock the WebSocket class
 jest.mock("ws");
@@ -18,7 +18,7 @@ beforeEach(async () => {
   mockReq = { url: "/test-document" } as IncomingMessage;
 
   (addConnection as jest.Mock).mockClear();
-  (addUpdate as jest.Mock).mockClear();
+  (broadcastMessage as jest.Mock).mockClear();
   (removeConnection as jest.Mock).mockClear();
 });
 
@@ -43,7 +43,10 @@ it("should handle document error if URL is undefined", async () => {
     JSON.stringify({ type: "document-error" })
   );
   expect(mockWs.close).toHaveBeenCalledTimes(1);
-  expect(removeConnection).toHaveBeenCalledWith("", mockWs);
+  expect(removeConnection).toHaveBeenCalledWith({
+    documentId: "",
+    currentClientConnection: mockWs,
+  });
 });
 
 it("should close connection if unauthorized for read access", async () => {
@@ -115,7 +118,10 @@ it("should add connection and send document if found", async () => {
   expect(mockGetDocument).toHaveBeenCalledWith({
     documentId: "test-document",
   });
-  expect(addConnection).toHaveBeenCalledWith("test-document", mockWs);
+  expect(addConnection).toHaveBeenCalledWith({
+    documentId: "test-document",
+    currentClientConnection: mockWs,
+  });
   expect(mockWs.send).toHaveBeenCalledWith(
     JSON.stringify({ type: "document", ...mockDocument })
   );

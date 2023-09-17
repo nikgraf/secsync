@@ -4,29 +4,55 @@ type DocumentStoreEntry = {
 
 const documents: { [key: string]: DocumentStoreEntry } = {};
 
-export const addUpdate = (documentId: string, update: any, connection: any) => {
+export type BroadcastMessageParams = {
+  documentId: string;
+  message: any;
+  currentClientConnection: any;
+};
+
+export const broadcastMessage = ({
+  documentId,
+  message,
+  currentClientConnection,
+}: BroadcastMessageParams) => {
   documents[documentId]?.connections?.forEach((conn) => {
-    if (connection !== conn) {
-      conn.send(JSON.stringify(update));
+    if (currentClientConnection !== conn) {
+      conn.send(JSON.stringify(message));
     }
     // for debugging purposes
     // conn.send(JSON.stringify(update));
   });
 };
 
-export const addConnection = (documentId: string, connection: any) => {
+export type AddConnectionParams = {
+  documentId: string;
+  currentClientConnection: any;
+};
+
+export const addConnection = ({
+  documentId,
+  currentClientConnection,
+}: AddConnectionParams) => {
   if (documents[documentId]) {
-    documents[documentId].connections.add(connection);
+    documents[documentId].connections.add(currentClientConnection);
   } else {
     documents[documentId] = {
       connections: new Set<any>(),
     };
-    documents[documentId].connections.add(connection);
+    documents[documentId].connections.add(currentClientConnection);
   }
 };
 
-export const removeConnection = (documentId: string, connection: any) => {
+export type RemoveConnectionParams = {
+  documentId: string;
+  currentClientConnection: any;
+};
+
+export const removeConnection = ({
+  documentId,
+  currentClientConnection,
+}: RemoveConnectionParams) => {
   if (documents[documentId]) {
-    documents[documentId].connections.delete(connection);
+    documents[documentId].connections.delete(currentClientConnection);
   }
 };
