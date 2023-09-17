@@ -4,6 +4,7 @@ import { Snapshot } from "../types";
 
 export type SnapshotProofChainEntry = {
   parentSnapshotProof: string;
+  snapshotId: string;
   snapshotCiphertextHash: string;
 };
 
@@ -16,17 +17,20 @@ type IsValidAncestorSnapshotParams = {
 
 type CreateParentSnapshotProofBasedOnHashParams = {
   grandParentSnapshotProof: string;
+  parentSnapshotId: string;
   parentSnapshotCiphertextHash: string;
   sodium: typeof import("libsodium-wrappers");
 };
 
 export function createParentSnapshotProofBasedOnHash({
   grandParentSnapshotProof,
+  parentSnapshotId,
   parentSnapshotCiphertextHash,
   sodium,
 }: CreateParentSnapshotProofBasedOnHashParams) {
   const snapshotProofData = canonicalize({
     grandParentSnapshotProof,
+    parentSnapshotId,
     parentSnapshotCiphertext: parentSnapshotCiphertextHash,
   })!;
   const parentSnapshotProof = hash(snapshotProofData, sodium);
@@ -47,6 +51,7 @@ export function isValidAncestorSnapshot({
   // check the first entry with the known entry
   const known = createParentSnapshotProofBasedOnHash({
     grandParentSnapshotProof: knownSnapshotProofEntry.parentSnapshotProof,
+    parentSnapshotId: knownSnapshotProofEntry.snapshotId,
     parentSnapshotCiphertextHash:
       knownSnapshotProofEntry.snapshotCiphertextHash,
     sodium,
@@ -70,11 +75,12 @@ export function isValidAncestorSnapshot({
 
   // check all items in between
   snapshotProofChain.forEach((snapshotProofChainEntry, index) => {
-    const { parentSnapshotProof, snapshotCiphertextHash } =
+    const { parentSnapshotProof, snapshotCiphertextHash, snapshotId } =
       snapshotProofChainEntry;
     const parentSnapshotProofBasedOnHash = createParentSnapshotProofBasedOnHash(
       {
         grandParentSnapshotProof: parentSnapshotProof,
+        parentSnapshotId: snapshotId,
         parentSnapshotCiphertextHash: snapshotCiphertextHash,
         sodium,
       }

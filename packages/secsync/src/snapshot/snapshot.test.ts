@@ -42,6 +42,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -71,6 +72,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
     publicData,
     key,
     signatureKeyPairA,
+    "",
     "",
     "",
     sodium
@@ -105,6 +107,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -137,6 +140,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -152,6 +156,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     publicData2,
     key,
     signatureKeyPairA,
+    snapshot.publicData.snapshotId,
     snapshot.ciphertext,
     snapshot.publicData.parentSnapshotProof,
     sodium
@@ -169,6 +174,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     publicData3,
     key,
     signatureKeyPairA,
+    snapshot2.publicData.snapshotId,
     snapshot2.ciphertext,
     snapshot2.publicData.parentSnapshotProof,
     sodium
@@ -237,6 +243,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -253,6 +260,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData2,
     key,
     signatureKeyPairA,
+    snapshot.publicData.snapshotId,
     snapshot.ciphertext,
     snapshot.publicData.parentSnapshotProof,
     sodium
@@ -269,6 +277,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
         ciphertext: snapshot.ciphertext,
         parentSnapshotProof: createParentSnapshotProof({
           parentSnapshotCiphertext: snapshot.ciphertext, // wrong ciphertext
+          parentSnapshotId: snapshot.publicData.snapshotId,
           grandParentSnapshotProof: "",
           sodium,
         }),
@@ -287,6 +296,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
         ciphertext: snapshot.ciphertext,
         parentSnapshotProof: createParentSnapshotProof({
           parentSnapshotCiphertext: "",
+          parentSnapshotId: snapshot.publicData.snapshotId,
           grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof, // wrong proof
           sodium,
         }),
@@ -304,6 +314,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
         id: snapshot.publicData.snapshotId,
         ciphertext: snapshot2.ciphertext, // wrong ciphertext
         parentSnapshotProof: createParentSnapshotProof({
+          parentSnapshotId: "",
           parentSnapshotCiphertext: "",
           grandParentSnapshotProof: "",
           sodium,
@@ -328,6 +339,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -343,6 +355,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData2,
     key,
     signatureKeyPairA,
+    snapshot.publicData.snapshotId,
     snapshot.ciphertext,
     snapshot.publicData.parentSnapshotProof,
     sodium
@@ -360,6 +373,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData3,
     key,
     signatureKeyPairA,
+    snapshot2.publicData.snapshotId,
     snapshot2.ciphertext,
     snapshot2.publicData.parentSnapshotProof,
     sodium
@@ -375,6 +389,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
         id: snapshot2.publicData.snapshotId,
         ciphertext: snapshot2.ciphertext,
         parentSnapshotProof: createParentSnapshotProof({
+          parentSnapshotId: snapshot.publicData.snapshotId,
           parentSnapshotCiphertext: snapshot2.ciphertext, // wrong ciphertext
           grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
           sodium,
@@ -393,6 +408,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
         id: snapshot2.publicData.snapshotId,
         ciphertext: snapshot2.ciphertext,
         parentSnapshotProof: createParentSnapshotProof({
+          parentSnapshotId: snapshot.publicData.snapshotId,
           parentSnapshotCiphertext: snapshot.ciphertext,
           grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof, // wrong proof
           sodium,
@@ -411,6 +427,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
         id: snapshot2.publicData.snapshotId,
         ciphertext: snapshot3.ciphertext, // wrong ciphertext
         parentSnapshotProof: createParentSnapshotProof({
+          parentSnapshotId: snapshot.publicData.snapshotId,
           parentSnapshotCiphertext: snapshot.ciphertext,
           grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
           sodium,
@@ -436,6 +453,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -453,6 +471,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     publicData2,
     key,
     signatureKeyPairA,
+    snapshot.publicData.snapshotId,
     snapshot.ciphertext,
     snapshot.publicData.parentSnapshotProof,
     sodium
@@ -490,6 +509,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     signatureKeyPairA,
     "",
     "",
+    "",
     sodium
   );
 
@@ -507,6 +527,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     publicData2,
     key,
     signatureKeyPairA,
+    snapshot.publicData.snapshotId,
     snapshot.ciphertext,
     snapshot.publicData.parentSnapshotProof,
     sodium

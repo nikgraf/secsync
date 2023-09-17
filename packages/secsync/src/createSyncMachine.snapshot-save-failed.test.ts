@@ -52,6 +52,7 @@ beforeEach(async () => {
 });
 
 type CreateSnapshotTestHelperParams = {
+  parentSnapshotId: string;
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
@@ -60,8 +61,12 @@ type CreateSnapshotTestHelperParams = {
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
-  const { parentSnapshotCiphertext, grandParentSnapshotProof, content } =
-    params || {};
+  const {
+    parentSnapshotId,
+    parentSnapshotCiphertext,
+    grandParentSnapshotProof,
+    content,
+  } = params || {};
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
   );
@@ -78,6 +83,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
+    parentSnapshotId || "",
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium
@@ -184,6 +190,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
       const { snapshot: snapshot2 } = createSnapshotTestHelper({
         content: "Hello World1",
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        parentSnapshotId: snapshot.publicData.snapshotId,
         parentSnapshotCiphertext: snapshot.ciphertext,
       });
 
@@ -289,6 +296,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
       const { snapshot: snapshot2 } = createSnapshotTestHelper({
         content: "Hello World1",
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        parentSnapshotId: snapshot.publicData.snapshotId,
         parentSnapshotCiphertext: snapshot.ciphertext,
       });
 

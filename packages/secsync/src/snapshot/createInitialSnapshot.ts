@@ -16,6 +16,7 @@ export function createInitialSnapshot<AdditionalSnapshotPublicData>(
     signatureKeyPair,
     "",
     "",
+    "",
     sodium
   );
   return snapshot;

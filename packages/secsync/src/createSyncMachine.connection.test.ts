@@ -69,7 +69,7 @@ test("should connect and use lastKnownSnapshotId as query param", (done) => {
       websocketSessionKey: "mySessionKey",
       sodium,
       knownSnapshotInfo: {
-        id: "mySnapshotId",
+        snapshotId: "mySnapshotId",
         parentSnapshotProof: "myParentSnapshotProof",
         snapshotCiphertextHash: "mySnapshotCiphertextHash",
       },
@@ -102,7 +102,7 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
       websocketSessionKey: "mySessionKey",
       sodium,
       knownSnapshotInfo: {
-        id: "mySnapshotId",
+        snapshotId: "mySnapshotId",
         parentSnapshotProof: "myParentSnapshotProof",
         snapshotCiphertextHash: "mySnapshotCiphertextHash",
         updatesClocks,

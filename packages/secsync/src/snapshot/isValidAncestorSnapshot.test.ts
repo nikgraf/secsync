@@ -37,38 +37,46 @@ const createDummySnapshot = (
 beforeEach(() => {
   const snapshot1Proof = createParentSnapshotProof({
     grandParentSnapshotProof: "",
+    parentSnapshotId: "",
     parentSnapshotCiphertext: "",
     sodium,
   });
   snapshot1ProofEntry = {
     parentSnapshotProof: snapshot1Proof,
+    snapshotId: "s1",
     snapshotCiphertextHash: hash("abc", sodium),
   };
   const snapshot2Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot1Proof,
+    parentSnapshotId: "s1",
     parentSnapshotCiphertext: "abc",
     sodium,
   });
   snapshot2ProofEntry = {
     parentSnapshotProof: snapshot2Proof,
+    snapshotId: "s2",
     snapshotCiphertextHash: hash("def", sodium),
   };
   const snapshot3Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot2Proof,
+    parentSnapshotId: "s2",
     parentSnapshotCiphertext: "def",
     sodium,
   });
   snapshot3ProofEntry = {
     parentSnapshotProof: snapshot3Proof,
+    snapshotId: "s3",
     snapshotCiphertextHash: hash("ghi", sodium),
   };
   const snapshot4Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot3Proof,
+    parentSnapshotId: "s3",
     parentSnapshotCiphertext: "ghi",
     sodium,
   });
   snapshot4ProofEntry = {
     parentSnapshotProof: snapshot4Proof,
+    snapshotId: "s4",
     snapshotCiphertextHash: hash("jkl", sodium),
   };
 });

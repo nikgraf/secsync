@@ -56,7 +56,7 @@ export const websocketService =
     }, 5000);
 
     const knownSnapshotIdParam = context.knownSnapshotInfo
-      ? `&knownSnapshotId=${context.knownSnapshotInfo.id}`
+      ? `&knownSnapshotId=${context.knownSnapshotInfo.snapshotId}`
       : "";
 
     let knownSnapshotUpdatesClocks = "";
