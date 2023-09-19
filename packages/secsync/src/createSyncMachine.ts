@@ -123,7 +123,7 @@ type ProcessQueueData = {
   activeSnapshotInfo: ActiveSnapshotInfo | null;
   snapshotInFlight: ActiveSnapshotInfo | null;
   updatesLocalClock: number;
-  updatesConfirmedClock: number;
+  updatesConfirmedClock: number | null;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
   updatesClocks: UpdatesClocks;
@@ -643,9 +643,12 @@ export const createSyncMachine = () =>
                 const currentClientPublicKey = context.sodium.to_base64(
                   context.signatureKeyPair.publicKey
                 );
-                const currentClientClock = {
-                  [currentClientPublicKey]: updatesConfirmedClock,
-                };
+                const currentClientClock =
+                  updatesConfirmedClock !== null
+                    ? {
+                        [currentClientPublicKey]: updatesConfirmedClock,
+                      }
+                    : {};
                 const publicData: SnapshotPublicData = {
                   ...snapshotData.publicData,
                   snapshotId: snapshotData.id,
