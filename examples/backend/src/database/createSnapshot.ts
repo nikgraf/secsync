@@ -9,10 +9,7 @@ import {
 import { serializeSnapshot } from "../utils/serialize";
 import { Prisma, prisma } from "./prisma";
 
-export async function createSnapshot({
-  snapshot,
-  prevSnapshotId,
-}: CreateSnapshotParams) {
+export async function createSnapshot({ snapshot }: CreateSnapshotParams) {
   return await prisma.$transaction(
     async (prisma) => {
       const document = await prisma.document.findUniqueOrThrow({
@@ -43,8 +40,8 @@ export async function createSnapshot({
 
       if (document.activeSnapshot) {
         if (
-          prevSnapshotId !== undefined &&
-          document.activeSnapshot.id !== prevSnapshotId
+          snapshot.publicData.parentSnapshotId !== undefined &&
+          snapshot.publicData.parentSnapshotId !== document.activeSnapshot.id
         ) {
           throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
             "Snapshot is out of date."
