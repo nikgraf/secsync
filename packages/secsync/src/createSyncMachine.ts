@@ -234,14 +234,14 @@ export const createSyncMachine = () =>
         isValidCollaborator: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
-        _activeSnapshotInfo: null, // Why is it important?
-        _snapshotInFlight: null, // Why is it important?
-        _incomingQueue: [], // TODO _queues.incoming
-        _customMessageQueue: [], // TODO _queues.customMessages
-        _pendingChangesQueue: [], // TODO _queues.pendingChanges
+        _activeSnapshotInfo: null, // TODO Why is it important?
+        _snapshotInFlight: null, // it is needed so the the snapshotInFlight can be applied as the activeSnapshot once the server confirmed that it has been saved
+        _incomingQueue: [],
+        _customMessageQueue: [],
+        _pendingChangesQueue: [],
         _websocketShouldReconnect: false,
         _websocketRetries: 0,
-        _updatesInFlight: [], // Why? - if necessary move to _updates - updatesInFlight
+        _updatesInFlight: [], // is needed to collect all changes from updates that haven't been confirmed in case of a disconnect
         _updatesConfirmedClock: null, // TODO move to _updates.currentClient and rename to serverConfirmedClock (why not part of _updatesClocks?)
         _updatesLocalClock: -1,
         _updatesClocks: {}, // TODO merge with ordered snapshots and possibly updatesConfirmedClock & updatesInFlight & _snapshotInFlight & _activeSnapshotInfo
