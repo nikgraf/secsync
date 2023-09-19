@@ -91,6 +91,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientAPublicKey,
     parentSnapshotUpdatesClocks: parentSnapshotUpdatesClocks || {},
+    parentSnapshotId: parentSnapshotId || "",
   };
 
   const snapshot = createSnapshot(
@@ -98,7 +99,6 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
-    parentSnapshotId || "",
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium

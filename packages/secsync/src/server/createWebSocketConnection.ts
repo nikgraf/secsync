@@ -139,7 +139,6 @@ export const createWebSocketConnection =
             );
             const snapshot: Snapshot = await createSnapshot({
               snapshot: snapshotMessage,
-              prevSnapshotId: snapshotMessage.lastKnownSnapshotId,
             });
             connection.send(
               JSON.stringify({

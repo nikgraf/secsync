@@ -611,6 +611,7 @@ export const createSyncMachine = () =>
                   pubKey: context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   ),
+                  parentSnapshotId: "",
                   parentSnapshotUpdatesClocks: {},
                 };
                 const snapshot = createInitialSnapshot(
@@ -635,7 +636,6 @@ export const createSyncMachine = () =>
                     ...snapshot,
                     // Note: send a faulty message to test the error handling
                     // ciphertext: "lala",
-                    lastKnownSnapshotId: null,
                     additionalServerData: snapshotData.additionalServerData,
                   }),
                 });
@@ -654,6 +654,7 @@ export const createSyncMachine = () =>
                   snapshotId: snapshotData.id,
                   docId: context.documentId,
                   pubKey: currentClientPublicKey,
+                  parentSnapshotId: activeSnapshotInfo.id,
                   parentSnapshotUpdatesClocks:
                     {
                       ...updatesClocks[activeSnapshotInfo.id],
@@ -665,7 +666,6 @@ export const createSyncMachine = () =>
                   publicData,
                   snapshotData.key,
                   context.signatureKeyPair,
-                  activeSnapshotInfo.id,
                   activeSnapshotInfo.ciphertext,
                   activeSnapshotInfo.parentSnapshotProof,
                   context.sodium
@@ -685,7 +685,6 @@ export const createSyncMachine = () =>
                     ...snapshot,
                     // Note: send a faulty message to test the error handling
                     // ciphertext: "lala",
-                    lastKnownSnapshotId: activeSnapshotInfo.id,
                     additionalServerData: snapshotData.additionalServerData,
                   }),
                 });

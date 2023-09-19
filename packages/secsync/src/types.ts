@@ -10,6 +10,7 @@ export const SnapshotPublicData = z.object({
   docId: z.string(),
   pubKey: z.string(), // public signing key
   snapshotId: z.string(),
+  parentSnapshotId: z.string(),
   parentSnapshotUpdatesClocks: SnapshotUpdatesClocks,
 });
 
@@ -19,6 +20,7 @@ export const SnapshotPublicDataWithParentSnapshotProof = z.object({
   docId: z.string(),
   pubKey: z.string(), // public signing key
   snapshotId: z.string(),
+  parentSnapshotId: z.string(),
   parentSnapshotProof: z.string(),
   parentSnapshotUpdatesClocks: SnapshotUpdatesClocks,
 });
@@ -65,7 +67,6 @@ export const Snapshot = z.object({
 export type Snapshot = z.infer<typeof Snapshot>;
 
 export const SnapshotWithClientData = Snapshot.extend({
-  lastKnownSnapshotId: z.string().nullable().optional(),
   additionalServerData: z.unknown().optional(),
 });
 
@@ -148,7 +149,6 @@ export type SyncMachineConfig = {
 
 export type CreateSnapshotParams = {
   snapshot: SnapshotWithClientData;
-  prevSnapshotId?: string;
 };
 
 export type CreateUpdateParams = {
