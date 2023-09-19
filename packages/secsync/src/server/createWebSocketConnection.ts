@@ -163,7 +163,7 @@ export const createWebSocketConnection =
             });
           } catch (error) {
             if (logging === "error") {
-              console.error("SNAPSHOT FAILED ERROR:", error);
+              console.error("SNAPSHOT FAILED ERROR:", error, data);
             }
             try {
               if (
