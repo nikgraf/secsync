@@ -132,11 +132,11 @@ export const createWebSocketConnection =
             return;
           }
 
-          const snapshotMessage = parseSnapshotWithClientData(
-            data,
-            additionalAuthenticationDataValidations?.snapshot
-          );
           try {
+            const snapshotMessage = parseSnapshotWithClientData(
+              data,
+              additionalAuthenticationDataValidations?.snapshot
+            );
             const snapshot: Snapshot = await createSnapshot({
               snapshot: snapshotMessage,
               prevSnapshotId: snapshotMessage.lastKnownSnapshotId,
@@ -165,68 +165,78 @@ export const createWebSocketConnection =
             if (logging === "error") {
               console.error("SNAPSHOT FAILED ERROR:", error);
             }
-            if (error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError) {
-              // TODO retry?
-              let document = await getDocument({
-                documentId,
-                lastKnownSnapshotId: data.lastKnownSnapshotId,
-              });
-              if (document) {
+            try {
+              if (
+                error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError
+              ) {
+                // TODO retry?
+                let document = await getDocument({
+                  documentId,
+                  lastKnownSnapshotId: data.lastKnownSnapshotId,
+                });
+                if (document) {
+                  connection.send(
+                    JSON.stringify({
+                      type: "snapshot-save-failed",
+                      snapshot: document.snapshot,
+                      updates: document.updates,
+                      snapshotProofChain: document.snapshotProofChain,
+                    })
+                  );
+                } else {
+                  if (logging === "error") {
+                    console.error(
+                      'document not found for "snapshotBasedOnOutdatedSnapshot" error'
+                    );
+                  }
+                  connection.send(
+                    JSON.stringify({
+                      type: "snapshot-save-failed",
+                    })
+                  );
+                }
+              } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
+                const document = await getDocument({
+                  documentId,
+                  lastKnownSnapshotId: data.lastKnownSnapshotId,
+                });
+                if (document) {
+                  connection.send(
+                    JSON.stringify({
+                      type: "snapshot-save-failed",
+                      updates: document.updates,
+                    })
+                  );
+                } else {
+                  // log since it's an unexpected error
+                  if (logging === "error") {
+                    console.error(
+                      'document not found for "snapshotMissesUpdates" error'
+                    );
+                  }
+                  connection.send(
+                    JSON.stringify({
+                      type: "snapshot-save-failed",
+                    })
+                  );
+                }
+              } else if (error instanceof SecsyncNewSnapshotRequiredError) {
                 connection.send(
                   JSON.stringify({
                     type: "snapshot-save-failed",
-                    snapshot: document.snapshot,
-                    updates: document.updates,
-                    snapshotProofChain: document.snapshotProofChain,
                   })
                 );
               } else {
-                if (logging === "error") {
-                  console.error(
-                    'document not found for "snapshotBasedOnOutdatedSnapshot" error'
-                  );
-                }
                 connection.send(
                   JSON.stringify({
                     type: "snapshot-save-failed",
                   })
                 );
               }
-            } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
-              const document = await getDocument({
-                documentId,
-                lastKnownSnapshotId: data.lastKnownSnapshotId,
-              });
-              if (document) {
-                connection.send(
-                  JSON.stringify({
-                    type: "snapshot-save-failed",
-                    updates: document.updates,
-                  })
-                );
-              } else {
-                // log since it's an unexpected error
-                if (logging === "error") {
-                  console.error(
-                    'document not found for "snapshotMissesUpdates" error'
-                  );
-                }
-                connection.send(
-                  JSON.stringify({
-                    type: "snapshot-save-failed",
-                  })
-                );
-              }
-            } else if (error instanceof SecsyncNewSnapshotRequiredError) {
-              connection.send(
-                JSON.stringify({
-                  type: "snapshot-save-failed",
-                })
-              );
-            } else {
+            } catch (err) {
               // log since it's an unexpected error
               if (logging === "error") {
-                console.error(error);
+                console.error("SNAPSHOT FAILED ERROR HANDLING FAILED:", err);
               }
               connection.send(
                 JSON.stringify({
