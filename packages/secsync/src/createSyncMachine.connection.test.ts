@@ -95,7 +95,7 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
-  const updatesClocks = {
+  const updateClocks = {
     publicKeyA: 2,
     publicKeyB: 9999,
   };
@@ -110,7 +110,7 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
         snapshotId: "mySnapshotId",
         parentSnapshotProof: "myParentSnapshotProof",
         snapshotCiphertextHash: "mySnapshotCiphertextHash",
-        updatesClocks,
+        updateClocks,
       },
     })
   );
@@ -125,7 +125,7 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
       decodeURIComponent(urlParts.query.knownSnapshotUpdatesClocks as string)
     );
 
-    expect(lastKnownSnapshotUpdatesClocks).toEqual(updatesClocks);
+    expect(lastKnownSnapshotUpdatesClocks).toEqual(updateClocks);
     syncService.stop();
     done();
   });

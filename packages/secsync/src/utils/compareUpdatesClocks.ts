@@ -1,11 +1,11 @@
 import { SnapshotUpdatesClocks } from "../types";
 
 export const compareUpdatesClocks = (
-  updatesClocksServer: SnapshotUpdatesClocks,
-  updatesClocksClient: SnapshotUpdatesClocks
+  updateClocksServer: SnapshotUpdatesClocks,
+  updateClocksClient: SnapshotUpdatesClocks
 ): { equal: boolean; missing: SnapshotUpdatesClocks } => {
-  const clocksServer = SnapshotUpdatesClocks.parse(updatesClocksServer);
-  const clocksClient = SnapshotUpdatesClocks.parse(updatesClocksClient);
+  const clocksServer = SnapshotUpdatesClocks.parse(updateClocksServer);
+  const clocksClient = SnapshotUpdatesClocks.parse(updateClocksClient);
 
   const keysServer = Object.keys(clocksServer);
   const keysClient = Object.keys(clocksClient);

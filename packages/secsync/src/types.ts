@@ -101,7 +101,7 @@ export type ParentSnapshotProofInfo = {
 };
 
 type KnownSnapshotInfo = SnapshotProofChainEntry & {
-  updatesClocks?: SnapshotUpdatesClocks;
+  updateClocks?: SnapshotUpdatesClocks;
 };
 
 export type AdditionalAuthenticationDataValidations = {
@@ -174,4 +174,9 @@ export type EphemeralMessagesSession = {
   id: string;
   counter: number;
   validSessions: ValidSessions;
+};
+
+export type SnapshotInfoWithUpdateClocks = {
+  snapshot: Snapshot;
+  updateClocks: SnapshotUpdatesClocks;
 };

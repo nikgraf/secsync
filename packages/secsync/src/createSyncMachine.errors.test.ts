@@ -569,14 +569,12 @@ test("reset the context entries after websocket disconnect", (done) => {
   ).onTransition((state) => {
     if (state.matches("connecting.retrying")) {
       expect(state.context._documentDecryptionState).toEqual("pending");
-      expect(state.context._activeSnapshotInfo).toEqual(null);
       expect(state.context._incomingQueue).toEqual([]);
       expect(state.context._customMessageQueue).toEqual([]);
       expect(state.context._snapshotInFlight).toEqual(null);
       expect(state.context._updatesInFlight).toEqual([]);
-      expect(state.context._updatesConfirmedClock).toEqual(null);
+      expect(state.context._snapshotInfosWithUpdateClocks).toEqual([]);
       expect(state.context._updatesLocalClock).toEqual(-1);
-      expect(state.context._updatesClocks).toEqual({});
       expect(state.context._ephemeralMessagesSession).not.toBe(null);
       expect(state.context._ephemeralMessageReceivingErrors).toEqual([]);
       expect(state.context._ephemeralMessageAuthoringErrors).toEqual([]);

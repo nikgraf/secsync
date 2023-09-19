@@ -60,16 +60,13 @@ export const websocketService =
       : "";
 
     let knownSnapshotUpdatesClocks = "";
-    if (
-      knownSnapshotIdParam !== "" &&
-      context.knownSnapshotInfo.updatesClocks
-    ) {
+    if (knownSnapshotIdParam !== "" && context.knownSnapshotInfo.updateClocks) {
       try {
-        const updatesClocks = SnapshotUpdatesClocks.parse(
-          context.knownSnapshotInfo.updatesClocks
+        const updateClocks = SnapshotUpdatesClocks.parse(
+          context.knownSnapshotInfo.updateClocks
         );
         knownSnapshotUpdatesClocks = `&knownSnapshotUpdatesClocks=${encodeURIComponent(
-          JSON.stringify(updatesClocks)
+          JSON.stringify(updateClocks)
         )}`;
       } catch (err) {}
     }

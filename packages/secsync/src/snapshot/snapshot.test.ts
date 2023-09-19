@@ -118,7 +118,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
     verifyAndDecryptSnapshot(
       {
         ...snapshot,
-        ciphertext: snapshot.ciphertext.replace(/^./, "a"),
+        ciphertext: "aaa" + snapshot.ciphertext.substring(3),
       },
       key,
       docId,
