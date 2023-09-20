@@ -15,6 +15,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
@@ -28,13 +29,11 @@ let clientBSessionId: string;
 let clientBPublicData: EphemeralMessagePublicData;
 
 let key: Uint8Array;
-let docId: string;
 let snapshotId: string;
 
 beforeEach(async () => {
   await sodium.ready;
 
-  docId = generateId(sodium);
   clientAKeyPair = {
     privateKey: sodium.from_base64(
       "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
@@ -190,6 +189,7 @@ test("should connect to the websocket", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         signatureKeyPair: clientAKeyPair,
@@ -232,6 +232,7 @@ test("should initially have _documentDecryptionState state", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -282,6 +283,7 @@ test("should load a document", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -343,6 +345,7 @@ test("should load a document with updates", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -416,6 +419,7 @@ test("should load a document and two additional updates", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -504,6 +508,7 @@ test("should load a document and an additional snapshot", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -583,6 +588,7 @@ test("should load a document with updates and two additional updates", (done) =>
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -670,6 +676,7 @@ test("should load a document with updates and two two additional snapshots", (do
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -771,6 +778,7 @@ test("should load a document and process three additional ephemeral messages", (
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>

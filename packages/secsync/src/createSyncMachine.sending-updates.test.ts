@@ -11,6 +11,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
@@ -19,13 +20,10 @@ let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 
 let key: Uint8Array;
-let docId: string;
 let snapshotId: string;
 
 beforeEach(async () => {
   await sodium.ready;
-
-  docId = generateId(sodium);
 
   clientAKeyPair = {
     privateKey: sodium.from_base64(
@@ -141,6 +139,7 @@ test("put changes in updatesInFlight when sending updates", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -249,6 +248,7 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -345,6 +345,7 @@ test("allows to add changes before the document is loaded", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -437,6 +438,7 @@ test("keeps pending changes upon disconnect", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>

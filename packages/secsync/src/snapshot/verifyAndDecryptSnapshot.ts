@@ -7,6 +7,7 @@ import { isValidParentSnapshot } from "./isValidParentSnapshot";
 export function verifyAndDecryptSnapshot(
   snapshot: Snapshot,
   key: Uint8Array,
+  currentDocId: string,
   currentClientPublicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers"),
   parentSnapshotProofInfo?: ParentSnapshotProofInfo,
@@ -30,6 +31,10 @@ export function verifyAndDecryptSnapshot(
   );
   if (!isValid) {
     throw new Error("Invalid snapshot");
+  }
+
+  if (currentDocId !== snapshot.publicData.docId) {
+    throw new Error("Invalid docId for snapshot");
   }
 
   if (parentSnapshotProofInfo) {

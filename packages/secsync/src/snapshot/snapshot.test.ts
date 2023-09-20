@@ -5,6 +5,7 @@ import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { createSnapshot } from "./createSnapshot";
 import { verifyAndDecryptSnapshot } from "./verifyAndDecryptSnapshot";
 
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 let signatureKeyPairA: KeyPair;
 let key: Uint8Array;
 
@@ -30,7 +31,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -49,6 +50,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
   const result = verifyAndDecryptSnapshot(
     snapshot,
     key,
+    docId,
     signatureKeyPairA.publicKey,
     sodium
   );
@@ -62,7 +64,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -85,6 +87,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
         signature: snapshot.signature.replace(/^./, "a"),
       },
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium
     )
@@ -95,7 +98,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -118,6 +121,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
         ciphertext: snapshot.ciphertext.replace(/^./, "a"),
       },
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium
     )
@@ -128,7 +132,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -147,7 +151,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const snapshotId2 = generateId(sodium);
   const publicData2: SnapshotPublicData = {
     snapshotId: snapshotId2,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {},
@@ -165,7 +169,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const snapshotId3 = generateId(sodium);
   const publicData3: SnapshotPublicData = {
     snapshotId: snapshotId3,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot2.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {},
@@ -183,6 +187,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const result = verifyAndDecryptSnapshot(
     snapshot,
     key,
+    docId,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -199,6 +204,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const result2 = verifyAndDecryptSnapshot(
     snapshot2,
     key,
+    docId,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -215,6 +221,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
   const result3 = verifyAndDecryptSnapshot(
     snapshot3,
     key,
+    docId,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -231,7 +238,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -251,7 +258,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   const snapshotId2 = generateId(sodium);
   const publicData2: SnapshotPublicData = {
     snapshotId: snapshotId2,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {},
@@ -272,6 +279,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -291,6 +299,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -310,6 +319,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -330,7 +340,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -349,7 +359,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   const snapshotId2 = generateId(sodium);
   const publicData2: SnapshotPublicData = {
     snapshotId: snapshotId2,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {},
@@ -367,7 +377,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   const snapshotId3 = generateId(sodium);
   const publicData3: SnapshotPublicData = {
     snapshotId: snapshotId3,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot2.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {},
@@ -386,6 +396,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot3,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -405,6 +416,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot3,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -424,6 +436,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     verifyAndDecryptSnapshot(
       snapshot3,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -444,7 +457,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -463,7 +476,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
   const snapshotId2 = generateId(sodium);
   const publicData2: SnapshotPublicData = {
     snapshotId: snapshotId2,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {
@@ -483,6 +496,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
   const result2 = verifyAndDecryptSnapshot(
     snapshot2,
     key,
+    docId,
     signatureKeyPairA.publicKey,
     sodium,
     {
@@ -500,7 +514,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
     parentSnapshotUpdatesClocks: {},
@@ -519,7 +533,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
   const snapshotId2 = generateId(sodium);
   const publicData2: SnapshotPublicData = {
     snapshotId: snapshotId2,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
     parentSnapshotUpdatesClocks: {
@@ -540,6 +554,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     verifyAndDecryptSnapshot(
       snapshot,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -555,6 +570,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -570,6 +586,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -585,6 +602,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     verifyAndDecryptSnapshot(
       snapshot2,
       key,
+      docId,
       signatureKeyPairA.publicKey,
       sodium,
       {
@@ -593,6 +611,42 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
         parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
       },
       0 // clock should be 10
+    )
+  ).toThrowError();
+});
+
+test("verifyAndDecryptSnapshot fails due wrong docId", () => {
+  const snapshotId = generateId(sodium);
+  const publicData: SnapshotPublicData = {
+    snapshotId,
+    docId,
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotId: "",
+    parentSnapshotUpdatesClocks: {},
+  };
+
+  const snapshot = createSnapshot(
+    "Hello World",
+    publicData,
+    key,
+    signatureKeyPairA,
+    "",
+    "",
+    sodium
+  );
+
+  expect(() =>
+    verifyAndDecryptSnapshot(
+      snapshot,
+      key,
+      "WRONG_DOCUMENT_ID",
+      signatureKeyPairA.publicKey,
+      sodium,
+      {
+        id: "",
+        ciphertext: "",
+        parentSnapshotProof: "",
+      }
     )
   ).toThrowError();
 });

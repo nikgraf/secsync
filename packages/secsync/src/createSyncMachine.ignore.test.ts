@@ -15,6 +15,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
@@ -28,12 +29,10 @@ let clientBSessionId: string;
 let clientBPublicData: EphemeralMessagePublicData;
 
 let key: Uint8Array;
-let docId: string;
 let snapshotId: string;
 
 beforeEach(async () => {
   await sodium.ready;
-  docId = generateId(sodium);
 
   clientAKeyPair = {
     privateKey: sodium.from_base64(
@@ -46,7 +45,7 @@ beforeEach(async () => {
   };
   clientAPublicKey = sodium.to_base64(clientAKeyPair.publicKey);
   clientAPublicData = {
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: clientAPublicKey,
   };
   clientASessionId = generateId(sodium);
@@ -88,7 +87,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
 
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId: "6e46c006-5541-11ec-bf63-0242ac130002",
+    docId,
     pubKey: clientAPublicKey,
     parentSnapshotId: parentSnapshotId || "",
     parentSnapshotUpdatesClocks: parentSnapshotUpdatesClocks || {},
@@ -195,6 +194,7 @@ test("process three additional ephemeral messages where the second is ignored si
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -323,6 +323,7 @@ test("ignore an ephemeral message coming from a reply attack", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -454,6 +455,7 @@ test("should ignore an update in case it's a reply attack with the same update",
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -555,6 +557,7 @@ test("should ignore an update in case it's a different update, but the same cloc
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>

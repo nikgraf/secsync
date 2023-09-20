@@ -11,6 +11,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
@@ -19,13 +20,10 @@ let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 
 let key: Uint8Array;
-let docId: string;
 let snapshotId: string;
 
 beforeEach(async () => {
   await sodium.ready;
-
-  docId = generateId(sodium);
 
   clientAKeyPair = {
     privateKey: sodium.from_base64(
@@ -141,6 +139,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -230,6 +229,7 @@ test("send initial snapshot if received document didn't include one, but changes
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>

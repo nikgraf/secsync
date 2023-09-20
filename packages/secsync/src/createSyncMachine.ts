@@ -769,6 +769,7 @@ export const createSyncMachine = () =>
                 const decryptedSnapshot = verifyAndDecryptSnapshot(
                   snapshot,
                   snapshotKey,
+                  context.documentId,
                   context.signatureKeyPair.publicKey,
                   context.sodium,
                   parentSnapshotProofInfo,
@@ -843,6 +844,7 @@ export const createSyncMachine = () =>
                   const decryptUpdateResult = verifyAndDecryptUpdate(
                     update,
                     key,
+                    activeSnapshotInfo.id,
                     context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
                     ),
@@ -864,6 +866,10 @@ export const createSyncMachine = () =>
                     ...existingClocks,
                     [update.publicData.pubKey]: clock,
                   };
+                  // const snapshotInfoEntryWithUpdatesClocks =
+                  //   snapshotsWithUpdatesClocks.find(
+                  //     (entry) => entry.id === activeSnapshotInfo.id
+                  //   );
 
                   if (
                     update.publicData.pubKey ===
@@ -1141,6 +1147,7 @@ export const createSyncMachine = () =>
                       verifyAndDecryptEphemeralMessage(
                         ephemeralMessage,
                         key,
+                        context.documentId,
                         context._ephemeralMessagesSession,
                         context.signatureKeyPair,
                         context.sodium
