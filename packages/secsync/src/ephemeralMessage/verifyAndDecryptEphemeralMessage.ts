@@ -13,6 +13,7 @@ import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 export function verifyAndDecryptEphemeralMessage(
   ephemeralMessage: EphemeralMessage,
   key: Uint8Array,
+  currentDocId: string,
   ephemeralMessagesSession: EphemeralMessagesSession,
   authorSignatureKeyPair: KeyPair,
   sodium: typeof import("libsodium-wrappers")
@@ -55,6 +56,10 @@ export function verifyAndDecryptEphemeralMessage(
   const sessionCounter = uint8ArrayToNumber(sessionCounterAsUint8Array);
   const publicKeyAsBase64 = sodium.to_base64(publicKey);
   const { validSessions } = ephemeralMessagesSession;
+
+  if (ephemeralMessage.publicData.docId !== currentDocId) {
+    return { validSessions };
+  }
 
   if (type === messageTypes.initialize) {
     const proof = createEphemeralMessageProof(

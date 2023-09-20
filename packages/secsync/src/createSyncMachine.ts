@@ -865,6 +865,10 @@ export const createSyncMachine = () =>
                     ...existingClocks,
                     [update.publicData.pubKey]: clock,
                   };
+                  // const snapshotInfoEntryWithUpdatesClocks =
+                  //   snapshotsWithUpdatesClocks.find(
+                  //     (entry) => entry.id === activeSnapshotInfo.id
+                  //   );
 
                   if (
                     update.publicData.pubKey ===
@@ -1142,6 +1146,7 @@ export const createSyncMachine = () =>
                       verifyAndDecryptEphemeralMessage(
                         ephemeralMessage,
                         key,
+                        context.documentId,
                         context._ephemeralMessagesSession,
                         context.signatureKeyPair,
                         context.sodium

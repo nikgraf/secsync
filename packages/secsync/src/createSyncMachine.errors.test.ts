@@ -15,6 +15,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
@@ -28,12 +29,10 @@ let clientBSessionId: string;
 let clientBPublicData: EphemeralMessagePublicData;
 
 let key: Uint8Array;
-let docId: string;
 let snapshotId: string;
 
 beforeEach(async () => {
   await sodium.ready;
-  docId = generateId(sodium);
 
   clientAKeyPair = {
     privateKey: sodium.from_base64(
@@ -192,6 +191,7 @@ test("set _documentDecryptionState to failed if not even the snapshot can be loa
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -260,6 +260,7 @@ test("set _documentDecryptionState to partial and apply the first update, if doc
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -331,6 +332,7 @@ test("set _documentDecryptionState to partial, if document snapshot decrypts but
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -400,6 +402,7 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -521,6 +524,7 @@ test("reset the context entries after websocket disconnect", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -614,6 +618,7 @@ test("reconnect and reload the document", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -711,6 +716,7 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -789,6 +795,7 @@ test("fails in case the collaborator is not valid", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) => false,

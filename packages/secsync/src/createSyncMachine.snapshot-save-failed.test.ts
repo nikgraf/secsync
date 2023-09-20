@@ -12,6 +12,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 
 let clientAKeyPair: KeyPair;
 let clientAPublicKey: string;
@@ -20,13 +21,10 @@ let clientBKeyPair: KeyPair;
 let clientBPublicKey: string;
 
 let key: Uint8Array;
-let docId: string;
 let snapshotId: string;
 
 beforeEach(async () => {
   await sodium.ready;
-
-  docId = generateId(sodium);
 
   clientAKeyPair = {
     privateKey: sodium.from_base64(
@@ -142,6 +140,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -248,6 +247,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -360,6 +360,7 @@ test("should apply update from snapshot-save-failed", (done) => {
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -459,6 +460,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>
@@ -577,6 +579,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
     syncMachine
       .withContext({
         ...syncMachine.context,
+        documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         isValidCollaborator: (signingPublicKey) =>

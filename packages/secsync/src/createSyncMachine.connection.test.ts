@@ -5,11 +5,12 @@ import { interpret } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 
 const url = "wss://www.example.com";
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 let mockServer: Server;
 
 beforeEach(async () => {
   await sodium.ready;
-  mockServer = new Server(url);
+  mockServer = new Server(`${url}/${docId}`);
 });
 
 afterEach((done) => {
@@ -23,6 +24,7 @@ test("should start with connecting", (done) => {
   const syncService = interpret(
     syncMachine.withContext({
       ...syncMachine.context,
+      documentId: docId,
       websocketHost: url,
       websocketSessionKey: "sessionKey",
       sodium,
@@ -44,6 +46,7 @@ test("should connect", (done) => {
   const syncService = interpret(
     syncMachine.withContext({
       ...syncMachine.context,
+      documentId: docId,
       websocketHost: url,
       websocketSessionKey: "sessionKey",
       sodium,
@@ -65,6 +68,7 @@ test("should connect and use lastKnownSnapshotId as query param", (done) => {
   const syncService = interpret(
     syncMachine.withContext({
       ...syncMachine.context,
+      documentId: docId,
       websocketHost: url,
       websocketSessionKey: "mySessionKey",
       sodium,
@@ -78,7 +82,7 @@ test("should connect and use lastKnownSnapshotId as query param", (done) => {
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      "wss://www.example.com/?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId"
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId`
     );
     syncService.stop();
     done();
@@ -98,6 +102,7 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
   const syncService = interpret(
     syncMachine.withContext({
       ...syncMachine.context,
+      documentId: docId,
       websocketHost: url,
       websocketSessionKey: "mySessionKey",
       sodium,
@@ -112,7 +117,7 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      "wss://www.example.com/?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId&&knownSnapshotUpdatesClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D"
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId&&knownSnapshotUpdatesClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
     );
 
     const urlParts = parseUrl(socket.url, true);
