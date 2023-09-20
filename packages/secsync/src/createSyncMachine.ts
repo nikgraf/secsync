@@ -769,6 +769,7 @@ export const createSyncMachine = () =>
                 const decryptedSnapshot = verifyAndDecryptSnapshot(
                   snapshot,
                   snapshotKey,
+                  context.documentId,
                   context.signatureKeyPair.publicKey,
                   context.sodium,
                   parentSnapshotProofInfo,
