@@ -843,6 +843,7 @@ export const createSyncMachine = () =>
                   const decryptUpdateResult = verifyAndDecryptUpdate(
                     update,
                     key,
+                    activeSnapshotInfo.id,
                     context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
                     ),

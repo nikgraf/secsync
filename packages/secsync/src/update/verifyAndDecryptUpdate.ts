@@ -6,6 +6,7 @@ import { Update } from "../types";
 export function verifyAndDecryptUpdate(
   update: Update,
   key: Uint8Array,
+  currentActiveSnapshotId: string,
   currentClientPublicKey: string,
   currentClock: number,
   skipIfCurrentClockIsHigher: boolean,
@@ -30,6 +31,10 @@ export function verifyAndDecryptUpdate(
   );
   if (!isValid) {
     throw new Error("Invalid signature for update");
+  }
+
+  if (currentActiveSnapshotId !== update.publicData.refSnapshotId) {
+    return null;
   }
 
   if (
