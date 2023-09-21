@@ -30,7 +30,7 @@ import {
 import { createUpdate } from "./update/createUpdate";
 import { parseUpdates } from "./update/parseUpdates";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
-import { updateUpdatesClocksEntry } from "./utils/updateUpdatesClocksEntry";
+import { updateUpdateClocksEntry } from "./utils/updateUpdateClocksEntry";
 import { websocketService } from "./utils/websocketService";
 
 // The sync machine is responsible for syncing the document with the server.
@@ -600,7 +600,7 @@ export const createSyncMachine = () =>
                     context.signatureKeyPair.publicKey
                   ),
                   parentSnapshotId: "",
-                  parentSnapshotUpdatesClocks: {},
+                  parentSnapshotUpdateClocks: {},
                 };
                 const snapshot = createInitialSnapshot(
                   snapshotData.data,
@@ -635,7 +635,7 @@ export const createSyncMachine = () =>
                   docId: context.documentId,
                   pubKey: currentClientPublicKey,
                   parentSnapshotId: activeSnapshot.publicData.snapshotId,
-                  parentSnapshotUpdatesClocks:
+                  parentSnapshotUpdateClocks:
                     snapshotInfosWithUpdateClocks.find(
                       (entry) =>
                         entry.snapshot.publicData.snapshotId ===
@@ -842,7 +842,7 @@ export const createSyncMachine = () =>
 
                   const { content, clock } = decryptUpdateResult;
 
-                  snapshotInfosWithUpdateClocks = updateUpdatesClocksEntry({
+                  snapshotInfosWithUpdateClocks = updateUpdateClocksEntry({
                     snapshotInfosWithUpdateClocks,
                     snapshotId: activeSnapshot.publicData.snapshotId,
                     clientPublicKey: update.publicData.pubKey,
@@ -1060,7 +1060,7 @@ export const createSyncMachine = () =>
                     console.debug("update saved", event);
                   }
 
-                  snapshotInfosWithUpdateClocks = updateUpdatesClocksEntry({
+                  snapshotInfosWithUpdateClocks = updateUpdateClocksEntry({
                     snapshotInfosWithUpdateClocks,
                     clientPublicKey: context.sodium.to_base64(
                       context.signatureKeyPair.publicKey

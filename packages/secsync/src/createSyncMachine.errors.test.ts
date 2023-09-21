@@ -9,7 +9,7 @@ import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralMessagePublicData,
   SnapshotPublicData,
-  SnapshotUpdatesClocks,
+  SnapshotUpdateClocks,
   UpdatePublicData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
@@ -69,7 +69,7 @@ type CreateSnapshotTestHelperParams = {
   parentSnapshotCiphertext: string;
   grandParentSnapshotProof: string;
   content: string;
-  parentSnapshotUpdatesClocks?: SnapshotUpdatesClocks;
+  parentSnapshotUpdateClocks?: SnapshotUpdateClocks;
 };
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
@@ -79,7 +79,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     parentSnapshotCiphertext,
     grandParentSnapshotProof,
     content,
-    parentSnapshotUpdatesClocks,
+    parentSnapshotUpdateClocks,
   } = params || {};
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
@@ -89,7 +89,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     snapshotId,
     docId: "6e46c006-5541-11ec-bf63-0242ac130002",
     pubKey: clientAPublicKey,
-    parentSnapshotUpdatesClocks: parentSnapshotUpdatesClocks || {},
+    parentSnapshotUpdateClocks: parentSnapshotUpdateClocks || {},
     parentSnapshotId: parentSnapshotId || "",
   };
 

@@ -5,7 +5,7 @@ import { prisma } from "./prisma";
 export async function getOrCreateDocument({
   documentId,
   lastKnownSnapshotId,
-  lastKnownSnapshotUpdatesClocks,
+  lastKnownSnapshotUpdateClocks,
 }: GetDocumentParams) {
   return prisma.$transaction(async (prisma) => {
     const doc = await prisma.document.findUnique({
@@ -52,7 +52,7 @@ export async function getOrCreateDocument({
     let lastKnownVersion: number | undefined = undefined;
     // in case the last known snapshot is the current one, try to find the lastKnownVersion number
     if (lastKnownSnapshotId === doc.activeSnapshot.id) {
-      const updateIds = Object.entries(lastKnownSnapshotUpdatesClocks).map(
+      const updateIds = Object.entries(lastKnownSnapshotUpdateClocks).map(
         ([pubKey, clock]) => {
           return `${lastKnownSnapshotId}-${pubKey}-${clock}`;
         }

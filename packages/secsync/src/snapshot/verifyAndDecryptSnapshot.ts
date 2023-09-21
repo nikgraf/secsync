@@ -56,7 +56,7 @@ export function verifyAndDecryptSnapshot(
     );
 
     if (
-      snapshot.publicData.parentSnapshotUpdatesClocks[
+      snapshot.publicData.parentSnapshotUpdateClocks[
         currentClientPublicKeyString
       ] !== parentSnapshotUpdateClock
     ) {

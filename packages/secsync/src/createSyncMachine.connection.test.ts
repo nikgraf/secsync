@@ -91,7 +91,7 @@ test("should connect and use lastKnownSnapshotId as query param", (done) => {
   syncService.start();
 });
 
-test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClocks as query param", (done) => {
+test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdateClocks as query param", (done) => {
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
@@ -117,15 +117,15 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdatesClock
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      `wss://www.example.com/${docId}?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId&&knownSnapshotUpdatesClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId&&knownSnapshotUpdateClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
     );
 
     const urlParts = parseUrl(socket.url, true);
-    const lastKnownSnapshotUpdatesClocks = JSON.parse(
-      decodeURIComponent(urlParts.query.knownSnapshotUpdatesClocks as string)
+    const lastKnownSnapshotUpdateClocks = JSON.parse(
+      decodeURIComponent(urlParts.query.knownSnapshotUpdateClocks as string)
     );
 
-    expect(lastKnownSnapshotUpdatesClocks).toEqual(updateClocks);
+    expect(lastKnownSnapshotUpdateClocks).toEqual(updateClocks);
     syncService.stop();
     done();
   });

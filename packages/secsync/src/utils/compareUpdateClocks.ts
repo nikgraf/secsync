@@ -1,11 +1,11 @@
-import { SnapshotUpdatesClocks } from "../types";
+import { SnapshotUpdateClocks } from "../types";
 
-export const compareUpdatesClocks = (
-  updateClocksServer: SnapshotUpdatesClocks,
-  updateClocksClient: SnapshotUpdatesClocks
-): { equal: boolean; missing: SnapshotUpdatesClocks } => {
-  const clocksServer = SnapshotUpdatesClocks.parse(updateClocksServer);
-  const clocksClient = SnapshotUpdatesClocks.parse(updateClocksClient);
+export const compareUpdateClocks = (
+  updateClocksServer: SnapshotUpdateClocks,
+  updateClocksClient: SnapshotUpdateClocks
+): { equal: boolean; missing: SnapshotUpdateClocks } => {
+  const clocksServer = SnapshotUpdateClocks.parse(updateClocksServer);
+  const clocksClient = SnapshotUpdateClocks.parse(updateClocksClient);
 
   const keysServer = Object.keys(clocksServer);
   const keysClient = Object.keys(clocksClient);
@@ -18,7 +18,7 @@ export const compareUpdatesClocks = (
     return { equal, missing: {} };
   }
 
-  const missing = keysServer.reduce((acc: SnapshotUpdatesClocks, key) => {
+  const missing = keysServer.reduce((acc: SnapshotUpdateClocks, key) => {
     return clocksServer[key] === undefined ||
       clocksServer[key] !== clocksClient[key]
       ? { ...acc, [key]: clocksClient[key] || 0 }

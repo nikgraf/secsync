@@ -16,7 +16,7 @@ CREATE TABLE "Snapshot" (
     "documentId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "clocks" JSONB NOT NULL,
-    "parentSnapshotUpdatesClocks" JSONB NOT NULL,
+    "parentSnapshotUpdateClocks" JSONB NOT NULL,
     "parentSnapshotProof" TEXT NOT NULL,
 
     CONSTRAINT "Snapshot_pkey" PRIMARY KEY ("id")

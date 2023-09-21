@@ -34,7 +34,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -67,7 +67,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -101,7 +101,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -135,7 +135,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -154,7 +154,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
   const snapshot2 = createSnapshot(
     "Hello World2",
@@ -172,7 +172,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot2.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
   const snapshot3 = createSnapshot(
     "Hello World3",
@@ -241,7 +241,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -261,7 +261,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot2 = createSnapshot(
@@ -343,7 +343,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
   const snapshot = createSnapshot(
     "Hello World",
@@ -362,7 +362,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
   const snapshot2 = createSnapshot(
     "Hello World2",
@@ -380,7 +380,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot2.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
   const snapshot3 = createSnapshot(
     "Hello World3",
@@ -453,14 +453,14 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   ).toThrowError();
 });
 
-test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotUpdatesClocks", () => {
+test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotUpdateClocks", () => {
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -479,7 +479,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {
+    parentSnapshotUpdateClocks: {
       [sodium.to_base64(signatureKeyPairA.publicKey)]: 10,
     },
   };
@@ -510,14 +510,14 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
   expect(sodium.to_string(result2)).toBe("Hello World2");
 });
 
-test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshotUpdatesClocks", () => {
+test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshotUpdateClocks", () => {
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
     snapshotId,
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(
@@ -536,7 +536,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotUpdatesClocks: {
+    parentSnapshotUpdateClocks: {
       [sodium.to_base64(signatureKeyPairA.publicKey)]: 10,
     },
   };
@@ -622,7 +622,7 @@ test("verifyAndDecryptSnapshot fails due wrong docId", () => {
     docId,
     pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
     parentSnapshotId: "",
-    parentSnapshotUpdatesClocks: {},
+    parentSnapshotUpdateClocks: {},
   };
 
   const snapshot = createSnapshot(

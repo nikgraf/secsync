@@ -7,7 +7,7 @@ type Params = {
   newClock: number;
 };
 
-export const updateUpdatesClocksEntry = ({
+export const updateUpdateClocksEntry = ({
   snapshotInfosWithUpdateClocks,
   snapshotId,
   clientPublicKey,
