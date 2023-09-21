@@ -15,7 +15,7 @@ import {
   GetDocumentParams,
   HasAccessParams,
   Snapshot,
-  SnapshotUpdatesClocks,
+  SnapshotUpdateClocks,
   Update,
 } from "../types";
 import { parseUpdate } from "../update/parseUpdate";
@@ -83,18 +83,18 @@ export const createWebSocketConnection =
         return;
       }
 
-      let lastKnownSnapshotUpdatesClocks: SnapshotUpdatesClocks | undefined =
+      let lastKnownSnapshotUpdateClocks: SnapshotUpdateClocks | undefined =
         undefined;
       try {
-        const lastKnownSnapshotUpdatesClocksQueryEntry = Array.isArray(
-          urlParts.query.lastKnownSnapshotUpdatesClocks
+        const lastKnownSnapshotUpdateClocksQueryEntry = Array.isArray(
+          urlParts.query.lastKnownSnapshotUpdateClocks
         )
-          ? urlParts.query.lastKnownSnapshotUpdatesClocks[0]
-          : urlParts.query.lastKnownSnapshotUpdatesClocks;
-        if (lastKnownSnapshotUpdatesClocksQueryEntry) {
-          lastKnownSnapshotUpdatesClocks = SnapshotUpdatesClocks.parse(
+          ? urlParts.query.lastKnownSnapshotUpdateClocks[0]
+          : urlParts.query.lastKnownSnapshotUpdateClocks;
+        if (lastKnownSnapshotUpdateClocksQueryEntry) {
+          lastKnownSnapshotUpdateClocks = SnapshotUpdateClocks.parse(
             JSON.parse(
-              decodeURIComponent(lastKnownSnapshotUpdatesClocksQueryEntry)
+              decodeURIComponent(lastKnownSnapshotUpdateClocksQueryEntry)
             )
           );
         }
@@ -105,7 +105,7 @@ export const createWebSocketConnection =
         lastKnownSnapshotId: Array.isArray(urlParts.query.lastKnownSnapshotId)
           ? urlParts.query.lastKnownSnapshotId[0]
           : urlParts.query.lastKnownSnapshotId,
-        lastKnownSnapshotUpdatesClocks,
+        lastKnownSnapshotUpdateClocks,
       });
 
       if (!doc) {

@@ -2,16 +2,16 @@ import type { KeyPair } from "libsodium-wrappers";
 import { z } from "zod";
 import { SnapshotProofChainEntry } from "./snapshot/isValidAncestorSnapshot";
 
-export const SnapshotUpdatesClocks = z.record(z.string(), z.number());
+export const SnapshotUpdateClocks = z.record(z.string(), z.number());
 
-export type SnapshotUpdatesClocks = z.infer<typeof SnapshotUpdatesClocks>;
+export type SnapshotUpdateClocks = z.infer<typeof SnapshotUpdateClocks>;
 
 export const SnapshotPublicData = z.object({
   docId: z.string(),
   pubKey: z.string(), // public signing key
   snapshotId: z.string(),
   parentSnapshotId: z.string(),
-  parentSnapshotUpdatesClocks: SnapshotUpdatesClocks,
+  parentSnapshotUpdateClocks: SnapshotUpdateClocks,
 });
 
 export type SnapshotPublicData = z.infer<typeof SnapshotPublicData>;
@@ -22,7 +22,7 @@ export const SnapshotPublicDataWithParentSnapshotProof = z.object({
   snapshotId: z.string(),
   parentSnapshotId: z.string(),
   parentSnapshotProof: z.string(),
-  parentSnapshotUpdatesClocks: SnapshotUpdatesClocks,
+  parentSnapshotUpdateClocks: SnapshotUpdateClocks,
 });
 
 export type SnapshotPublicDataWithParentSnapshotProof = z.infer<
@@ -101,7 +101,7 @@ export type ParentSnapshotProofInfo = {
 };
 
 type KnownSnapshotInfo = SnapshotProofChainEntry & {
-  updatesClocks?: SnapshotUpdatesClocks;
+  updateClocks?: SnapshotUpdateClocks;
 };
 
 export type AdditionalAuthenticationDataValidations = {
@@ -158,7 +158,7 @@ export type CreateUpdateParams = {
 export type GetDocumentParams = {
   documentId: string;
   lastKnownSnapshotId?: string;
-  lastKnownSnapshotUpdatesClocks?: SnapshotUpdatesClocks;
+  lastKnownSnapshotUpdateClocks?: SnapshotUpdateClocks;
 };
 
 export type HasAccessParams = {
@@ -174,4 +174,9 @@ export type EphemeralMessagesSession = {
   id: string;
   counter: number;
   validSessions: ValidSessions;
+};
+
+export type SnapshotInfoWithUpdateClocks = {
+  snapshot: Snapshot;
+  updateClocks: SnapshotUpdateClocks;
 };

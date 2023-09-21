@@ -5,7 +5,7 @@ import { WebSocket } from "mock-socket";
 global.setImmediate = jest.useRealTimers;
 global.WebSocket = WebSocket;
 
-jest.setTimeout(25000);
+jest.setTimeout(5000);
 
 beforeEach(async () => {
   await sodium.ready;

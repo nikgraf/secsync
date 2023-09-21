@@ -4,7 +4,7 @@ import {
 } from "../ephemeralMessage/createEphemeralMessage";
 import {
   EphemeralMessagesSession,
-  SnapshotUpdatesClocks,
+  SnapshotUpdateClocks,
   SyncMachineConfig,
 } from "../types";
 
@@ -59,17 +59,14 @@ export const websocketService =
       ? `&knownSnapshotId=${context.knownSnapshotInfo.snapshotId}`
       : "";
 
-    let knownSnapshotUpdatesClocks = "";
-    if (
-      knownSnapshotIdParam !== "" &&
-      context.knownSnapshotInfo.updatesClocks
-    ) {
+    let knownSnapshotUpdateClocks = "";
+    if (knownSnapshotIdParam !== "" && context.knownSnapshotInfo.updateClocks) {
       try {
-        const updatesClocks = SnapshotUpdatesClocks.parse(
-          context.knownSnapshotInfo.updatesClocks
+        const updateClocks = SnapshotUpdateClocks.parse(
+          context.knownSnapshotInfo.updateClocks
         );
-        knownSnapshotUpdatesClocks = `&knownSnapshotUpdatesClocks=${encodeURIComponent(
-          JSON.stringify(updatesClocks)
+        knownSnapshotUpdateClocks = `&knownSnapshotUpdateClocks=${encodeURIComponent(
+          JSON.stringify(updateClocks)
         )}`;
       } catch (err) {}
     }
@@ -78,7 +75,7 @@ export const websocketService =
       `${context.websocketHost}/${context.documentId}?sessionKey=${
         context.websocketSessionKey
       }${knownSnapshotIdParam}${
-        knownSnapshotUpdatesClocks ? `&${knownSnapshotUpdatesClocks}` : ""
+        knownSnapshotUpdateClocks ? `&${knownSnapshotUpdateClocks}` : ""
       }`
     );
 
