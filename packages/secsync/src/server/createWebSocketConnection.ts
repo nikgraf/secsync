@@ -168,7 +168,6 @@ export const createWebSocketConnection =
               if (
                 error instanceof SecsyncSnapshotBasedOnOutdatedSnapshotError
               ) {
-                // TODO retry?
                 let document = await getDocument({
                   documentId,
                   lastKnownSnapshotId: data.lastKnownSnapshotId,
