@@ -1060,14 +1060,14 @@ export const createSyncMachine = () =>
                     console.debug("update saved", event);
                   }
 
+                  // only increases if the event.clock is larger since the server
+                  // might have returned them out of order
                   snapshotInfosWithUpdateClocks = updateUpdateClocksEntry({
                     snapshotInfosWithUpdateClocks,
                     clientPublicKey: context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
                     ),
                     snapshotId: activeSnapshot.publicData.snapshotId,
-                    // TODO what if results come back out of order -> this would be wrong
-                    // Only increase if the event.clock is larger since the server might have returned them out of order
                     newClock: event.clock,
                   });
                   updatesInFlight = updatesInFlight.filter(

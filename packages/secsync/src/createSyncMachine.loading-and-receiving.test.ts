@@ -382,7 +382,6 @@ test("should load a document with updates", (done) => {
         },
       })
   ).onTransition((state) => {
-    console.log(state.value, docValue);
     if (
       state.matches("connected.idle") &&
       state.context._documentDecryptionState === "complete"
