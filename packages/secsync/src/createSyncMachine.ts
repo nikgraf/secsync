@@ -570,10 +570,6 @@ export const createSyncMachine = () =>
               "_pendingChangesQueue",
               context._pendingChangesQueue.length
             );
-            console.debug(
-              "_snapshotInfosWithUpdateClocks",
-              JSON.stringify(context._snapshotInfosWithUpdateClocks)
-            );
           }
 
           let handledQueue: "customMessage" | "incoming" | "pending" | "none" =
@@ -1080,7 +1076,7 @@ export const createSyncMachine = () =>
                     clientPublicKey: context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
                     ),
-                    snapshotId: activeSnapshot.publicData.snapshotId,
+                    snapshotId: event.snapshotId,
                     newClock: event.clock,
                   });
                   updatesInFlight = updatesInFlight.filter(
@@ -1092,56 +1088,35 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.log(
                       "update saving failed",
-                      event.snapshotId,
-                      event.clock,
-                      event.requiresNewSnapshot
+                      event,
+                      " referencing active snapshot: ",
+                      activeSnapshot.publicData.snapshotId === event.snapshotId
                     );
                   }
 
                   if (event.requiresNewSnapshot) {
                     await createAndSendSnapshot();
                   } else {
-                    const updateIndex = updatesInFlight.findIndex(
-                      (updateInFlight) => updateInFlight.clock === event.clock
+                    // collect all changes that are in flight and put them back into the queue
+                    const changes = updatesInFlight.reduce(
+                      (acc, updateInFlight) =>
+                        acc.concat(updateInFlight.changes),
+                      [] as unknown[]
                     );
-                    if (updateIndex !== -1) {
-                      updatesInFlight.slice(updateIndex);
+                    pendingChangesQueue = changes.concat(pendingChangesQueue);
 
-                      const changes = updatesInFlight.reduce(
-                        (acc, updateInFlight) =>
-                          acc.concat(updateInFlight.changes),
-                        [] as unknown[]
-                      );
+                    const currentClientPublicKey = context.sodium.to_base64(
+                      context.signatureKeyPair.publicKey
+                    );
+                    const unverifiedCurrentClock =
+                      snapshotInfosWithUpdateClocks[
+                        snapshotInfosWithUpdateClocks.length - 1
+                      ]?.updateClocks[currentClientPublicKey];
+                    updatesLocalClock = Number.isInteger(unverifiedCurrentClock)
+                      ? unverifiedCurrentClock
+                      : -1;
 
-                      changes.push(...context._pendingChangesQueue);
-                      pendingChangesQueue = [];
-
-                      if (activeSnapshot === null) {
-                        throw new Error("No active snapshot");
-                      }
-                      const key = await context.getSnapshotKey(activeSnapshot);
-
-                      const currentClientPublicKey = context.sodium.to_base64(
-                        context.signatureKeyPair.publicKey
-                      );
-                      const unverifiedCurrentClock =
-                        snapshotInfosWithUpdateClocks[
-                          snapshotInfosWithUpdateClocks.length - 1
-                        ]?.updateClocks[currentClientPublicKey];
-                      updatesLocalClock = Number.isInteger(
-                        unverifiedCurrentClock
-                      )
-                        ? unverifiedCurrentClock
-                        : -1;
-
-                      updatesInFlight = [];
-                      createAndSendUpdate(
-                        changes,
-                        key,
-                        activeSnapshot.publicData.snapshotId,
-                        updatesLocalClock
-                      );
-                    }
+                    updatesInFlight = [];
                   }
 
                   break;
