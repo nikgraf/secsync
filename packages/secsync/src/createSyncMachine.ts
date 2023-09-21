@@ -214,7 +214,7 @@ export const createSyncMachine = () =>
         sodium: {},
         serializeChanges: () => "",
         deserializeChanges: () => [],
-        onSnapshotSaved: () => undefined,
+        onSnapshotSaved: undefined,
         isValidCollaborator: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
@@ -765,20 +765,17 @@ export const createSyncMachine = () =>
                 );
 
                 context.applySnapshot(decryptedSnapshot);
-                // TODO find the position where the snapshot should be inserted
+                // can be inserted in the last position since verifyAndDecryptSnapshot already verified the parent
                 snapshotInfosWithUpdateClocks.push({
                   updateClocks: {},
                   snapshot,
                 });
+
+                // cleanup old snapshotInfosWithUpdateClocks entries and only keep the last 3 for debugging purposes
+                // cleaning them up to avoid a memory leak
+                snapshotInfosWithUpdateClocks =
+                  snapshotInfosWithUpdateClocks.slice(-3);
                 updatesLocalClock = -1;
-                // TODO cleanup old snapshotInfosWithUpdateClocks entries
-                // if (
-                //   parentSnapshotProofInfo &&
-                //   updateClocks[parentSnapshotProofInfo.id]
-                // ) {
-                //   // cleanup the updateClocks to avoid a memory leak
-                //   delete updateClocks[parentSnapshotProofInfo.id];
-                // }
               } catch (err) {
                 if (
                   context.logging === "debug" ||
@@ -977,16 +974,24 @@ export const createSyncMachine = () =>
                       "Received snapshot-saved for other than the current snapshotInFlight"
                     );
                   }
-                  // TODO find the position where the snapshot should be inserted
-                  snapshotInfosWithUpdateClocks.push({
-                    snapshot: snapshotInFlight.snapshot,
-                    updateClocks: {},
-                  });
+                  // don't update values in case this is not the activeSnapshot and another
+                  // snapshot event has been received already
+                  if (
+                    activeSnapshot === undefined ||
+                    activeSnapshot.publicData.snapshotId ===
+                      snapshotInFlight.snapshot.publicData.parentSnapshotId
+                  ) {
+                    snapshotInfosWithUpdateClocks.push({
+                      snapshot: snapshotInFlight.snapshot,
+                      updateClocks: {},
+                    });
 
-                  snapshotInFlight = null;
-                  updatesLocalClock = -1;
+                    snapshotInFlight = null;
+                    updatesLocalClock = -1;
+                  }
+
                   if (context.onSnapshotSaved) {
-                    context.onSnapshotSaved();
+                    context.onSnapshotSaved({ snapshotId: event.snapshotId });
                   }
                   break;
                 case "snapshot-save-failed":

@@ -187,7 +187,7 @@ test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async
     verifyAndDecryptUpdate(
       {
         ...update,
-        ciphertext: update.ciphertext.replace(/^./, "a"),
+        ciphertext: "aaa" + update.ciphertext.substring(3),
       },
       key,
       publicData.refSnapshotId,

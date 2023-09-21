@@ -51,10 +51,7 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
     signatureKeyPair: authorKeyPair,
     websocketHost,
     websocketSessionKey: "your-secret-session-key",
-    onSnapshotSaved: async () => {
-      // snapshotKeyRef.current = snapshotInFlightKeyRef.current;
-      // snapshotInFlightKeyRef.current = null;
-    },
+    onSnapshotSaved: async ({ snapshotId }) => {},
     getNewSnapshotData: async () => {
       const snapshotId = generateId(sodium);
       return {
