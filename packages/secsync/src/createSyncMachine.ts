@@ -124,7 +124,6 @@ type ProcessQueueData = {
 export type InternalContextReset = {
   _incomingQueue: any[];
   _customMessageQueue: any[];
-  _snapshotInfosWithUpdateClocks: SnapshotInfoWithUpdateClocks[];
   _snapshotInFlight: SnapshotInfoWithUpdateClocks | null;
   _updatesInFlight: UpdateInFlight[];
   _updatesLocalClock: number;
@@ -138,6 +137,7 @@ export type Context = SyncMachineConfig &
     _websocketActor?: AnyActorRef;
     _websocketShouldReconnect: boolean;
     _pendingChangesQueue: any[];
+    _snapshotInfosWithUpdateClocks: SnapshotInfoWithUpdateClocks[];
     _snapshotAndUpdateErrors: Error[];
     _ephemeralMessageReceivingErrors: Error[];
     _ephemeralMessageAuthoringErrors: Error[];
@@ -147,7 +147,6 @@ export type Context = SyncMachineConfig &
 const disconnectionContextReset: InternalContextReset = {
   _incomingQueue: [],
   _customMessageQueue: [],
-  _snapshotInfosWithUpdateClocks: [], // TODO wo only need the last entry here
   _snapshotInFlight: null,
   _updatesInFlight: [],
   _updatesLocalClock: -1,
@@ -441,6 +440,15 @@ export const createSyncMachine = () =>
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
+            // only take the last one since this will be used to re-connect
+            // TODO on reconnect verify this is correct and test it!
+            // _snapshotInfosWithUpdateClocks: [
+            //   context._snapshotInfosWithUpdateClocks[
+            //     context._snapshotInfosWithUpdateClocks.length - 1
+            //   ],
+            // ],
+            _snapshotInfosWithUpdateClocks: [],
+            // collected all unconfirmed changes to avoid them getting lost
             _pendingChangesQueue: unconfirmedChanges,
             _websocketShouldReconnect: event.type !== "DISCONNECT",
           };
@@ -1060,14 +1068,14 @@ export const createSyncMachine = () =>
                     console.debug("update saved", event);
                   }
 
+                  // only increases if the event.clock is larger since the server
+                  // might have returned them out of order
                   snapshotInfosWithUpdateClocks = updateUpdateClocksEntry({
                     snapshotInfosWithUpdateClocks,
                     clientPublicKey: context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
                     ),
                     snapshotId: activeSnapshot.publicData.snapshotId,
-                    // TODO what if results come back out of order -> this would be wrong
-                    // Only increase if the event.clock is larger since the server might have returned them out of order
                     newClock: event.clock,
                   });
                   updatesInFlight = updatesInFlight.filter(
