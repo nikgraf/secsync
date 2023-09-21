@@ -139,7 +139,7 @@ export type SyncMachineConfig = {
   serializeChanges: (changes: any[]) => string;
   deserializeChanges: (serializeChanges: string) => any;
   sodium: any;
-  onSnapshotSaved?: () => void | Promise<void>;
+  onSnapshotSaved?: (info: { snapshotId: string }) => void | Promise<void>;
   onCustomMessage?: (message: any) => Promise<void> | void;
   knownSnapshotInfo?: KnownSnapshotInfo;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;

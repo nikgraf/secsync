@@ -37,9 +37,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     signatureKeyPair: authorKeyPair,
     websocketHost,
     websocketSessionKey: "your-secret-session-key",
-    onSnapshotSaved: async () => {
-      // snapshotInFlightKeyRef.current = null;
-    },
+    onSnapshotSaved: async ({ snapshotId }) => {},
     getNewSnapshotData: async () => {
       const docState = Automerge.save(currentDoc);
       const snapshotId = generateId(sodium);
