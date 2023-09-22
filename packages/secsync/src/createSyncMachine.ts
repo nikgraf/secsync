@@ -119,6 +119,7 @@ type ProcessQueueData = {
   ephemeralMessageReceivingErrors: Error[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
+  snapshotAndUpdateErrors: Error[];
 };
 
 export type InternalContextReset = {
@@ -488,6 +489,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
+              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
             };
           } else if (event.data.handledQueue === "customMessage") {
             return {
@@ -502,6 +504,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
             };
           } else if (event.data.handledQueue === "pending") {
             return {
@@ -515,6 +518,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
             };
           } else if (event.data.handledQueue === "none") {
             return {};
@@ -586,6 +590,8 @@ export const createSyncMachine = () =>
           let pendingChangesQueue = context._pendingChangesQueue;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
+          let snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
+          let errorCausingDocumentToFail: Error | null = null;
 
           let ephemeralMessageReceivingErrors =
             context._ephemeralMessageReceivingErrors;
@@ -719,20 +725,42 @@ export const createSyncMachine = () =>
               rawSnapshot: Snapshot,
               parentSnapshotProofInfo?: ParentSnapshotProofInfo
             ) => {
-              if (context.logging === "debug") {
-                console.debug("processSnapshot", rawSnapshot);
-              }
               try {
-                const snapshot = parseSnapshot(
-                  rawSnapshot,
-                  context.additionalAuthenticationDataValidations?.snapshot
-                );
+                if (context.logging === "debug") {
+                  console.debug("processSnapshot", rawSnapshot);
+                }
+                let snapshot: Snapshot;
+                try {
+                  snapshot = parseSnapshot(
+                    rawSnapshot,
+                    context.additionalAuthenticationDataValidations?.snapshot
+                  );
+                } catch (err) {
+                  snapshotAndUpdateErrors.unshift(
+                    new Error("SECSYNC_ERROR_110")
+                  );
+                  return;
+                }
 
-                const isValidClient = await context.isValidClient(
-                  snapshot.publicData.pubKey
-                );
-                if (!isValidClient) {
-                  throw new Error("Invalid client");
+                try {
+                  const isValidClient = await context.isValidClient(
+                    snapshot.publicData.pubKey
+                  );
+                  if (!isValidClient) {
+                    snapshotAndUpdateErrors.unshift(
+                      new Error("SECSYNC_ERROR_114")
+                    );
+                    return;
+                  }
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_104");
+                  return;
                 }
 
                 let parentSnapshotUpdateClock: number | undefined = undefined;
@@ -751,9 +779,21 @@ export const createSyncMachine = () =>
                     parentSnapshotUpdateClocks[currentClientPublicKey];
                 }
 
-                const snapshotKey = await context.getSnapshotKey(snapshot);
+                let snapshotKey: Uint8Array;
+                try {
+                  snapshotKey = await context.getSnapshotKey(snapshot);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_103");
+                  return;
+                }
                 // console.log("processSnapshot key", snapshotKey);
-                const decryptedSnapshot = verifyAndDecryptSnapshot(
+                const decryptedSnapshotResult = verifyAndDecryptSnapshot(
                   snapshot,
                   snapshotKey,
                   context.documentId,
@@ -763,7 +803,37 @@ export const createSyncMachine = () =>
                   parentSnapshotUpdateClock
                 );
 
-                context.applySnapshot(decryptedSnapshot);
+                if (decryptedSnapshotResult.error) {
+                  if (
+                    decryptedSnapshotResult.error.message ===
+                      "SECSYNC_ERROR_100" ||
+                    decryptedSnapshotResult.error.message ===
+                      "SECSYNC_ERROR_101" ||
+                    decryptedSnapshotResult.error.message ===
+                      "SECSYNC_ERROR_102"
+                  ) {
+                    errorCausingDocumentToFail = decryptedSnapshotResult.error;
+                  } else {
+                    snapshotAndUpdateErrors.unshift(
+                      decryptedSnapshotResult.error
+                    );
+                  }
+
+                  return;
+                }
+
+                try {
+                  context.applySnapshot(decryptedSnapshotResult.content);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_105");
+                  return;
+                }
                 // can be inserted in the last position since verifyAndDecryptSnapshot already verified the parent
                 snapshotInfosWithUpdateClocks.push({
                   updateClocks: {},
@@ -780,9 +850,9 @@ export const createSyncMachine = () =>
                   context.logging === "debug" ||
                   context.logging === "error"
                 ) {
-                  console.error("Process snapshot:", err);
+                  console.error(err);
                 }
-                throw err;
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_100");
               }
             };
 
@@ -914,29 +984,47 @@ export const createSyncMachine = () =>
                     throw new Error("Document has no snapshot but has updates");
                   }
                   if (event.snapshot) {
+                    const snapshotAndUpdateErrorsLength =
+                      snapshotAndUpdateErrors.length;
+
                     await processSnapshot(event.snapshot);
 
-                    documentDecryptionState = "partial";
-
-                    const snapshotKey = await context.getSnapshotKey(
-                      event.snapshot
-                    );
-
-                    if (event.updates) {
-                      // skipIfCurrentClockIsHigher to false since the document would
-                      // be broken if the server sends update events with the same clock
-                      // value multiple times
-                      // skipUpdatesAuthoredByCurrentClient is set to false since the server
-                      // should never send an update made by the current client in this case
-                      await processUpdates(
-                        event.updates,
-                        snapshotKey,
-                        false,
-                        false
-                      );
+                    // if the initial snapshot fails the document can't be loaded
+                    if (
+                      snapshotAndUpdateErrors.length >
+                      snapshotAndUpdateErrorsLength
+                    ) {
+                      errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
+                      // remove the item since it will be added later due errorCausingDocumentToFail being set
+                      snapshotAndUpdateErrors.pop();
                     }
+
+                    if (errorCausingDocumentToFail === null) {
+                      documentDecryptionState = "partial";
+
+                      const snapshotKey = await context.getSnapshotKey(
+                        event.snapshot
+                      );
+
+                      if (event.updates) {
+                        // skipIfCurrentClockIsHigher to false since the document would
+                        // be broken if the server sends update events with the same clock
+                        // value multiple times
+                        // skipUpdatesAuthoredByCurrentClient is set to false since the server
+                        // should never send an update made by the current client in this case
+                        await processUpdates(
+                          event.updates,
+                          snapshotKey,
+                          false,
+                          false
+                        );
+                      }
+
+                      documentDecryptionState = "complete";
+                    }
+                  } else {
+                    documentDecryptionState = "complete";
                   }
-                  documentDecryptionState = "complete";
 
                   break;
 
@@ -998,6 +1086,7 @@ export const createSyncMachine = () =>
                     console.log("snapshot saving failed", event);
                   }
                   if (event.snapshot) {
+                    // TODO capture the error here?
                     const snapshot = parseSnapshot(
                       event.snapshot,
                       context.additionalAuthenticationDataValidations?.snapshot
@@ -1082,6 +1171,7 @@ export const createSyncMachine = () =>
                     snapshotId: event.snapshotId,
                     newClock: event.clock,
                   });
+                  // TODO add snapshotId to updateInFlight to make sure we remove the correct one
                   updatesInFlight = updatesInFlight.filter(
                     (updateInFlight) => updateInFlight.clock !== event.clock
                   );
@@ -1261,6 +1351,10 @@ export const createSyncMachine = () =>
               }
             }
 
+            if (errorCausingDocumentToFail) {
+              throw errorCausingDocumentToFail;
+            }
+
             return {
               handledQueue,
               snapshotInfosWithUpdateClocks,
@@ -1272,6 +1366,7 @@ export const createSyncMachine = () =>
                 ephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
               documentDecryptionState,
               ephemeralMessagesSession,
+              snapshotAndUpdateErrors,
             };
           } catch (error) {
             if (context.logging === "debug" || context.logging === "error") {

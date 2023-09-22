@@ -8,19 +8,22 @@ Errors that are caused by a participant can't be recovered from and the document
 
 ### Snapshot
 
-- `SECSYNC_ERROR_1`: decryption error -> throw an error
-- `SECSYNC_ERROR_2`: current clients prev snapshot update was not included -> throw an error
-- irrelevant message -> ignore and log
+These errors result in an error state of the document and no new events are processed.
 
-  - `SECSYNC_ERROR_3`: parse error of message (e.g. field is missing or added)
-  - `SECSYNC_ERROR_4`: invalid signature (manipulated message)
-  - `SECSYNC_ERROR_5`: invalid parentSnapshot verification
-  - `SECSYNC_ERROR_6`: invalid docId
+- `SECSYNC_ERROR_100`: Unknown Snapshot error.
+- `SECSYNC_ERROR_101`: Decryption failed.
+- `SECSYNC_ERROR_102`: The Snapshot did not include the update of prev confirmed update of the current client.
+- `SECSYNC_ERROR_103`: callback `getSnapshotKey` threw an Error
+- `SECSYNC_ERROR_104`: callback `isValidClient` threw an Error
+- `SECSYNC_ERROR_105`: callback `applySnapshot` threw an Error
 
-- `SECSYNC_ERROR_7`: getSnapshotKey error -> throw an error
-- `SECSYNC_ERROR_8`: isValidClient throws -> throw an error
-- `SECSYNC_ERROR_9`: isValidClient returns false -> ignore the message
-- `SECSYNC_ERROR_10`: applySnapshot throws -> throw an error
+For these cases the error is ignored, logged and the document continues to work. Only in case this happens during loading the initial document the document ends up in an error state and no new events are processed.
+
+- `SECSYNC_ERROR_110`: parse error of message (e.g. field is missing)
+- `SECSYNC_ERROR_111`: Invalid signature
+- `SECSYNC_ERROR_112`: Invalid parentSnapshot verification (can happend if snapshots come in out of order) -> refetch
+- `SECSYNC_ERROR_113`: Invalid docId
+- `SECSYNC_ERROR_114`: Callback `isValidClient` returns false
 
 ### Update
 

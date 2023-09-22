@@ -44,7 +44,7 @@ export function verifyAndDecryptEphemeralMessage(
         };
       }
     } catch (err) {
-      if (logging === "error") {
+      if (logging === "error" || logging === "debug") {
         console.error(err);
       }
       return {
@@ -61,7 +61,7 @@ export function verifyAndDecryptEphemeralMessage(
         sodium
       );
     } catch (err) {
-      if (logging === "error") {
+      if (logging === "error" || logging === "debug") {
         console.error(err);
       }
       return {
@@ -174,7 +174,7 @@ export function verifyAndDecryptEphemeralMessage(
       };
     }
   } catch (err) {
-    if (logging === "error") {
+    if (logging === "error" || logging === "debug") {
       console.error(err);
     }
     return {

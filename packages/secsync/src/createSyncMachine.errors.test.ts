@@ -65,11 +65,13 @@ beforeEach(async () => {
 });
 
 type CreateSnapshotTestHelperParams = {
-  parentSnapshotId: string;
-  parentSnapshotCiphertext: string;
-  grandParentSnapshotProof: string;
-  content: string;
+  parentSnapshotId?: string;
+  parentSnapshotCiphertext?: string;
+  grandParentSnapshotProof?: string;
+  content?: string;
   parentSnapshotUpdateClocks?: SnapshotUpdateClocks;
+  key?: Uint8Array;
+  docId?: string;
 };
 
 const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
@@ -80,6 +82,8 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     grandParentSnapshotProof,
     content,
     parentSnapshotUpdateClocks,
+    key: customKey,
+    docId: customDocId,
   } = params || {};
   key = sodium.from_hex(
     "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
@@ -87,7 +91,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
 
   const publicData: SnapshotPublicData = {
     snapshotId,
-    docId,
+    docId: customDocId || docId,
     pubKey: clientAPublicKey,
     parentSnapshotId: parentSnapshotId || "",
     parentSnapshotUpdateClocks: parentSnapshotUpdateClocks || {},
@@ -96,17 +100,14 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   const snapshot = createSnapshot(
     content || "Hello World",
     publicData,
-    key,
+    customKey || key,
     clientAKeyPair,
     parentSnapshotCiphertext || "",
     grandParentSnapshotProof || "",
     sodium
   );
   return {
-    snapshot: {
-      ...snapshot,
-      serverData: { latestVersion: 0 },
-    },
+    snapshot,
     key,
     signatureKeyPair: clientAKeyPair,
   };
@@ -198,6 +199,768 @@ const createEphemeralMessageTestHelper = ({
     return { ephemeralMessage };
   }
 };
+
+test("SECSYNC_ERROR_101 snapshot decryption fails", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_101"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper({
+    key: sodium.from_hex(
+      "994b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
+    ),
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_102 invalid parentSnapshot verification", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (
+      state.context._snapshotAndUpdateErrors.length === 1 &&
+      state.matches("failed")
+    ) {
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_102"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "update-saved",
+      snapshotId: snapshot.publicData.snapshotId,
+      clock: 1,
+    },
+  });
+
+  const { snapshot: snapshot2 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot.publicData.snapshotId,
+    parentSnapshotCiphertext: snapshot.ciphertext,
+    grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    parentSnapshotUpdateClocks: {
+      [clientAPublicKey]: 0,
+    },
+    content: "Hello World again",
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "snapshot",
+      snapshot: snapshot2,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_103 getSnapshotKey threw an error", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => {
+          throw new Error("NO SNAPSHOT KEY");
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_103"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_104 isValidClient threw an error", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => {
+          throw new Error("NO SNAPSHOT KEY");
+        },
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_104"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          // docValue = sodium.to_string(snapshot);
+          throw new Error("FAILED TO APPLY SNAPSHOT");
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_105"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_110 snapshot message does not parse", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_110"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot: {
+        ...snapshot,
+        publicData: {
+          ...snapshot.publicData,
+          docId: undefined,
+        },
+      },
+    },
+  });
+});
+
+test("SECSYNC_ERROR_111 invalid signature", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_111"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot: {
+        ...snapshot,
+        signature: "INVALID_SIGNATURE",
+      },
+    },
+  });
+});
+
+test("SECSYNC_ERROR_112 invalid parentSnapshot verification", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (
+      state.context._snapshotAndUpdateErrors.length === 1 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_112"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  const { snapshot: snapshot2 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot.publicData.snapshotId,
+    // parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertext: "WRONG_CIPHERTEXT",
+    grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    content: "Hello World again",
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "snapshot",
+      snapshot: snapshot2,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_113 invalid docId", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_113"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper({ docId: "WRONG_DOC_ID" });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+});
+
+test("SECSYNC_ERROR_114 isValidClient returns false", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => false,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.value === "failed") {
+      expect(state.context._documentDecryptionState).toBe("failed");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_114"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper({ docId: "WRONG_DOC_ID" });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+});
 
 test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
   const websocketServiceMock = (context: any) => () => {};
@@ -1949,71 +2712,4 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
       error: new Error(`Wrong ephemeral message key #${step}`),
     });
   }
-});
-
-test("fails in case the collaborator is not valid", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
-
-  let docValue = "";
-
-  const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
-        documentId: docId,
-        websocketHost: url,
-        websocketSessionKey: "sessionKey",
-        isValidClient: (signingPublicKey) => false,
-        getSnapshotKey: () => key,
-
-        applySnapshot: (snapshot) => {
-          docValue = sodium.to_string(snapshot);
-        },
-        deserializeChanges: (changes) => {
-          return changes;
-        },
-        applyChanges: (changes) => {
-          changes.forEach((change) => {
-            docValue = docValue + change;
-          });
-        },
-        sodium: sodium,
-        signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
-    if (state.value === "failed") {
-      expect(state.context._documentDecryptionState).toBe("failed");
-      done();
-    }
-  });
-
-  syncService.start();
-  syncService.send({ type: "WEBSOCKET_RETRY" });
-  syncService.send({ type: "WEBSOCKET_CONNECTED" });
-
-  const { snapshot } = createSnapshotTestHelper();
-  syncService.send({
-    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-    data: {
-      type: "document",
-      snapshot,
-    },
-  });
 });

@@ -103,10 +103,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     sodium
   );
   return {
-    snapshot: {
-      ...snapshot,
-      serverData: { latestVersion: 0 },
-    },
+    snapshot,
     key,
     clientAKeyPair,
   };
@@ -666,7 +663,7 @@ test("should load a document with updates and two additional updates", (done) =>
   });
 });
 
-test("should load a document with updates and two two additional snapshots", (done) => {
+test("should load a document with updates and two additional snapshots", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";

@@ -86,10 +86,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     sodium
   );
   return {
-    snapshot: {
-      ...snapshot,
-      serverData: { latestVersion: 0 },
-    },
+    snapshot,
     key,
     clientAKeyPair,
   };
