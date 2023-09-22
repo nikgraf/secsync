@@ -42,15 +42,15 @@ Errors that are caused by a participant can't be recovered from and the document
 
 When you receive an EphemeralMessage that is not valid it simply is ignored and stored in the `_ephemeralMessageReceivingErrors` array. To avoid a memory leak only the last 20 errors are stored.
 
-- `SECSYNC_ERROR_21`: Decryption failed.
-- `SECSYNC_ERROR_22`: No verified session found.
-- `SECSYNC_ERROR_23`: A messages was received where the counter was not higher than the last received message. (reply attack)
-- `SECSYNC_ERROR_24`: The author is not a valid client.
-- `SECSYNC_ERROR_25`: The message type is not supported.
-- `SECSYNC_ERROR_26`: A message with the wrong docId was received.
-- `SECSYNC_ERROR_36`: The message was manipulated and has not the correct shape.
-- `SECSYNC_ERROR_37`: Unknown EphemeralMessage error.
-- `SECSYNC_ERROR_38`: Message signature is not valid.
+- `SECSYNC_ERROR_300`: Unknown EphemeralMessage error.
+- `SECSYNC_ERROR_301`: Decryption failed.
+- `SECSYNC_ERROR_302`: No verified session found.
+- `SECSYNC_ERROR_303`: A messages was received where the counter was not higher than the last received message. (reply attack)
+- `SECSYNC_ERROR_304`: The author is not a valid client.
+- `SECSYNC_ERROR_305`: The message type is not supported.
+- `SECSYNC_ERROR_306`: A message with the wrong docId was received.
+- `SECSYNC_ERROR_307`: The message was manipulated and has not the correct shape.
+- `SECSYNC_ERROR_308`: Message signature is not valid.
 
 ## Sending Data
 

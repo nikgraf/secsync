@@ -7,10 +7,10 @@ import { intToUint8Array } from "../utils/intToUint8Array";
 import { prefixWithUint8Array } from "../utils/prefixWithUint8Array";
 
 export const messageTypes = {
-  initialize: 0,
-  proofAndRequestProof: 1,
-  proof: 2,
-  message: 3,
+  initialize: 1,
+  proofAndRequestProof: 2,
+  proof: 3,
+  message: 4,
 };
 
 export function createEphemeralMessage(

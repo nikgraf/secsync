@@ -1134,8 +1134,11 @@ export const createSyncMachine = () =>
                           ?.ephemeralMessage
                       );
                     } catch (err) {
+                      if (context.logging === "error") {
+                        console.error(err);
+                      }
                       ephemeralMessageReceivingErrors.unshift(
-                        new Error("SECSYNC_ERROR_36")
+                        new Error("SECSYNC_ERROR_307")
                       );
                       return;
                     }
@@ -1156,7 +1159,7 @@ export const createSyncMachine = () =>
 
                     if (!isValidClient) {
                       ephemeralMessageReceivingErrors.unshift(
-                        new Error("SECSYNC_ERROR_24")
+                        new Error("SECSYNC_ERROR_304")
                       );
                       return;
                     }

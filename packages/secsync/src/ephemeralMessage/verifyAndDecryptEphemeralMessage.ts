@@ -27,19 +27,28 @@ export function verifyAndDecryptEphemeralMessage(
     const publicKey = sodium.from_base64(ephemeralMessage.publicData.pubKey);
 
     let content: Uint8Array;
-    const isValid = verifySignature(
-      {
-        nonce: ephemeralMessage.nonce,
-        ciphertext: ephemeralMessage.ciphertext,
-        publicData: publicDataAsBase64,
-      },
-      ephemeralMessage.signature,
-      publicKey,
-      sodium
-    );
-    if (!isValid) {
+    try {
+      const isValid = verifySignature(
+        {
+          nonce: ephemeralMessage.nonce,
+          ciphertext: ephemeralMessage.ciphertext,
+          publicData: publicDataAsBase64,
+        },
+        ephemeralMessage.signature,
+        publicKey,
+        sodium
+      );
+      if (!isValid) {
+        return {
+          error: new Error("SECSYNC_ERROR_308"),
+        };
+      }
+    } catch (err) {
+      if (logging === "error") {
+        console.error(err);
+      }
       return {
-        error: new Error("SECSYNC_ERROR_38"),
+        error: new Error("SECSYNC_ERROR_308"),
       };
     }
 
@@ -56,7 +65,7 @@ export function verifyAndDecryptEphemeralMessage(
         console.error(err);
       }
       return {
-        error: new Error("SECSYNC_ERROR_21"),
+        error: new Error("SECSYNC_ERROR_301"),
       };
     }
 
@@ -139,14 +148,14 @@ export function verifyAndDecryptEphemeralMessage(
           proof,
           requestProof: true,
           validSessions,
-          error: new Error("SECSYNC_ERROR_22"),
+          error: new Error("SECSYNC_ERROR_302"),
         };
       }
 
       // possible reply attack
       if (validSessions[publicKeyAsBase64].sessionCounter >= sessionCounter) {
         return {
-          error: new Error("SECSYNC_ERROR_23"),
+          error: new Error("SECSYNC_ERROR_303"),
         };
       }
 
@@ -161,7 +170,7 @@ export function verifyAndDecryptEphemeralMessage(
       return { content: value, validSessions: newValidSessions };
     } else {
       return {
-        error: new Error("SECSYNC_ERROR_25"),
+        error: new Error("SECSYNC_ERROR_305"),
       };
     }
   } catch (err) {
@@ -169,7 +178,7 @@ export function verifyAndDecryptEphemeralMessage(
       console.error(err);
     }
     return {
-      error: new Error("SECSYNC_ERROR_36"),
+      error: new Error("SECSYNC_ERROR_307"),
     };
   }
 }

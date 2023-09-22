@@ -144,7 +144,7 @@ const createEphemeralMessageTestHelper = ({
   content,
   key: customKey,
 }: {
-  messageType: "proof" | "message";
+  messageType: "proof" | "message" | "invalid";
   receiverSessionId: string;
   content?: Uint8Array;
   key?: Uint8Array;
@@ -169,7 +169,7 @@ const createEphemeralMessageTestHelper = ({
     );
     clientACounter++;
     return { ephemeralMessage };
-  } else {
+  } else if (messageType === "message") {
     const ephemeralMessage = createEphemeralMessage(
       content ? content : new Uint8Array([22]),
       "message",
@@ -182,10 +182,24 @@ const createEphemeralMessageTestHelper = ({
     );
     clientACounter++;
     return { ephemeralMessage };
+  } else {
+    const ephemeralMessage = createEphemeralMessage(
+      content ? content : new Uint8Array([22]),
+      // @ts-expect-error
+      "invalid",
+      clientAPublicData,
+      key,
+      clientAKeyPair,
+      clientASessionId,
+      clientACounter,
+      sodium
+    );
+    clientACounter++;
+    return { ephemeralMessage };
   }
 };
 
-test("SECSYNC_ERROR_21 ephemeral message decryption failed", (done) => {
+test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -244,7 +258,7 @@ test("SECSYNC_ERROR_21 ephemeral message decryption failed", (done) => {
       state.context._ephemeralMessageReceivingErrors.length === 1
     ) {
       expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
-        "SECSYNC_ERROR_21"
+        "SECSYNC_ERROR_301"
       );
       done();
     }
@@ -282,7 +296,7 @@ test("SECSYNC_ERROR_21 ephemeral message decryption failed", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_22 no verified session found", (done) => {
+test("SECSYNC_ERROR_302 no verified session found", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -341,7 +355,7 @@ test("SECSYNC_ERROR_22 no verified session found", (done) => {
       state.context._ephemeralMessageReceivingErrors.length === 1
     ) {
       expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
-        "SECSYNC_ERROR_22"
+        "SECSYNC_ERROR_302"
       );
       done();
     }
@@ -375,7 +389,7 @@ test("SECSYNC_ERROR_22 no verified session found", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_23 ignore an ephemeral message coming from a reply attack", (done) => {
+test("SECSYNC_ERROR_303 ignore an ephemeral message coming from a reply attack", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -438,7 +452,7 @@ test("SECSYNC_ERROR_23 ignore an ephemeral message coming from a reply attack", 
       expect(ephemeralMessagesValue[1]).toEqual(55);
       expect(state.context._ephemeralMessageReceivingErrors.length).toEqual(1);
       expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
-        "SECSYNC_ERROR_23"
+        "SECSYNC_ERROR_303"
       );
       done();
     }
@@ -512,7 +526,7 @@ test("SECSYNC_ERROR_23 ignore an ephemeral message coming from a reply attack", 
   }, 1);
 });
 
-test("SECSYNC_ERROR_24 isValidClient throws", (done) => {
+test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -578,7 +592,7 @@ test("SECSYNC_ERROR_24 isValidClient throws", (done) => {
       state.context._ephemeralMessageReceivingErrors.length === 1
     ) {
       expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
-        "SECSYNC_ERROR_24"
+        "SECSYNC_ERROR_304"
       );
       done();
     }
@@ -613,7 +627,7 @@ test("SECSYNC_ERROR_24 isValidClient throws", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_24 isValidClient returns false", (done) => {
+test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -679,7 +693,7 @@ test("SECSYNC_ERROR_24 isValidClient returns false", (done) => {
       state.context._ephemeralMessageReceivingErrors.length === 1
     ) {
       expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
-        "SECSYNC_ERROR_24"
+        "SECSYNC_ERROR_304"
       );
       done();
     }
@@ -714,7 +728,100 @@ test("SECSYNC_ERROR_24 isValidClient returns false", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_26 process three additional ephemeral messages where the second is ignored since the docId has been manipulated", (done) => {
+test("SECSYNC_ERROR_305 invalid messageType", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let ephemeralMessagesValue = new Uint8Array();
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        applyEphemeralMessage: (ephemeralMessage) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ephemeralMessage,
+          ]);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (
+      state.matches("connected.idle") &&
+      state.context._ephemeralMessageReceivingErrors.length === 1
+    ) {
+      expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
+        "SECSYNC_ERROR_305"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  const receiverSessionId =
+    syncService.getSnapshot().context._ephemeralMessagesSession.id;
+
+  const { ephemeralMessage } = createEphemeralMessageTestHelper({
+    messageType: "invalid",
+    receiverSessionId,
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      ...ephemeralMessage,
+      type: "ephemeral-message",
+    },
+  });
+});
+
+test("SECSYNC_ERROR_306 process three additional ephemeral messages where the second is ignored since the docId has been manipulated", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -841,6 +948,196 @@ test("SECSYNC_ERROR_26 process three additional ephemeral messages where the sec
       });
     }, 1);
   }, 1);
+});
+
+test("SECSYNC_ERROR_307 invalid messageType", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let ephemeralMessagesValue = new Uint8Array();
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        applyEphemeralMessage: (ephemeralMessage) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ephemeralMessage,
+          ]);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (
+      state.matches("connected.idle") &&
+      state.context._ephemeralMessageReceivingErrors.length === 1
+    ) {
+      expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
+        "SECSYNC_ERROR_307"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  const receiverSessionId =
+    syncService.getSnapshot().context._ephemeralMessagesSession.id;
+
+  const { ephemeralMessage } = createEphemeralMessageTestHelper({
+    messageType: "proof",
+    receiverSessionId,
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      ...ephemeralMessage,
+      publicData: {
+        pubKey: ephemeralMessage.publicData.docId,
+      },
+      type: "ephemeral-message",
+    },
+  });
+});
+
+test("SECSYNC_ERROR_308 invalid signature", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let ephemeralMessagesValue = new Uint8Array();
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => true,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        applyEphemeralMessage: (ephemeralMessage) => {
+          ephemeralMessagesValue = new Uint8Array([
+            ...ephemeralMessagesValue,
+            ephemeralMessage,
+          ]);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (
+      state.matches("connected.idle") &&
+      state.context._ephemeralMessageReceivingErrors.length === 1
+    ) {
+      expect(state.context._ephemeralMessageReceivingErrors[0].message).toEqual(
+        "SECSYNC_ERROR_308"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  const receiverSessionId =
+    syncService.getSnapshot().context._ephemeralMessagesSession.id;
+
+  const { ephemeralMessage } = createEphemeralMessageTestHelper({
+    messageType: "proof",
+    receiverSessionId,
+  });
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      ...ephemeralMessage,
+      signature: "WRONG_SIGNATURE",
+      type: "ephemeral-message",
+    },
+  });
 });
 
 test("should ignore an update in case it's a reply attack with the same update", (done) => {
