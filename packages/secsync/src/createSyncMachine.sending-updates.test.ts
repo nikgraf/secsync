@@ -142,7 +142,7 @@ test("put changes in updatesInFlight when sending updates", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -159,7 +159,7 @@ test("put changes in updatesInFlight when sending updates", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -251,7 +251,7 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -268,7 +268,7 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -348,7 +348,7 @@ test("allows to add changes before the document is loaded", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -365,7 +365,7 @@ test("allows to add changes before the document is loaded", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -441,7 +441,7 @@ test("keeps pending changes upon disconnect", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -458,7 +458,7 @@ test("keeps pending changes upon disconnect", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {

@@ -142,7 +142,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -159,7 +159,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -232,7 +232,7 @@ test("send initial snapshot if received document didn't include one, but changes
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -249,7 +249,7 @@ test("send initial snapshot if received document didn't include one, but changes
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {

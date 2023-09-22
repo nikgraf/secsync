@@ -55,7 +55,7 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       // create a new snapshot if the active snapshot has more than 10 updates
       return snapshotUpdatesCount > 10;
     },
-    isValidCollaborator: (signingPublicKey) => {
+    isValidClient: (signingPublicKey) => {
       return true;
     },
     sodium,

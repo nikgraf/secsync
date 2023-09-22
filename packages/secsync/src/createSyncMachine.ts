@@ -12,13 +12,13 @@ import { messageTypes } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { parseEphemeralMessage } from "./ephemeralMessage/parseEphemeralMessage";
 import { verifyAndDecryptEphemeralMessage } from "./ephemeralMessage/verifyAndDecryptEphemeralMessage";
-import { SecsyncProcessingEphemeralMessageError } from "./errors";
 import { createInitialSnapshot } from "./snapshot/createInitialSnapshot";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { isValidAncestorSnapshot } from "./snapshot/isValidAncestorSnapshot";
 import { parseSnapshot } from "./snapshot/parseSnapshot";
 import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
+  EphemeralMessage,
   EphemeralMessagesSession,
   ParentSnapshotProofInfo,
   Snapshot,
@@ -116,7 +116,7 @@ type ProcessQueueData = {
   updatesLocalClock: number;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
-  ephemeralMessageReceivingErrors: SecsyncProcessingEphemeralMessageError[];
+  ephemeralMessageReceivingErrors: Error[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
 };
@@ -215,7 +215,7 @@ export const createSyncMachine = () =>
         serializeChanges: () => "",
         deserializeChanges: () => [],
         onSnapshotSaved: undefined,
-        isValidCollaborator: async () => false,
+        isValidClient: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
         _snapshotInFlight: null, // it is needed so the the snapshotInFlight can be applied as the activeSnapshot once the server confirmed that it has been saved
@@ -587,6 +587,9 @@ export const createSyncMachine = () =>
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
 
+          let ephemeralMessageReceivingErrors =
+            context._ephemeralMessageReceivingErrors;
+
           try {
             const createAndSendSnapshot = async () => {
               const snapshotData = await context.getNewSnapshotData();
@@ -725,11 +728,11 @@ export const createSyncMachine = () =>
                   context.additionalAuthenticationDataValidations?.snapshot
                 );
 
-                const isValidCollaborator = await context.isValidCollaborator(
+                const isValidClient = await context.isValidClient(
                   snapshot.publicData.pubKey
                 );
-                if (!isValidCollaborator) {
-                  throw new Error("Invalid collaborator");
+                if (!isValidClient) {
+                  throw new Error("Invalid client");
                 }
 
                 let parentSnapshotUpdateClock: number | undefined = undefined;
@@ -809,11 +812,11 @@ export const createSyncMachine = () =>
                     throw new Error("No active snapshot");
                   }
 
-                  const isValidCollaborator = await context.isValidCollaborator(
+                  const isValidClient = await context.isValidClient(
                     update.publicData.pubKey
                   );
-                  if (!isValidCollaborator) {
-                    throw new Error("Invalid collaborator");
+                  if (!isValidClient) {
+                    throw new Error("Invalid client");
                   }
 
                   const unverifiedCurrentClock =
@@ -1121,20 +1124,41 @@ export const createSyncMachine = () =>
 
                   break;
                 case "ephemeral-message":
-                  try {
-                    const ephemeralMessage = parseEphemeralMessage(
-                      event,
-                      context.additionalAuthenticationDataValidations
-                        ?.ephemeralMessage
-                    );
+                  // used so we can do early return
+                  const handleEphemeralMessage = async () => {
+                    let ephemeralMessage: EphemeralMessage;
+                    try {
+                      ephemeralMessage = parseEphemeralMessage(
+                        event,
+                        context.additionalAuthenticationDataValidations
+                          ?.ephemeralMessage
+                      );
+                    } catch (err) {
+                      ephemeralMessageReceivingErrors.unshift(
+                        new Error("SECSYNC_ERROR_36")
+                      );
+                      return;
+                    }
 
                     const key = await context.getSnapshotKey(activeSnapshot);
-                    const isValidCollaborator =
-                      await context.isValidCollaborator(
+
+                    let isValidClient: boolean;
+                    try {
+                      isValidClient = await context.isValidClient(
                         ephemeralMessage.publicData.pubKey
                       );
-                    if (!isValidCollaborator) {
-                      throw new Error("Invalid collaborator");
+                    } catch (err) {
+                      if (context.logging === "error") {
+                        console.error(err);
+                      }
+                      isValidClient = false;
+                    }
+
+                    if (!isValidClient) {
+                      ephemeralMessageReceivingErrors.unshift(
+                        new Error("SECSYNC_ERROR_24")
+                      );
+                      return;
                     }
 
                     const ephemeralMessageResult =
@@ -1144,8 +1168,15 @@ export const createSyncMachine = () =>
                         context.documentId,
                         context._ephemeralMessagesSession,
                         context.signatureKeyPair,
-                        context.sodium
+                        context.sodium,
+                        context.logging
                       );
+
+                    if (ephemeralMessageResult.error) {
+                      ephemeralMessageReceivingErrors.unshift(
+                        ephemeralMessageResult.error
+                      );
+                    }
 
                     if (ephemeralMessageResult.proof) {
                       send({
@@ -1157,8 +1188,10 @@ export const createSyncMachine = () =>
                       });
                     }
 
-                    ephemeralMessagesSession.validSessions =
-                      ephemeralMessageResult.validSessions;
+                    if (ephemeralMessageResult.validSessions) {
+                      ephemeralMessagesSession.validSessions =
+                        ephemeralMessageResult.validSessions;
+                    }
 
                     // content can be undefined if it's a new session or the
                     // session data was invalid
@@ -1168,12 +1201,9 @@ export const createSyncMachine = () =>
                         ephemeralMessage.publicData.pubKey
                       );
                     }
-                  } catch (err) {
-                    throw new SecsyncProcessingEphemeralMessageError(
-                      "Failed to process ephemeral message",
-                      err
-                    );
-                  }
+                  };
+
+                  await handleEphemeralMessage();
                   break;
               }
             } else if (
@@ -1236,7 +1266,7 @@ export const createSyncMachine = () =>
               updatesInFlight,
               pendingChangesQueue,
               ephemeralMessageReceivingErrors:
-                context._ephemeralMessageReceivingErrors,
+                ephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
               documentDecryptionState,
               ephemeralMessagesSession,
             };
@@ -1244,28 +1274,10 @@ export const createSyncMachine = () =>
             if (context.logging === "debug" || context.logging === "error") {
               console.error("Processing queue error:", error);
             }
-            if (error instanceof SecsyncProcessingEphemeralMessageError) {
-              const newEphemeralMessageReceivingErrors = [
-                ...context._ephemeralMessageReceivingErrors,
-              ];
-              newEphemeralMessageReceivingErrors.unshift(error);
-              return {
-                handledQueue,
-                snapshotInfosWithUpdateClocks,
-                snapshotInFlight,
-                updatesLocalClock,
-                updatesInFlight,
-                pendingChangesQueue,
-                ephemeralMessageReceivingErrors:
-                  newEphemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
-                documentDecryptionState,
-                ephemeralMessagesSession,
-              };
-            } else {
-              // @ts-ignore fails on some environments and not in others
-              error.documentDecryptionState = documentDecryptionState;
-              throw error;
-            }
+
+            // @ts-ignore fails on some environments and not in others
+            error.documentDecryptionState = documentDecryptionState;
+            throw error;
           }
         },
       },
