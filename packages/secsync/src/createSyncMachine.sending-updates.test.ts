@@ -115,7 +115,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
     sodium
   );
 
-  return { update: { ...update, serverData: { version } } };
+  return { update };
 };
 
 test("put changes in updatesInFlight when sending updates", (done) => {

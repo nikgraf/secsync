@@ -130,7 +130,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
     sodium
   );
 
-  return { update: { ...update, serverData: { version } } };
+  return { update };
 };
 
 const createEphemeralMessageTestHelper = ({

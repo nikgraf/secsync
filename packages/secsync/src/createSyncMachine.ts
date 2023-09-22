@@ -28,7 +28,7 @@ import {
   Update,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
-import { parseUpdates } from "./update/parseUpdates";
+import { parseUpdate } from "./update/parseUpdate";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
 import { updateUpdateClocksEntry } from "./utils/updateUpdateClocksEntry";
 import { websocketService } from "./utils/websocketService";
@@ -858,35 +858,66 @@ export const createSyncMachine = () =>
 
             const processUpdates = async (
               rawUpdates: Update[],
-              key: Uint8Array,
+              relatedSnapshot: Snapshot,
+              // TODO revisit these two decisions
               skipIfCurrentClockIsHigher: boolean,
               skipUpdatesAuthoredByCurrentClient: boolean
             ) => {
-              // must be redefined here, since a snapshot from loading a document might have been applied
-              // before updates are processed
-              const activeSnapshot: Snapshot | null =
-                snapshotInfosWithUpdateClocks[
-                  snapshotInfosWithUpdateClocks.length - 1
-                ]?.snapshot || null;
-
-              const updates = parseUpdates(
-                rawUpdates,
-                context.additionalAuthenticationDataValidations?.update
-              );
-              let changes: unknown[] = [];
-
               try {
-                for (let update of updates) {
-                  // console.log("processUpdates key", key);
-                  if (activeSnapshot === null) {
-                    throw new Error("No active snapshot");
+                let key: Uint8Array;
+                try {
+                  key = await context.getSnapshotKey(relatedSnapshot);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_206");
+                  return;
+                }
+
+                // must be redefined here, since a snapshot from loading a document might have been applied
+                // before updates are processed
+                const activeSnapshot = relatedSnapshot;
+
+                let changes: unknown[] = [];
+
+                for (let rawUpdate of rawUpdates) {
+                  let update: Update;
+                  try {
+                    update = parseUpdate(
+                      rawUpdate,
+                      context.additionalAuthenticationDataValidations?.update
+                    );
+                  } catch (err) {
+                    snapshotAndUpdateErrors.unshift(
+                      new Error("SECSYNC_ERROR_211")
+                    );
+                    continue;
                   }
 
-                  const isValidClient = await context.isValidClient(
-                    update.publicData.pubKey
-                  );
-                  if (!isValidClient) {
-                    throw new Error("Invalid client");
+                  try {
+                    const isValidClient = await context.isValidClient(
+                      update.publicData.pubKey
+                    );
+                    if (!isValidClient) {
+                      // TODO test for completed and not completed case
+                      snapshotAndUpdateErrors.unshift(
+                        new Error("SECSYNC_ERROR_215")
+                      );
+                      continue;
+                    }
+                  } catch (err) {
+                    if (
+                      context.logging === "debug" ||
+                      context.logging === "error"
+                    ) {
+                      console.error(err);
+                    }
+                    errorCausingDocumentToFail = new Error("SECSYNC_ERROR_205");
+                    continue;
                   }
 
                   const unverifiedCurrentClock =
@@ -907,11 +938,31 @@ export const createSyncMachine = () =>
                     currentClock,
                     skipIfCurrentClockIsHigher,
                     skipUpdatesAuthoredByCurrentClient,
-                    context.sodium
+                    context.sodium,
+                    context.logging
                   );
 
-                  if (decryptUpdateResult === null) {
-                    continue;
+                  if (decryptUpdateResult.error) {
+                    const ignoreErrorList = [
+                      "SECSYNC_ERROR_211",
+                      "SECSYNC_ERROR_212",
+                      "SECSYNC_ERROR_213",
+                      "SECSYNC_ERROR_214",
+                      "SECSYNC_ERROR_215",
+                    ];
+                    if (
+                      ignoreErrorList.includes(
+                        decryptUpdateResult.error.message
+                      )
+                    ) {
+                      snapshotAndUpdateErrors.unshift(
+                        decryptUpdateResult.error
+                      );
+                      continue;
+                    } else {
+                      errorCausingDocumentToFail = decryptUpdateResult.error;
+                      continue;
+                    }
                   }
 
                   const { content, clock } = decryptUpdateResult;
@@ -929,20 +980,41 @@ export const createSyncMachine = () =>
                   ) {
                     updatesLocalClock = update.publicData.clock;
                   }
+                  try {
+                    const additionalChanges = context.deserializeChanges(
+                      context.sodium.to_string(content)
+                    );
+                    changes = changes.concat(additionalChanges);
+                  } catch (err) {
+                    if (
+                      context.logging === "debug" ||
+                      context.logging === "error"
+                    ) {
+                      console.error(err);
+                    }
+                    errorCausingDocumentToFail = new Error("SECSYNC_ERROR_204");
+                  }
+                }
 
-                  const additionalChanges = context.deserializeChanges(
-                    context.sodium.to_string(content)
-                  );
-                  changes = changes.concat(additionalChanges);
+                try {
+                  context.applyChanges(changes);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_203");
                 }
-                context.applyChanges(changes);
-              } catch (error) {
-                if (context.logging === "debug") {
-                  console.debug("APPLYING CHANGES in catch", error);
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error(err);
                 }
-                // still try to apply all existing changes
-                context.applyChanges(changes);
-                throw error;
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_200");
               }
             };
 
@@ -1002,10 +1074,6 @@ export const createSyncMachine = () =>
                     if (errorCausingDocumentToFail === null) {
                       documentDecryptionState = "partial";
 
-                      const snapshotKey = await context.getSnapshotKey(
-                        event.snapshot
-                      );
-
                       if (event.updates) {
                         // skipIfCurrentClockIsHigher to false since the document would
                         // be broken if the server sends update events with the same clock
@@ -1014,13 +1082,24 @@ export const createSyncMachine = () =>
                         // should never send an update made by the current client in this case
                         await processUpdates(
                           event.updates,
-                          snapshotKey,
+                          event.snapshot,
                           false,
                           false
                         );
                       }
 
-                      documentDecryptionState = "complete";
+                      if (
+                        snapshotAndUpdateErrors.length >
+                        snapshotAndUpdateErrorsLength
+                      ) {
+                        errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
+                        // remove the item since it will be added later due errorCausingDocumentToFail being set
+                        snapshotAndUpdateErrors.pop();
+                      }
+
+                      if (errorCausingDocumentToFail === null) {
+                        documentDecryptionState = "complete";
+                      }
                     }
                   } else {
                     documentDecryptionState = "complete";
@@ -1086,11 +1165,19 @@ export const createSyncMachine = () =>
                     console.log("snapshot saving failed", event);
                   }
                   if (event.snapshot) {
-                    // TODO capture the error here?
-                    const snapshot = parseSnapshot(
-                      event.snapshot,
-                      context.additionalAuthenticationDataValidations?.snapshot
-                    );
+                    let snapshot: Snapshot;
+                    try {
+                      snapshot = parseSnapshot(
+                        event.snapshot,
+                        context.additionalAuthenticationDataValidations
+                          ?.snapshot
+                      );
+                    } catch (err) {
+                      snapshotAndUpdateErrors.unshift(
+                        new Error("SECSYNC_ERROR_110")
+                      );
+                      return;
+                    }
 
                     const isAlreadyProcessedSnapshot =
                       activeSnapshot.publicData.snapshotId ===
@@ -1127,16 +1214,17 @@ export const createSyncMachine = () =>
                   }
 
                   if (event.updates) {
-                    const key = await context.getSnapshotKey(
-                      event.snapshot ? event.snapshot : activeSnapshot
-                    );
-
                     // skipIfCurrentClockIsHigher to true since the update might already
                     // have been received via update message
                     // skipUpdatesAuthoredByCurrentClient is set to true since it can happen
                     // that an update was sent, saved on the server, but the confirmation
                     // `updated-saved` not yet received
-                    await processUpdates(event.updates, key, true, true);
+                    await processUpdates(
+                      event.updates,
+                      event.snapshot ? event.snapshot : activeSnapshot,
+                      true,
+                      true
+                    );
                   }
 
                   if (context.logging === "debug") {
@@ -1150,11 +1238,7 @@ export const createSyncMachine = () =>
                   // have been received via snapshot-save-failed message
                   // skipUpdatesAuthoredByCurrentClient is set to false since the server
                   // should never send an update made by the current client in this case
-                  const snapshotKey = await context.getSnapshotKey(
-                    activeSnapshot
-                  );
-
-                  await processUpdates([event], snapshotKey, true, false);
+                  await processUpdates([event], activeSnapshot, true, false);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {

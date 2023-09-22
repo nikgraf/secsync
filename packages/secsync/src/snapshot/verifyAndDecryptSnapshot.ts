@@ -15,13 +15,14 @@ export function verifyAndDecryptSnapshot(
   logging?: "error" | "debug" | "off"
 ) {
   try {
-    const publicKey = sodium.from_base64(snapshot.publicData.pubKey);
-
-    const publicDataAsBase64 = sodium.to_base64(
-      canonicalize(snapshot.publicData)
-    );
+    let publicKey: Uint8Array;
+    let publicDataAsBase64: string;
 
     try {
+      publicKey = sodium.from_base64(snapshot.publicData.pubKey);
+
+      publicDataAsBase64 = sodium.to_base64(canonicalize(snapshot.publicData));
+
       const isValid = verifySignature(
         {
           nonce: snapshot.nonce,

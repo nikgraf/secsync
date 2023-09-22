@@ -134,21 +134,23 @@ test("createUpdate & verifyAndDecryptUpdate break due changed signature", async 
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptUpdate(
-      {
-        ...update,
-        signature: update.signature.replace(/^./, "a"),
-      },
-      key,
-      publicData.refSnapshotId,
-      sodium.to_base64(signatureKeyPair.publicKey),
-      -1,
-      false,
-      false,
-      sodium
-    )
-  ).toThrowError();
+  const result = verifyAndDecryptUpdate(
+    {
+      ...update,
+      signature: update.signature.replace(/^./, "a"),
+    },
+    key,
+    publicData.refSnapshotId,
+    sodium.to_base64(signatureKeyPair.publicKey),
+    -1,
+    false,
+    false,
+    sodium
+  );
+  expect(result.clock).toBeUndefined();
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_212");
 });
 
 test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async () => {
@@ -183,21 +185,24 @@ test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptUpdate(
-      {
-        ...update,
-        ciphertext: "aaa" + update.ciphertext.substring(3),
-      },
-      key,
-      publicData.refSnapshotId,
-      sodium.to_base64(signatureKeyPair.publicKey),
-      -1,
-      false,
-      false,
-      sodium
-    )
-  ).toThrowError();
+  const result = verifyAndDecryptUpdate(
+    {
+      ...update,
+      ciphertext: "aaa" + update.ciphertext.substring(3),
+    },
+    key,
+    publicData.refSnapshotId,
+    sodium.to_base64(signatureKeyPair.publicKey),
+    -1,
+    false,
+    false,
+    sodium
+  );
+
+  expect(result.clock).toBeUndefined();
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_212");
 });
 
 test("createUpdate & verifyAndDecryptUpdate fail due invalid clock", async () => {
@@ -232,21 +237,23 @@ test("createUpdate & verifyAndDecryptUpdate fail due invalid clock", async () =>
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptUpdate(
-      update,
-      key,
-      publicData.refSnapshotId,
-      sodium.to_base64(signatureKeyPair.publicKey),
-      10,
-      false,
-      false,
-      sodium
-    )
-  ).toThrowError();
+  const result = verifyAndDecryptUpdate(
+    update,
+    key,
+    publicData.refSnapshotId,
+    sodium.to_base64(signatureKeyPair.publicKey),
+    10,
+    false,
+    false,
+    sodium
+  );
+  expect(result.clock).toBeUndefined();
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_214");
 });
 
-test("verifyAndDecryptUpdate returns null if currentActiveSnapshotId does not match", async () => {
+test("verifyAndDecryptUpdate fail due currentActiveSnapshotId does not match", async () => {
   await sodium.ready;
 
   const key = sodium.from_hex(
@@ -278,18 +285,20 @@ test("verifyAndDecryptUpdate returns null if currentActiveSnapshotId does not ma
     sodium
   );
 
-  expect(
-    verifyAndDecryptUpdate(
-      update,
-      key,
-      "somethingelse",
-      sodium.to_base64(signatureKeyPair.publicKey),
-      10,
-      true,
-      false,
-      sodium
-    )
-  ).toBeNull();
+  const result = verifyAndDecryptUpdate(
+    update,
+    key,
+    "somethingelse",
+    sodium.to_base64(signatureKeyPair.publicKey),
+    10,
+    true,
+    false,
+    sodium
+  );
+  expect(result.clock).toBeUndefined();
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_213");
 });
 
 test("verifyAndDecryptUpdate returns null if skipIfCurrentClockIsHigher is set to true", async () => {
@@ -324,18 +333,19 @@ test("verifyAndDecryptUpdate returns null if skipIfCurrentClockIsHigher is set t
     sodium
   );
 
-  expect(
-    verifyAndDecryptUpdate(
-      update,
-      key,
-      publicData.refSnapshotId,
-      sodium.to_base64(signatureKeyPair.publicKey),
-      10,
-      true,
-      false,
-      sodium
-    )
-  ).toBeNull();
+  const result = verifyAndDecryptUpdate(
+    update,
+    key,
+    publicData.refSnapshotId,
+    sodium.to_base64(signatureKeyPair.publicKey),
+    10,
+    true,
+    false,
+    sodium
+  );
+  expect(result.clock).toBeUndefined();
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeUndefined();
 });
 
 test("verifyAndDecryptUpdate returns null if skipIfUpdateAuthoredByCurrentClient is set to true and the update was created by the same author", async () => {
@@ -370,16 +380,17 @@ test("verifyAndDecryptUpdate returns null if skipIfUpdateAuthoredByCurrentClient
     sodium
   );
 
-  expect(
-    verifyAndDecryptUpdate(
-      update,
-      key,
-      publicData.refSnapshotId,
-      sodium.to_base64(signatureKeyPair.publicKey),
-      -1,
-      false,
-      true,
-      sodium
-    )
-  ).toBeNull();
+  const result = verifyAndDecryptUpdate(
+    update,
+    key,
+    publicData.refSnapshotId,
+    sodium.to_base64(signatureKeyPair.publicKey),
+    -1,
+    false,
+    true,
+    sodium
+  );
+  expect(result.clock).toBeUndefined();
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeUndefined();
 });

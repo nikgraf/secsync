@@ -23,23 +23,25 @@ For these cases the error is ignored, logged and the document continues to work.
 - `SECSYNC_ERROR_111`: Invalid signature
 - `SECSYNC_ERROR_112`: Invalid parentSnapshot verification (can happend if snapshots come in out of order) -> refetch
 - `SECSYNC_ERROR_113`: Invalid docId
-- `SECSYNC_ERROR_114`: Callback `isValidClient` returns false
+- `SECSYNC_ERROR_114`: callback `isValidClient` returns false
 
 ### Update
 
-- `SECSYNC_ERROR_11`: decryption error -> throw an error
-- `SECSYNC_ERROR_12`: clock is > than + 2 - try to refetch and if not -> throw an error
-- irrelevant message -> ignore and log
+- `SECSYNC_ERROR_200`: Unknown Update error.
+- `SECSYNC_ERROR_201`: Decryption failed.
+- `SECSYNC_ERROR_202`: Clock did increase by more than 1. (message missing or not in order)
+- `SECSYNC_ERROR_203`: callback `applyChanges` threw an Error
+- `SECSYNC_ERROR_204`: callback `deserializeChanges` threw an Error
+- `SECSYNC_ERROR_205`: callback `isValidClient` threw an Error
+- `SECSYNC_ERROR_206`: callback `getSnapshotKey` threw an Error
 
-  - `SECSYNC_ERROR_13`: parse error of message (e.g. field is missing or added)
-  - `SECSYNC_ERROR_14`: invalid signature (manipulated message)
-  - `SECSYNC_ERROR_15`: invalid snapshotId reference, but valid message
-  - `SECSYNC_ERROR_16`: clock is lower or equal then the received clock (reply attack)
+For these cases the error is ignored, logged and the document continues to work.
 
-- `SECSYNC_ERROR_17`: isValidClient throws -> throw an error
-- `SECSYNC_ERROR_18`: isValidClient returns false -> ignore the message
-- `SECSYNC_ERROR_19`: deserializeChanges throws -> throw an error
-- `SECSYNC_ERROR_20`: applyChanges throws -> throw an error
+- `SECSYNC_ERROR_211`: parse error of message (e.g. field is missing)
+- `SECSYNC_ERROR_212`: invalid signature (manipulated message)
+- `SECSYNC_ERROR_213`: invalid snapshotId reference
+- `SECSYNC_ERROR_214`: Clock is lower or equal then the received clock (reply attack)
+- `SECSYNC_ERROR_215`: callback `isValidClient` returns false
 
 ### EphemeralMessages
 
@@ -84,7 +86,5 @@ update-save-failed -> retry and if not set internal state that sync is not possi
 ### EphemeralMessage
 
 In case an error happens during the creation of an EphemeralMessage the error is ignored and stored in the `_ephemeralMessageAuthoringErrors` array. To avoid a memory leak only the last 20 errors are stored.
-
-#### Error cases
 
 - `SECSYNC_ERROR_35`: `getSnapshotKey` or signing or encrypting the EphemeralMessage throws an error
