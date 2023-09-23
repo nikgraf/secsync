@@ -105,7 +105,10 @@ export const websocketService =
             if (context.logging === "debug" || context.logging === "error") {
               console.error(reason);
             }
-            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+            send({
+              type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
+              error: new Error("SECSYNC_ERROR_601"),
+            });
           });
         case "snapshot":
         case "snapshot-saved":
@@ -146,7 +149,7 @@ export const websocketService =
       if (event.type === "SEND") {
         websocketConnection.send(event.message);
       }
-      if (event.type === "SEND_EPHEMERAL_UPDATE") {
+      if (event.type === "SEND_EPHEMERAL_MESSAGE") {
         try {
           const key = await event.getKey();
           prepareAndSendEphemeralMessage(
@@ -157,13 +160,19 @@ export const websocketService =
             if (context.logging === "debug" || context.logging === "error") {
               console.error(reason);
             }
-            send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error: reason });
+            send({
+              type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
+              error: new Error("SECSYNC_ERROR_601"),
+            });
           });
         } catch (error) {
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);
           }
-          send({ type: "FAILED_CREATING_EPHEMERAL_UPDATE", error });
+          send({
+            type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
+            error: new Error("SECSYNC_ERROR_601"),
+          });
         }
       }
     });

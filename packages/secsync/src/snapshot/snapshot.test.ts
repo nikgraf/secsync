@@ -54,10 +54,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     signatureKeyPairA.publicKey,
     sodium
   );
-  if (result === null) {
-    throw new Error("Snapshot could not be verified.");
-  }
-  expect(sodium.to_string(result)).toBe("Hello World");
+  expect(sodium.to_string(result.content)).toBe("Hello World");
+  expect(result.error).toBeUndefined();
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", () => {
@@ -80,18 +78,19 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      {
-        ...snapshot,
-        signature: snapshot.signature.replace(/^./, "a"),
-      },
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium
-    )
-  ).toThrowError();
+  const result = verifyAndDecryptSnapshot(
+    {
+      ...snapshot,
+      signature: snapshot.signature.replace(/^./, "a"),
+    },
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium
+  );
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_111");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", () => {
@@ -114,18 +113,20 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      {
-        ...snapshot,
-        ciphertext: "aaa" + snapshot.ciphertext.substring(3),
-      },
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium
-    )
-  ).toThrowError();
+  const result = verifyAndDecryptSnapshot(
+    {
+      ...snapshot,
+      ciphertext: "aaa" + snapshot.ciphertext.substring(3),
+    },
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium
+  );
+
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_111");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying direct parentSnapshotProof", () => {
@@ -196,10 +197,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
       parentSnapshotProof: "",
     }
   );
-  if (result === null) {
-    throw new Error("Snapshot could not be verified.");
-  }
-  expect(sodium.to_string(result)).toBe("Hello World");
+  expect(sodium.to_string(result.content)).toBe("Hello World");
+  expect(result.error).toBeUndefined();
 
   const result2 = verifyAndDecryptSnapshot(
     snapshot2,
@@ -213,10 +212,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     }
   );
-  if (result === null) {
-    throw new Error("Snapshot could not be verified.");
-  }
-  expect(sodium.to_string(result2)).toBe("Hello World2");
+  expect(sodium.to_string(result2.content)).toBe("Hello World2");
+  expect(result2.error).toBeUndefined();
 
   const result3 = verifyAndDecryptSnapshot(
     snapshot3,
@@ -231,7 +228,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     }
   );
 
-  expect(sodium.to_string(result3)).toBe("Hello World3");
+  expect(sodium.to_string(result3.content)).toBe("Hello World3");
+  expect(result3.error).toBeUndefined();
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSnapshotProof of initial snapshot", () => {
@@ -275,65 +273,71 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot2,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot.publicData.snapshotId,
-        ciphertext: snapshot.ciphertext,
-        parentSnapshotProof: createParentSnapshotProof({
-          parentSnapshotCiphertext: snapshot.ciphertext, // wrong ciphertext
-          parentSnapshotId: snapshot.publicData.snapshotId,
-          grandParentSnapshotProof: "",
-          sodium,
-        }),
-      }
-    )
-  ).toThrowError();
+  const result1 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot.ciphertext,
+      parentSnapshotProof: createParentSnapshotProof({
+        parentSnapshotCiphertext: snapshot.ciphertext, // wrong ciphertext
+        parentSnapshotId: snapshot.publicData.snapshotId,
+        grandParentSnapshotProof: "",
+        sodium,
+      }),
+    }
+  );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot2,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot.publicData.snapshotId,
-        ciphertext: snapshot.ciphertext,
-        parentSnapshotProof: createParentSnapshotProof({
-          parentSnapshotCiphertext: "",
-          parentSnapshotId: snapshot.publicData.snapshotId,
-          grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof, // wrong proof
-          sodium,
-        }),
-      }
-    )
-  ).toThrowError();
+  expect(result1.content).toBeUndefined();
+  expect(result1.error).toBeDefined();
+  expect(result1.error.message).toBe("SECSYNC_ERROR_112");
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot2,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot.publicData.snapshotId,
-        ciphertext: snapshot2.ciphertext, // wrong ciphertext
-        parentSnapshotProof: createParentSnapshotProof({
-          parentSnapshotId: "",
-          parentSnapshotCiphertext: "",
-          grandParentSnapshotProof: "",
-          sodium,
-        }),
-      }
-    )
-  ).toThrowError();
+  const result2 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot.ciphertext,
+      parentSnapshotProof: createParentSnapshotProof({
+        parentSnapshotCiphertext: "",
+        parentSnapshotId: snapshot.publicData.snapshotId,
+        grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof, // wrong proof
+        sodium,
+      }),
+    }
+  );
+
+  expect(result2.content).toBeUndefined();
+  expect(result2.error).toBeDefined();
+  expect(result2.error.message).toBe("SECSYNC_ERROR_112");
+
+  const result3 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot2.ciphertext, // wrong ciphertext
+      parentSnapshotProof: createParentSnapshotProof({
+        parentSnapshotId: "",
+        parentSnapshotCiphertext: "",
+        grandParentSnapshotProof: "",
+        sodium,
+      }),
+    }
+  );
+
+  expect(result3.content).toBeUndefined();
+  expect(result3.error).toBeDefined();
+  expect(result3.error.message).toBe("SECSYNC_ERROR_112");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSnapshotProof of snapshot with a parent", () => {
@@ -392,65 +396,69 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot3,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot2.publicData.snapshotId,
-        ciphertext: snapshot2.ciphertext,
-        parentSnapshotProof: createParentSnapshotProof({
-          parentSnapshotId: snapshot.publicData.snapshotId,
-          parentSnapshotCiphertext: snapshot2.ciphertext, // wrong ciphertext
-          grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-          sodium,
-        }),
-      }
-    )
-  ).toThrowError();
+  const result1 = verifyAndDecryptSnapshot(
+    snapshot3,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot2.publicData.snapshotId,
+      ciphertext: snapshot2.ciphertext,
+      parentSnapshotProof: createParentSnapshotProof({
+        parentSnapshotId: snapshot.publicData.snapshotId,
+        parentSnapshotCiphertext: snapshot2.ciphertext, // wrong ciphertext
+        grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        sodium,
+      }),
+    }
+  );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot3,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot2.publicData.snapshotId,
-        ciphertext: snapshot2.ciphertext,
-        parentSnapshotProof: createParentSnapshotProof({
-          parentSnapshotId: snapshot.publicData.snapshotId,
-          parentSnapshotCiphertext: snapshot.ciphertext,
-          grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof, // wrong proof
-          sodium,
-        }),
-      }
-    )
-  ).toThrowError();
+  expect(result1.content).toBeUndefined();
+  expect(result1.error).toBeDefined();
+  expect(result1.error.message).toBe("SECSYNC_ERROR_112");
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot3,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot2.publicData.snapshotId,
-        ciphertext: snapshot3.ciphertext, // wrong ciphertext
-        parentSnapshotProof: createParentSnapshotProof({
-          parentSnapshotId: snapshot.publicData.snapshotId,
-          parentSnapshotCiphertext: snapshot.ciphertext,
-          grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-          sodium,
-        }),
-      }
-    )
-  ).toThrowError();
+  const result2 = verifyAndDecryptSnapshot(
+    snapshot3,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot2.publicData.snapshotId,
+      ciphertext: snapshot2.ciphertext,
+      parentSnapshotProof: createParentSnapshotProof({
+        parentSnapshotId: snapshot.publicData.snapshotId,
+        parentSnapshotCiphertext: snapshot.ciphertext,
+        grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof, // wrong proof
+        sodium,
+      }),
+    }
+  );
+  expect(result2.content).toBeUndefined();
+  expect(result2.error).toBeDefined();
+  expect(result2.error.message).toBe("SECSYNC_ERROR_112");
+
+  const result3 = verifyAndDecryptSnapshot(
+    snapshot3,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot2.publicData.snapshotId,
+      ciphertext: snapshot3.ciphertext, // wrong ciphertext
+      parentSnapshotProof: createParentSnapshotProof({
+        parentSnapshotId: snapshot.publicData.snapshotId,
+        parentSnapshotCiphertext: snapshot.ciphertext,
+        grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+        sodium,
+      }),
+    }
+  );
+  expect(result3.content).toBeUndefined();
+  expect(result3.error).toBeDefined();
+  expect(result3.error.message).toBe("SECSYNC_ERROR_112");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotUpdateClocks", () => {
@@ -507,7 +515,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     10 // no clock should be present
   );
 
-  expect(sodium.to_string(result2)).toBe("Hello World2");
+  expect(sodium.to_string(result2.content)).toBe("Hello World2");
+  expect(result2.error).toBeUndefined();
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshotUpdateClocks", () => {
@@ -550,69 +559,74 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: "",
-        ciphertext: "",
-        parentSnapshotProof: "",
-      },
-      10 // no clock should be present
-    )
-  ).toThrowError();
+  const result1 = verifyAndDecryptSnapshot(
+    snapshot,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: "",
+      ciphertext: "",
+      parentSnapshotProof: "",
+    },
+    10 // no clock should be present
+  );
+  expect(result1.content).toBeUndefined();
+  expect(result1.error).toBeDefined();
+  expect(result1.error.message).toBe("SECSYNC_ERROR_102");
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot2,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot.publicData.snapshotId,
-        ciphertext: snapshot.ciphertext,
-        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-      },
-      11 // clock should be 10
-    )
-  ).toThrowError();
+  const result2 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot.ciphertext,
+      parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    },
+    11 // clock should be 10
+  );
+  expect(result2.content).toBeUndefined();
+  expect(result2.error).toBeDefined();
+  expect(result2.error.message).toBe("SECSYNC_ERROR_102");
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot2,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot.publicData.snapshotId,
-        ciphertext: snapshot.ciphertext,
-        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-      },
-      9 // clock should be 10
-    )
-  ).toThrowError();
+  const result3 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot.ciphertext,
+      parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    },
+    9 // clock should be 10
+  );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot2,
-      key,
-      docId,
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: snapshot.publicData.snapshotId,
-        ciphertext: snapshot.ciphertext,
-        parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-      },
-      0 // clock should be 10
-    )
-  ).toThrowError();
+  expect(result3.content).toBeUndefined();
+  expect(result3.error).toBeDefined();
+  expect(result3.error.message).toBe("SECSYNC_ERROR_102");
+
+  const result4 = verifyAndDecryptSnapshot(
+    snapshot2,
+    key,
+    docId,
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: snapshot.publicData.snapshotId,
+      ciphertext: snapshot.ciphertext,
+      parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    },
+    0 // clock should be 10
+  );
+  expect(result4.content).toBeUndefined();
+  expect(result4.error).toBeDefined();
+  expect(result4.error.message).toBe("SECSYNC_ERROR_102");
 });
 
 test("verifyAndDecryptSnapshot fails due wrong docId", () => {
@@ -635,18 +649,20 @@ test("verifyAndDecryptSnapshot fails due wrong docId", () => {
     sodium
   );
 
-  expect(() =>
-    verifyAndDecryptSnapshot(
-      snapshot,
-      key,
-      "WRONG_DOCUMENT_ID",
-      signatureKeyPairA.publicKey,
-      sodium,
-      {
-        id: "",
-        ciphertext: "",
-        parentSnapshotProof: "",
-      }
-    )
-  ).toThrowError();
+  const result = verifyAndDecryptSnapshot(
+    snapshot,
+    key,
+    "WRONG_DOCUMENT_ID",
+    signatureKeyPairA.publicKey,
+    sodium,
+    {
+      id: "",
+      ciphertext: "",
+      parentSnapshotProof: "",
+    }
+  );
+
+  expect(result.content).toBeUndefined();
+  expect(result.error).toBeDefined();
+  expect(result.error.message).toBe("SECSYNC_ERROR_113");
 });

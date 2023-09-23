@@ -87,17 +87,14 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     sodium
   );
   return {
-    snapshot: {
-      ...snapshot,
-      serverData: { latestVersion: 0 },
-    },
+    snapshot,
     key,
     clientAKeyPair,
   };
 };
 
 type CreateUpdateTestHelperParams = {
-  version: number;
+  version?: number;
   signatureKeyPair?: KeyPair;
 };
 
@@ -119,7 +116,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
     sodium
   );
 
-  return { update: { ...update, serverData: { version } } };
+  return { update };
 };
 
 test("should apply snapshot from snapshot-save-failed", (done) => {
@@ -143,7 +140,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -250,7 +247,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -363,7 +360,7 @@ test("should apply update from snapshot-save-failed", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -463,7 +460,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -561,7 +558,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
   syncService.start();
 });
 
-test("should ignore update from snapshot-save-failed if it was created by the current client", (done) => {
+test("should apply update from snapshot-save-failed if it was created by the current client", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -582,7 +579,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -636,7 +633,6 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
     // this case can happen when an update was sent, saved on the server,
     // but the confirmation `updated-saved` not yet received
     const update = createUpdateTestHelper({
-      version: 22,
       signatureKeyPair: clientBKeyPair,
     }).update;
 
@@ -661,7 +657,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
 
     if (transitionCount === 10) {
       expect(state.matches("connected.idle")).toBe(true);
-      expect(docValue).toBe("Hello World");
+      expect(docValue).toBe("Hello Worldu");
       done();
     }
   });

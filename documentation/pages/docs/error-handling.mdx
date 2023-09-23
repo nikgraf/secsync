@@ -1,0 +1,84 @@
+# Error Handling
+
+The goal is to have a secure and reliable system. This means errors that are not caused by a collaborator should be ignored and logged. One example are reply attacks or manipulating data.
+
+Errors that are caused by a participant can't be recovered from and the document ends up in an error state.
+
+## Receiving Data
+
+### Snapshot
+
+These errors result in an error state of the document and no new events are processed.
+
+- `SECSYNC_ERROR_100`: Unknown Snapshot error.
+- `SECSYNC_ERROR_101`: Decryption failed.
+- `SECSYNC_ERROR_102`: The Snapshot did not include the update of prev confirmed update of the current client.
+- `SECSYNC_ERROR_103`: callback `getSnapshotKey` threw an Error
+- `SECSYNC_ERROR_104`: callback `isValidClient` threw an Error
+- `SECSYNC_ERROR_105`: callback `applySnapshot` threw an Error
+
+For these cases the error is ignored, logged and the document continues to work. Only in case this happens during loading the initial document the document ends up in an error state and no new events are processed.
+
+- `SECSYNC_ERROR_110`: snapshot parse error (e.g. field is missing)
+- `SECSYNC_ERROR_111`: Invalid signature
+- `SECSYNC_ERROR_112`: Invalid parentSnapshot verification (can happend if snapshots come in out of order) -> refetch
+- `SECSYNC_ERROR_113`: Invalid docId
+- `SECSYNC_ERROR_114`: callback `isValidClient` returns false
+
+### Update
+
+- `SECSYNC_ERROR_200`: Unknown Update error.
+- `SECSYNC_ERROR_201`: Decryption failed.
+- `SECSYNC_ERROR_202`: Clock did increase by more than 1. (message missing or not in order)
+- `SECSYNC_ERROR_203`: callback `applyChanges` threw an Error
+- `SECSYNC_ERROR_204`: callback `deserializeChanges` threw an Error
+- `SECSYNC_ERROR_205`: callback `isValidClient` threw an Error
+- `SECSYNC_ERROR_206`: callback `getSnapshotKey` threw an Error
+
+For these cases the error is ignored, logged and the document continues to work.
+
+- `SECSYNC_ERROR_211`: update parse error (e.g. field is missing)
+- `SECSYNC_ERROR_212`: invalid signature (manipulated message)
+- `SECSYNC_ERROR_213`: invalid snapshotId reference
+- `SECSYNC_ERROR_214`: Clock is lower or equal then the received clock (reply attack)
+- `SECSYNC_ERROR_215`: callback `isValidClient` returns false
+
+### EphemeralMessages
+
+When you receive an EphemeralMessage that is not valid it simply is ignored and stored in the `_ephemeralMessageReceivingErrors` array. To avoid a memory leak only the last 20 errors are stored.
+
+- `SECSYNC_ERROR_300`: Unknown EphemeralMessage error.
+- `SECSYNC_ERROR_301`: Decryption failed.
+- `SECSYNC_ERROR_302`: No verified session found.
+- `SECSYNC_ERROR_303`: A messages was received where the counter was not higher than the last received message. (reply attack)
+- `SECSYNC_ERROR_304`: The author is not a valid client.
+- `SECSYNC_ERROR_305`: The message type is not supported.
+- `SECSYNC_ERROR_306`: A message with the wrong docId was received.
+- `SECSYNC_ERROR_307`: The message was manipulated and has not the correct shape.
+- `SECSYNC_ERROR_308`: Message signature is not valid.
+
+## Sending Data
+
+### Snapshot
+
+Set the document to read only and show an error message to the user that the latest changes could not be synced.
+
+- `SECSYNC_ERROR_401`: Failed to create a snapshot. Can be due invalid `signatureKeyPair` or functions like `getNewSnapshotData` or encryption throwing an error.
+
+Server:
+
+TODO snapshot-save-failed -> retry and if not set internal state that sync is not possible due a server issue
+
+### Update
+
+Set the document to read only and show an error message to the user that the latest changes could not be synced.
+
+- `SECSYNC_ERROR_501`: Failed to create a snapshot. Can be due invalid `signatureKeyPair` or functions like `getSnapshotKey`, `serializeChanges` or encryption throwing an error.
+
+TODO update-save-failed -> retry and if not set internal state that sync is not possible due a server issue
+
+### EphemeralMessage
+
+In case an error happens during the creation of an EphemeralMessage the error is ignored and stored in the `_ephemeralMessageAuthoringErrors` array. To avoid a memory leak only the last 20 errors are stored.
+
+- `SECSYNC_ERROR_601`: `getSnapshotKey` or signing or encrypting the EphemeralMessage throws an error

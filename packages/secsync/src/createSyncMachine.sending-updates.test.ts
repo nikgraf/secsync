@@ -86,10 +86,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     sodium
   );
   return {
-    snapshot: {
-      ...snapshot,
-      serverData: { latestVersion: 0 },
-    },
+    snapshot,
     key,
     clientAKeyPair,
   };
@@ -118,7 +115,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
     sodium
   );
 
-  return { update: { ...update, serverData: { version } } };
+  return { update };
 };
 
 test("put changes in updatesInFlight when sending updates", (done) => {
@@ -142,7 +139,7 @@ test("put changes in updatesInFlight when sending updates", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -159,7 +156,7 @@ test("put changes in updatesInFlight when sending updates", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -175,8 +172,9 @@ test("put changes in updatesInFlight when sending updates", (done) => {
       })
   );
 
+  const { snapshot } = createSnapshotTestHelper();
+  const snapshotId = snapshot.publicData.snapshotId;
   const runEvents = () => {
-    const { snapshot } = createSnapshotTestHelper();
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
@@ -212,15 +210,15 @@ test("put changes in updatesInFlight when sending updates", (done) => {
 
     if (state.context._updatesInFlight.length === 1) {
       expect(state.context._updatesInFlight).toStrictEqual([
-        { clock: 0, changes: ["H", "e", "llo"] },
+        { clock: 0, snapshotId, changes: ["H", "e", "llo"] },
       ]);
     } else if (
       state.context._updatesInFlight.length === 2 &&
       state.matches("connected.idle")
     ) {
       expect(state.context._updatesInFlight).toStrictEqual([
-        { clock: 0, changes: ["H", "e", "llo"] },
-        { clock: 1, changes: ["World"] },
+        { clock: 0, snapshotId, changes: ["H", "e", "llo"] },
+        { clock: 1, snapshotId, changes: ["World"] },
       ]);
       expect(state.context._pendingChangesQueue).toEqual([]);
       done();
@@ -251,7 +249,7 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -268,7 +266,7 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -348,7 +346,7 @@ test("allows to add changes before the document is loaded", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -365,7 +363,7 @@ test("allows to add changes before the document is loaded", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -381,6 +379,9 @@ test("allows to add changes before the document is loaded", (done) => {
       })
   );
 
+  const { snapshot } = createSnapshotTestHelper();
+  const snapshotId = snapshot.publicData.snapshotId;
+
   const runEvents = () => {
     syncService.send({
       type: "ADD_CHANGES",
@@ -388,7 +389,6 @@ test("allows to add changes before the document is loaded", (done) => {
     });
 
     setTimeout(() => {
-      const { snapshot } = createSnapshotTestHelper();
       syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
@@ -410,7 +410,7 @@ test("allows to add changes before the document is loaded", (done) => {
       state.matches("connected.idle")
     ) {
       expect(state.context._updatesInFlight).toStrictEqual([
-        { clock: 0, changes: ["H", "e"] },
+        { clock: 0, snapshotId, changes: ["H", "e"] },
       ]);
       expect(state.context._pendingChangesQueue).toEqual([]);
       done();
@@ -441,7 +441,7 @@ test("keeps pending changes upon disconnect", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
@@ -458,7 +458,7 @@ test("keeps pending changes upon disconnect", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {

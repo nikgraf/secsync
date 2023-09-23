@@ -12,13 +12,13 @@ import { messageTypes } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { parseEphemeralMessage } from "./ephemeralMessage/parseEphemeralMessage";
 import { verifyAndDecryptEphemeralMessage } from "./ephemeralMessage/verifyAndDecryptEphemeralMessage";
-import { SecsyncProcessingEphemeralMessageError } from "./errors";
 import { createInitialSnapshot } from "./snapshot/createInitialSnapshot";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { isValidAncestorSnapshot } from "./snapshot/isValidAncestorSnapshot";
 import { parseSnapshot } from "./snapshot/parseSnapshot";
 import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
+  EphemeralMessage,
   EphemeralMessagesSession,
   ParentSnapshotProofInfo,
   Snapshot,
@@ -28,7 +28,7 @@ import {
   Update,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
-import { parseUpdates } from "./update/parseUpdates";
+import { parseUpdate } from "./update/parseUpdate";
 import { verifyAndDecryptUpdate } from "./update/verifyAndDecryptUpdate";
 import { updateUpdateClocksEntry } from "./utils/updateUpdateClocksEntry";
 import { websocketService } from "./utils/websocketService";
@@ -99,6 +99,7 @@ import { websocketService } from "./utils/websocketService";
 // Otherwise you might try to send an update that the server will reject.
 
 type UpdateInFlight = {
+  snapshotId: string;
   clock: number;
   changes: any[];
 };
@@ -116,9 +117,10 @@ type ProcessQueueData = {
   updatesLocalClock: number;
   updatesInFlight: UpdateInFlight[];
   pendingChangesQueue: any[];
-  ephemeralMessageReceivingErrors: SecsyncProcessingEphemeralMessageError[];
+  ephemeralMessageReceivingErrors: Error[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
+  snapshotAndUpdateErrors: Error[];
 };
 
 export type InternalContextReset = {
@@ -172,18 +174,18 @@ export const createSyncMachine = () =>
           | { type: "CONNECT" }
           | { type: "ADD_CHANGES"; data: any[] }
           | {
-              type: "ADD_EPHEMERAL_UPDATE";
+              type: "ADD_EPHEMERAL_MESSAGE";
               data: any;
               messageType?: keyof typeof messageTypes;
             }
           | {
-              type: "SEND_EPHEMERAL_UPDATE";
+              type: "SEND_EPHEMERAL_MESSAGE";
               data: any;
               messageType: keyof typeof messageTypes;
               getKey: () => Uint8Array | Promise<Uint8Array>;
             }
           | {
-              type: "FAILED_CREATING_EPHEMERAL_UPDATE";
+              type: "FAILED_CREATING_EPHEMERAL_MESSAGE";
               error: any;
             }
           | { type: "SEND"; message: any },
@@ -215,7 +217,7 @@ export const createSyncMachine = () =>
         serializeChanges: () => "",
         deserializeChanges: () => [],
         onSnapshotSaved: undefined,
-        isValidCollaborator: async () => false,
+        isValidClient: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
         _snapshotInFlight: null, // it is needed so the the snapshotInFlight can be applied as the activeSnapshot once the server confirmed that it has been saved
@@ -238,10 +240,10 @@ export const createSyncMachine = () =>
         SEND: {
           actions: forwardTo("websocketActor"),
         },
-        ADD_EPHEMERAL_UPDATE: {
+        ADD_EPHEMERAL_MESSAGE: {
           actions: sendTo("websocketActor", (context, event) => {
             return {
-              type: "SEND_EPHEMERAL_UPDATE",
+              type: "SEND_EPHEMERAL_MESSAGE",
               data: event.data,
               messageType: event.messageType || "message",
               getKey: async () => {
@@ -257,7 +259,7 @@ export const createSyncMachine = () =>
         },
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
-        FAILED_CREATING_EPHEMERAL_UPDATE: {
+        FAILED_CREATING_EPHEMERAL_MESSAGE: {
           actions: ["updateEphemeralMessageAuthoringErrors"],
         },
       },
@@ -488,6 +490,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
+              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
             };
           } else if (event.data.handledQueue === "customMessage") {
             return {
@@ -502,6 +505,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
             };
           } else if (event.data.handledQueue === "pending") {
             return {
@@ -515,6 +519,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
+              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
             };
           } else if (event.data.handledQueue === "none") {
             return {};
@@ -586,150 +591,199 @@ export const createSyncMachine = () =>
           let pendingChangesQueue = context._pendingChangesQueue;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
+          let snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
+          let errorCausingDocumentToFail: Error | null = null;
+
+          let ephemeralMessageReceivingErrors =
+            context._ephemeralMessageReceivingErrors;
 
           try {
             const createAndSendSnapshot = async () => {
-              const snapshotData = await context.getNewSnapshotData();
-              if (context.logging === "debug") {
-                console.log("createAndSendSnapshot", snapshotData);
-              }
+              try {
+                const snapshotData = await context.getNewSnapshotData();
+                if (context.logging === "debug") {
+                  console.log("createAndSendSnapshot", snapshotData);
+                }
 
-              // no snapshot exists so far
-              if (snapshotInfosWithUpdateClocks.length === 0) {
-                const publicData: SnapshotPublicData = {
-                  ...snapshotData.publicData,
-                  snapshotId: snapshotData.id,
+                // no snapshot exists so far
+                if (snapshotInfosWithUpdateClocks.length === 0) {
+                  const publicData: SnapshotPublicData = {
+                    ...snapshotData.publicData,
+                    snapshotId: snapshotData.id,
+                    docId: context.documentId,
+                    pubKey: context.sodium.to_base64(
+                      context.signatureKeyPair.publicKey
+                    ),
+                    parentSnapshotId: "",
+                    parentSnapshotUpdateClocks: {},
+                  };
+                  const snapshot = createInitialSnapshot(
+                    snapshotData.data,
+                    publicData,
+                    snapshotData.key,
+                    context.signatureKeyPair,
+                    context.sodium
+                  );
+
+                  snapshotInFlight = {
+                    updateClocks: {},
+                    snapshot,
+                  };
+                  pendingChangesQueue = [];
+
+                  send({
+                    type: "SEND",
+                    message: JSON.stringify({
+                      ...snapshot,
+                      // Note: send a faulty message to test the error handling
+                      // ciphertext: "lala",
+                      additionalServerData: snapshotData.additionalServerData,
+                    }),
+                  });
+                } else {
+                  const currentClientPublicKey = context.sodium.to_base64(
+                    context.signatureKeyPair.publicKey
+                  );
+                  const publicData: SnapshotPublicData = {
+                    ...snapshotData.publicData,
+                    snapshotId: snapshotData.id,
+                    docId: context.documentId,
+                    pubKey: currentClientPublicKey,
+                    parentSnapshotId: activeSnapshot.publicData.snapshotId,
+                    parentSnapshotUpdateClocks:
+                      snapshotInfosWithUpdateClocks.find(
+                        (entry) =>
+                          entry.snapshot.publicData.snapshotId ===
+                          activeSnapshot.publicData.snapshotId
+                      ).updateClocks || {},
+                  };
+                  const snapshot = createSnapshot(
+                    snapshotData.data,
+                    publicData,
+                    snapshotData.key,
+                    context.signatureKeyPair,
+                    activeSnapshot.ciphertext,
+                    activeSnapshot.publicData.parentSnapshotProof,
+                    context.sodium
+                  );
+
+                  snapshotInFlight = {
+                    updateClocks: {},
+                    snapshot,
+                  };
+                  pendingChangesQueue = [];
+
+                  send({
+                    type: "SEND",
+                    message: JSON.stringify({
+                      ...snapshot,
+                      // Note: send a faulty message to test the error handling
+                      // ciphertext: "lala",
+                      additionalServerData: snapshotData.additionalServerData,
+                    }),
+                  });
+                }
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error(err);
+                }
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_401");
+              }
+            };
+
+            const createAndSendUpdate = async (
+              changes: unknown[],
+              activeSnapshot: Snapshot,
+              clock: number
+            ) => {
+              try {
+                const key = await context.getSnapshotKey(activeSnapshot);
+                const refSnapshotId = activeSnapshot.publicData.snapshotId;
+
+                const update = context.serializeChanges(changes);
+                updatesLocalClock = clock + 1;
+
+                const publicData = {
+                  refSnapshotId,
                   docId: context.documentId,
                   pubKey: context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   ),
-                  parentSnapshotId: "",
-                  parentSnapshotUpdateClocks: {},
                 };
-                const snapshot = createInitialSnapshot(
-                  snapshotData.data,
+                const message = createUpdate(
+                  update,
                   publicData,
-                  snapshotData.key,
+                  key,
                   context.signatureKeyPair,
+                  updatesLocalClock,
                   context.sodium
                 );
 
-                snapshotInFlight = {
-                  updateClocks: {},
-                  snapshot,
-                };
-                pendingChangesQueue = [];
-
+                updatesInFlight.push({
+                  snapshotId: activeSnapshot.publicData.snapshotId,
+                  clock: updatesLocalClock,
+                  changes,
+                });
                 send({
                   type: "SEND",
-                  message: JSON.stringify({
-                    ...snapshot,
-                    // Note: send a faulty message to test the error handling
-                    // ciphertext: "lala",
-                    additionalServerData: snapshotData.additionalServerData,
-                  }),
+                  message: JSON.stringify(message),
+                  // Note: send a faulty message to test the error handling
+                  // message: JSON.stringify({ ...message, ciphertext: "lala" }),
                 });
-              } else {
-                const currentClientPublicKey = context.sodium.to_base64(
-                  context.signatureKeyPair.publicKey
-                );
-                const publicData: SnapshotPublicData = {
-                  ...snapshotData.publicData,
-                  snapshotId: snapshotData.id,
-                  docId: context.documentId,
-                  pubKey: currentClientPublicKey,
-                  parentSnapshotId: activeSnapshot.publicData.snapshotId,
-                  parentSnapshotUpdateClocks:
-                    snapshotInfosWithUpdateClocks.find(
-                      (entry) =>
-                        entry.snapshot.publicData.snapshotId ===
-                        activeSnapshot.publicData.snapshotId
-                    ).updateClocks || {},
-                };
-                const snapshot = createSnapshot(
-                  snapshotData.data,
-                  publicData,
-                  snapshotData.key,
-                  context.signatureKeyPair,
-                  activeSnapshot.ciphertext,
-                  activeSnapshot.publicData.parentSnapshotProof,
-                  context.sodium
-                );
-
-                snapshotInFlight = {
-                  updateClocks: {},
-                  snapshot,
-                };
-                pendingChangesQueue = [];
-
-                send({
-                  type: "SEND",
-                  message: JSON.stringify({
-                    ...snapshot,
-                    // Note: send a faulty message to test the error handling
-                    // ciphertext: "lala",
-                    additionalServerData: snapshotData.additionalServerData,
-                  }),
-                });
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error(err);
+                }
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_501");
               }
-            };
-
-            const createAndSendUpdate = (
-              changes: unknown[],
-              key: Uint8Array,
-              refSnapshotId: string,
-              clock: number
-            ) => {
-              // console.log("createAndSendUpdate", key);
-              const update = context.serializeChanges(changes);
-              updatesLocalClock = clock + 1;
-
-              const publicData = {
-                refSnapshotId,
-                docId: context.documentId,
-                pubKey: context.sodium.to_base64(
-                  context.signatureKeyPair.publicKey
-                ),
-              };
-              const message = createUpdate(
-                update,
-                publicData,
-                key,
-                context.signatureKeyPair,
-                updatesLocalClock,
-                context.sodium
-              );
-
-              updatesInFlight.push({
-                clock: updatesLocalClock,
-                changes,
-              });
-              send({
-                type: "SEND",
-                message: JSON.stringify(message),
-                // Note: send a faulty message to test the error handling
-                // message: JSON.stringify({ ...message, ciphertext: "lala" }),
-              });
             };
 
             const processSnapshot = async (
               rawSnapshot: Snapshot,
               parentSnapshotProofInfo?: ParentSnapshotProofInfo
             ) => {
-              if (context.logging === "debug") {
-                console.debug("processSnapshot", rawSnapshot);
-              }
               try {
-                const snapshot = parseSnapshot(
-                  rawSnapshot,
-                  context.additionalAuthenticationDataValidations?.snapshot
-                );
+                if (context.logging === "debug") {
+                  console.debug("processSnapshot", rawSnapshot);
+                }
+                let snapshot: Snapshot;
+                try {
+                  snapshot = parseSnapshot(
+                    rawSnapshot,
+                    context.additionalAuthenticationDataValidations?.snapshot
+                  );
+                } catch (err) {
+                  snapshotAndUpdateErrors.unshift(
+                    new Error("SECSYNC_ERROR_110")
+                  );
+                  return;
+                }
 
-                const isValidCollaborator = await context.isValidCollaborator(
-                  snapshot.publicData.pubKey
-                );
-                if (!isValidCollaborator) {
-                  throw new Error("Invalid collaborator");
+                try {
+                  const isValidClient = await context.isValidClient(
+                    snapshot.publicData.pubKey
+                  );
+                  if (!isValidClient) {
+                    snapshotAndUpdateErrors.unshift(
+                      new Error("SECSYNC_ERROR_114")
+                    );
+                    return;
+                  }
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_104");
+                  return;
                 }
 
                 let parentSnapshotUpdateClock: number | undefined = undefined;
@@ -748,9 +802,21 @@ export const createSyncMachine = () =>
                     parentSnapshotUpdateClocks[currentClientPublicKey];
                 }
 
-                const snapshotKey = await context.getSnapshotKey(snapshot);
+                let snapshotKey: Uint8Array;
+                try {
+                  snapshotKey = await context.getSnapshotKey(snapshot);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_103");
+                  return;
+                }
                 // console.log("processSnapshot key", snapshotKey);
-                const decryptedSnapshot = verifyAndDecryptSnapshot(
+                const decryptedSnapshotResult = verifyAndDecryptSnapshot(
                   snapshot,
                   snapshotKey,
                   context.documentId,
@@ -760,7 +826,37 @@ export const createSyncMachine = () =>
                   parentSnapshotUpdateClock
                 );
 
-                context.applySnapshot(decryptedSnapshot);
+                if (decryptedSnapshotResult.error) {
+                  if (
+                    decryptedSnapshotResult.error.message ===
+                      "SECSYNC_ERROR_100" ||
+                    decryptedSnapshotResult.error.message ===
+                      "SECSYNC_ERROR_101" ||
+                    decryptedSnapshotResult.error.message ===
+                      "SECSYNC_ERROR_102"
+                  ) {
+                    errorCausingDocumentToFail = decryptedSnapshotResult.error;
+                  } else {
+                    snapshotAndUpdateErrors.unshift(
+                      decryptedSnapshotResult.error
+                    );
+                  }
+
+                  return;
+                }
+
+                try {
+                  context.applySnapshot(decryptedSnapshotResult.content);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_105");
+                  return;
+                }
                 // can be inserted in the last position since verifyAndDecryptSnapshot already verified the parent
                 snapshotInfosWithUpdateClocks.push({
                   updateClocks: {},
@@ -777,43 +873,70 @@ export const createSyncMachine = () =>
                   context.logging === "debug" ||
                   context.logging === "error"
                 ) {
-                  console.error("Process snapshot:", err);
+                  console.error(err);
                 }
-                throw err;
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_100");
               }
             };
 
             const processUpdates = async (
               rawUpdates: Update[],
-              key: Uint8Array,
-              skipIfCurrentClockIsHigher: boolean,
-              skipUpdatesAuthoredByCurrentClient: boolean
+              relatedSnapshot: Snapshot
             ) => {
-              // must be redefined here, since a snapshot from loading a document might have been applied
-              // before updates are processed
-              const activeSnapshot: Snapshot | null =
-                snapshotInfosWithUpdateClocks[
-                  snapshotInfosWithUpdateClocks.length - 1
-                ]?.snapshot || null;
-
-              const updates = parseUpdates(
-                rawUpdates,
-                context.additionalAuthenticationDataValidations?.update
-              );
-              let changes: unknown[] = [];
-
               try {
-                for (let update of updates) {
-                  // console.log("processUpdates key", key);
-                  if (activeSnapshot === null) {
-                    throw new Error("No active snapshot");
+                let key: Uint8Array;
+                try {
+                  key = await context.getSnapshotKey(relatedSnapshot);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_206");
+                  return;
+                }
+
+                // must be redefined here, since a snapshot from loading a document might have been applied
+                // before updates are processed
+                const activeSnapshot = relatedSnapshot;
+
+                let changes: unknown[] = [];
+
+                for (let rawUpdate of rawUpdates) {
+                  let update: Update;
+                  try {
+                    update = parseUpdate(
+                      rawUpdate,
+                      context.additionalAuthenticationDataValidations?.update
+                    );
+                  } catch (err) {
+                    snapshotAndUpdateErrors.unshift(
+                      new Error("SECSYNC_ERROR_211")
+                    );
+                    continue;
                   }
 
-                  const isValidCollaborator = await context.isValidCollaborator(
-                    update.publicData.pubKey
-                  );
-                  if (!isValidCollaborator) {
-                    throw new Error("Invalid collaborator");
+                  try {
+                    const isValidClient = await context.isValidClient(
+                      update.publicData.pubKey
+                    );
+                    if (!isValidClient) {
+                      snapshotAndUpdateErrors.unshift(
+                        new Error("SECSYNC_ERROR_215")
+                      );
+                      continue;
+                    }
+                  } catch (err) {
+                    if (
+                      context.logging === "debug" ||
+                      context.logging === "error"
+                    ) {
+                      console.error(err);
+                    }
+                    errorCausingDocumentToFail = new Error("SECSYNC_ERROR_205");
+                    continue;
                   }
 
                   const unverifiedCurrentClock =
@@ -828,17 +951,32 @@ export const createSyncMachine = () =>
                     update,
                     key,
                     activeSnapshot.publicData.snapshotId,
-                    context.sodium.to_base64(
-                      context.signatureKeyPair.publicKey
-                    ),
                     currentClock,
-                    skipIfCurrentClockIsHigher,
-                    skipUpdatesAuthoredByCurrentClient,
-                    context.sodium
+                    context.sodium,
+                    context.logging
                   );
 
-                  if (decryptUpdateResult === null) {
-                    continue;
+                  if (decryptUpdateResult.error) {
+                    const ignoreErrorList = [
+                      "SECSYNC_ERROR_211",
+                      "SECSYNC_ERROR_212",
+                      "SECSYNC_ERROR_213",
+                      "SECSYNC_ERROR_214",
+                      "SECSYNC_ERROR_215",
+                    ];
+                    if (
+                      ignoreErrorList.includes(
+                        decryptUpdateResult.error.message
+                      )
+                    ) {
+                      snapshotAndUpdateErrors.unshift(
+                        decryptUpdateResult.error
+                      );
+                      continue;
+                    } else {
+                      errorCausingDocumentToFail = decryptUpdateResult.error;
+                      continue;
+                    }
                   }
 
                   const { content, clock } = decryptUpdateResult;
@@ -856,20 +994,41 @@ export const createSyncMachine = () =>
                   ) {
                     updatesLocalClock = update.publicData.clock;
                   }
+                  try {
+                    const additionalChanges = context.deserializeChanges(
+                      context.sodium.to_string(content)
+                    );
+                    changes = changes.concat(additionalChanges);
+                  } catch (err) {
+                    if (
+                      context.logging === "debug" ||
+                      context.logging === "error"
+                    ) {
+                      console.error(err);
+                    }
+                    errorCausingDocumentToFail = new Error("SECSYNC_ERROR_204");
+                  }
+                }
 
-                  const additionalChanges = context.deserializeChanges(
-                    context.sodium.to_string(content)
-                  );
-                  changes = changes.concat(additionalChanges);
+                try {
+                  context.applyChanges(changes);
+                } catch (err) {
+                  if (
+                    context.logging === "debug" ||
+                    context.logging === "error"
+                  ) {
+                    console.error(err);
+                  }
+                  errorCausingDocumentToFail = new Error("SECSYNC_ERROR_203");
                 }
-                context.applyChanges(changes);
-              } catch (error) {
-                if (context.logging === "debug") {
-                  console.debug("APPLYING CHANGES in catch", error);
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error(err);
                 }
-                // still try to apply all existing changes
-                context.applyChanges(changes);
-                throw error;
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_200");
               }
             };
 
@@ -911,29 +1070,44 @@ export const createSyncMachine = () =>
                     throw new Error("Document has no snapshot but has updates");
                   }
                   if (event.snapshot) {
+                    const snapshotAndUpdateErrorsLength =
+                      snapshotAndUpdateErrors.length;
+
                     await processSnapshot(event.snapshot);
 
-                    documentDecryptionState = "partial";
-
-                    const snapshotKey = await context.getSnapshotKey(
-                      event.snapshot
-                    );
-
-                    if (event.updates) {
-                      // skipIfCurrentClockIsHigher to false since the document would
-                      // be broken if the server sends update events with the same clock
-                      // value multiple times
-                      // skipUpdatesAuthoredByCurrentClient is set to false since the server
-                      // should never send an update made by the current client in this case
-                      await processUpdates(
-                        event.updates,
-                        snapshotKey,
-                        false,
-                        false
-                      );
+                    // if the initial snapshot fails the document can't be loaded
+                    if (
+                      snapshotAndUpdateErrors.length >
+                      snapshotAndUpdateErrorsLength
+                    ) {
+                      errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
+                      // remove the item since it will be added later due errorCausingDocumentToFail being set
+                      snapshotAndUpdateErrors.pop();
                     }
+
+                    if (errorCausingDocumentToFail === null) {
+                      documentDecryptionState = "partial";
+
+                      if (event.updates) {
+                        await processUpdates(event.updates, event.snapshot);
+                      }
+
+                      if (
+                        snapshotAndUpdateErrors.length >
+                        snapshotAndUpdateErrorsLength
+                      ) {
+                        errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
+                        // remove the item since it will be added later due errorCausingDocumentToFail being set
+                        snapshotAndUpdateErrors.pop();
+                      }
+
+                      if (errorCausingDocumentToFail === null) {
+                        documentDecryptionState = "complete";
+                      }
+                    }
+                  } else {
+                    documentDecryptionState = "complete";
                   }
-                  documentDecryptionState = "complete";
 
                   break;
 
@@ -995,10 +1169,19 @@ export const createSyncMachine = () =>
                     console.log("snapshot saving failed", event);
                   }
                   if (event.snapshot) {
-                    const snapshot = parseSnapshot(
-                      event.snapshot,
-                      context.additionalAuthenticationDataValidations?.snapshot
-                    );
+                    let snapshot: Snapshot;
+                    try {
+                      snapshot = parseSnapshot(
+                        event.snapshot,
+                        context.additionalAuthenticationDataValidations
+                          ?.snapshot
+                      );
+                    } catch (err) {
+                      snapshotAndUpdateErrors.unshift(
+                        new Error("SECSYNC_ERROR_110")
+                      );
+                      return;
+                    }
 
                     const isAlreadyProcessedSnapshot =
                       activeSnapshot.publicData.snapshotId ===
@@ -1035,16 +1218,10 @@ export const createSyncMachine = () =>
                   }
 
                   if (event.updates) {
-                    const key = await context.getSnapshotKey(
+                    await processUpdates(
+                      event.updates,
                       event.snapshot ? event.snapshot : activeSnapshot
                     );
-
-                    // skipIfCurrentClockIsHigher to true since the update might already
-                    // have been received via update message
-                    // skipUpdatesAuthoredByCurrentClient is set to true since it can happen
-                    // that an update was sent, saved on the server, but the confirmation
-                    // `updated-saved` not yet received
-                    await processUpdates(event.updates, key, true, true);
                   }
 
                   if (context.logging === "debug") {
@@ -1054,15 +1231,7 @@ export const createSyncMachine = () =>
                   break;
 
                 case "update":
-                  // skipIfCurrentClockIsHigher to true since the update might already
-                  // have been received via snapshot-save-failed message
-                  // skipUpdatesAuthoredByCurrentClient is set to false since the server
-                  // should never send an update made by the current client in this case
-                  const snapshotKey = await context.getSnapshotKey(
-                    activeSnapshot
-                  );
-
-                  await processUpdates([event], snapshotKey, true, false);
+                  await processUpdates([event], activeSnapshot);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {
@@ -1080,7 +1249,11 @@ export const createSyncMachine = () =>
                     newClock: event.clock,
                   });
                   updatesInFlight = updatesInFlight.filter(
-                    (updateInFlight) => updateInFlight.clock !== event.clock
+                    (updateInFlight) =>
+                      !(
+                        updateInFlight.clock === event.clock &&
+                        updateInFlight.snapshotId === event.snapshotId
+                      )
                   );
 
                   break;
@@ -1103,6 +1276,7 @@ export const createSyncMachine = () =>
                         acc.concat(updateInFlight.changes),
                       [] as unknown[]
                     );
+                    updatesInFlight = [];
                     pendingChangesQueue = changes.concat(pendingChangesQueue);
 
                     const currentClientPublicKey = context.sodium.to_base64(
@@ -1115,26 +1289,48 @@ export const createSyncMachine = () =>
                     updatesLocalClock = Number.isInteger(unverifiedCurrentClock)
                       ? unverifiedCurrentClock
                       : -1;
-
-                    updatesInFlight = [];
                   }
 
                   break;
                 case "ephemeral-message":
-                  try {
-                    const ephemeralMessage = parseEphemeralMessage(
-                      event,
-                      context.additionalAuthenticationDataValidations
-                        ?.ephemeralMessage
-                    );
+                  // used so we can do early return
+                  const handleEphemeralMessage = async () => {
+                    let ephemeralMessage: EphemeralMessage;
+                    try {
+                      ephemeralMessage = parseEphemeralMessage(
+                        event,
+                        context.additionalAuthenticationDataValidations
+                          ?.ephemeralMessage
+                      );
+                    } catch (err) {
+                      if (context.logging === "error") {
+                        console.error(err);
+                      }
+                      ephemeralMessageReceivingErrors.unshift(
+                        new Error("SECSYNC_ERROR_307")
+                      );
+                      return;
+                    }
 
                     const key = await context.getSnapshotKey(activeSnapshot);
-                    const isValidCollaborator =
-                      await context.isValidCollaborator(
+
+                    let isValidClient: boolean;
+                    try {
+                      isValidClient = await context.isValidClient(
                         ephemeralMessage.publicData.pubKey
                       );
-                    if (!isValidCollaborator) {
-                      throw new Error("Invalid collaborator");
+                    } catch (err) {
+                      if (context.logging === "error") {
+                        console.error(err);
+                      }
+                      isValidClient = false;
+                    }
+
+                    if (!isValidClient) {
+                      ephemeralMessageReceivingErrors.unshift(
+                        new Error("SECSYNC_ERROR_304")
+                      );
+                      return;
                     }
 
                     const ephemeralMessageResult =
@@ -1144,12 +1340,19 @@ export const createSyncMachine = () =>
                         context.documentId,
                         context._ephemeralMessagesSession,
                         context.signatureKeyPair,
-                        context.sodium
+                        context.sodium,
+                        context.logging
                       );
+
+                    if (ephemeralMessageResult.error) {
+                      ephemeralMessageReceivingErrors.unshift(
+                        ephemeralMessageResult.error
+                      );
+                    }
 
                     if (ephemeralMessageResult.proof) {
                       send({
-                        type: "ADD_EPHEMERAL_UPDATE",
+                        type: "ADD_EPHEMERAL_MESSAGE",
                         data: ephemeralMessageResult.proof,
                         messageType: ephemeralMessageResult.requestProof
                           ? "proofAndRequestProof"
@@ -1157,8 +1360,10 @@ export const createSyncMachine = () =>
                       });
                     }
 
-                    ephemeralMessagesSession.validSessions =
-                      ephemeralMessageResult.validSessions;
+                    if (ephemeralMessageResult.validSessions) {
+                      ephemeralMessagesSession.validSessions =
+                        ephemeralMessageResult.validSessions;
+                    }
 
                     // content can be undefined if it's a new session or the
                     // session data was invalid
@@ -1168,12 +1373,9 @@ export const createSyncMachine = () =>
                         ephemeralMessage.publicData.pubKey
                       );
                     }
-                  } catch (err) {
-                    throw new SecsyncProcessingEphemeralMessageError(
-                      "Failed to process ephemeral message",
-                      err
-                    );
-                  }
+                  };
+
+                  await handleEphemeralMessage();
                   break;
               }
             } else if (
@@ -1213,19 +1415,18 @@ export const createSyncMachine = () =>
                 if (context.logging === "debug") {
                   console.debug("send update");
                 }
-                if (activeSnapshot === null) {
-                  throw new Error("No active snapshot");
-                }
-                const key = await context.getSnapshotKey(activeSnapshot);
                 const rawChanges = context._pendingChangesQueue;
                 pendingChangesQueue = [];
-                createAndSendUpdate(
+                await createAndSendUpdate(
                   rawChanges,
-                  key,
-                  activeSnapshot.publicData.snapshotId,
+                  activeSnapshot,
                   updatesLocalClock
                 );
               }
+            }
+
+            if (errorCausingDocumentToFail) {
+              throw errorCausingDocumentToFail;
             }
 
             return {
@@ -1236,36 +1437,19 @@ export const createSyncMachine = () =>
               updatesInFlight,
               pendingChangesQueue,
               ephemeralMessageReceivingErrors:
-                context._ephemeralMessageReceivingErrors,
+                ephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
               documentDecryptionState,
               ephemeralMessagesSession,
+              snapshotAndUpdateErrors,
             };
           } catch (error) {
             if (context.logging === "debug" || context.logging === "error") {
               console.error("Processing queue error:", error);
             }
-            if (error instanceof SecsyncProcessingEphemeralMessageError) {
-              const newEphemeralMessageReceivingErrors = [
-                ...context._ephemeralMessageReceivingErrors,
-              ];
-              newEphemeralMessageReceivingErrors.unshift(error);
-              return {
-                handledQueue,
-                snapshotInfosWithUpdateClocks,
-                snapshotInFlight,
-                updatesLocalClock,
-                updatesInFlight,
-                pendingChangesQueue,
-                ephemeralMessageReceivingErrors:
-                  newEphemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
-                documentDecryptionState,
-                ephemeralMessagesSession,
-              };
-            } else {
-              // @ts-ignore fails on some environments and not in others
-              error.documentDecryptionState = documentDecryptionState;
-              throw error;
-            }
+
+            // @ts-ignore fails on some environments and not in others
+            error.documentDecryptionState = documentDecryptionState;
+            throw error;
           }
         },
       },

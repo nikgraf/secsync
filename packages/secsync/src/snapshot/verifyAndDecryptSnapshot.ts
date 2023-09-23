@@ -11,64 +11,111 @@ export function verifyAndDecryptSnapshot(
   currentClientPublicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers"),
   parentSnapshotProofInfo?: ParentSnapshotProofInfo,
-  parentSnapshotUpdateClock?: number
+  parentSnapshotUpdateClock?: number,
+  logging?: "error" | "debug" | "off"
 ) {
-  const publicKey = sodium.from_base64(snapshot.publicData.pubKey);
+  try {
+    let publicKey: Uint8Array;
+    let publicDataAsBase64: string;
 
-  const publicDataAsBase64 = sodium.to_base64(
-    canonicalize(snapshot.publicData) as string
-  );
+    try {
+      publicKey = sodium.from_base64(snapshot.publicData.pubKey);
 
-  const isValid = verifySignature(
-    {
-      nonce: snapshot.nonce,
-      ciphertext: snapshot.ciphertext,
-      publicData: publicDataAsBase64,
-    },
-    snapshot.signature,
-    publicKey,
-    sodium
-  );
-  if (!isValid) {
-    throw new Error("Invalid snapshot");
-  }
+      publicDataAsBase64 = sodium.to_base64(canonicalize(snapshot.publicData));
 
-  if (currentDocId !== snapshot.publicData.docId) {
-    throw new Error("Invalid docId for snapshot");
-  }
-
-  if (parentSnapshotProofInfo) {
-    const isValid = isValidParentSnapshot({
-      snapshot,
-      parentSnapshotCiphertext: parentSnapshotProofInfo.ciphertext,
-      parentSnapshotId: parentSnapshotProofInfo.id,
-      grandParentSnapshotProof: parentSnapshotProofInfo.parentSnapshotProof,
-      sodium,
-    });
-    if (!isValid) {
-      throw new Error("Invalid parent snapshot verification");
+      const isValid = verifySignature(
+        {
+          nonce: snapshot.nonce,
+          ciphertext: snapshot.ciphertext,
+          publicData: publicDataAsBase64,
+        },
+        snapshot.signature,
+        publicKey,
+        sodium
+      );
+      if (!isValid) {
+        return {
+          error: new Error("SECSYNC_ERROR_111"),
+        };
+      }
+    } catch (err) {
+      if (logging === "error" || logging === "debug") {
+        console.error(err);
+      }
+      return {
+        error: new Error("SECSYNC_ERROR_111"),
+      };
     }
-  }
 
-  if (parentSnapshotUpdateClock !== undefined) {
-    const currentClientPublicKeyString = sodium.to_base64(
-      currentClientPublicKey
-    );
-
-    if (
-      snapshot.publicData.parentSnapshotUpdateClocks[
-        currentClientPublicKeyString
-      ] !== parentSnapshotUpdateClock
-    ) {
-      throw new Error("Invalid updateClock for the parent snapshot");
+    if (currentDocId !== snapshot.publicData.docId) {
+      return {
+        error: new Error("SECSYNC_ERROR_113"),
+      };
     }
-  }
 
-  return decryptAead(
-    sodium.from_base64(snapshot.ciphertext),
-    publicDataAsBase64,
-    key,
-    snapshot.nonce,
-    sodium
-  );
+    if (parentSnapshotProofInfo) {
+      try {
+        const isValid = isValidParentSnapshot({
+          snapshot,
+          parentSnapshotCiphertext: parentSnapshotProofInfo.ciphertext,
+          parentSnapshotId: parentSnapshotProofInfo.id,
+          grandParentSnapshotProof: parentSnapshotProofInfo.parentSnapshotProof,
+          sodium,
+        });
+        if (!isValid) {
+          return {
+            error: new Error("SECSYNC_ERROR_112"),
+          };
+        }
+      } catch (err) {
+        if (logging === "error" || logging === "debug") {
+          console.error(err);
+        }
+        return {
+          error: new Error("SECSYNC_ERROR_112"),
+        };
+      }
+    }
+
+    if (parentSnapshotUpdateClock !== undefined) {
+      const currentClientPublicKeyString = sodium.to_base64(
+        currentClientPublicKey
+      );
+
+      if (
+        snapshot.publicData.parentSnapshotUpdateClocks[
+          currentClientPublicKeyString
+        ] !== parentSnapshotUpdateClock
+      ) {
+        return {
+          error: new Error("SECSYNC_ERROR_102"),
+        };
+      }
+    }
+
+    try {
+      const content = decryptAead(
+        sodium.from_base64(snapshot.ciphertext),
+        publicDataAsBase64,
+        key,
+        snapshot.nonce,
+        sodium
+      );
+      return { content };
+    } catch (err) {
+      if (logging === "error" || logging === "debug") {
+        console.error(err);
+      }
+      return {
+        error: new Error("SECSYNC_ERROR_101"),
+      };
+    }
+  } catch (err) {
+    if (logging === "error" || logging === "debug") {
+      console.error(err);
+    }
+    return {
+      error: new Error("SECSYNC_ERROR_100"),
+    };
+  }
 }

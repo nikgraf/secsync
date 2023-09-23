@@ -121,7 +121,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
         yAwarenessRef.current,
         changedClients
       );
-      send({ type: "ADD_EPHEMERAL_UPDATE", data: yAwarenessUpdate });
+      send({ type: "ADD_EPHEMERAL_MESSAGE", data: yAwarenessUpdate });
     };
 
     yAwarenessRef.current.on("update", onAwarenessUpdate);

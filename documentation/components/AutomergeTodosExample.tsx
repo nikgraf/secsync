@@ -58,7 +58,7 @@ const AutomergeTodosExample: React.FC<Props> = ({
       // create a new snapshot if the active snapshot has more than 100 updates
       return snapshotUpdatesCount > 100;
     },
-    isValidCollaborator: (signingPublicKey) => {
+    isValidClient: (signingPublicKey) => {
       return true;
     },
     sodium,

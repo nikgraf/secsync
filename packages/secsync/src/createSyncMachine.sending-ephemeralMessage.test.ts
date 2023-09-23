@@ -3,12 +3,7 @@ import { assign, interpret, spawn } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { createSnapshot } from "./snapshot/createSnapshot";
-import {
-  SnapshotPublicData,
-  SyncMachineConfig,
-  UpdatePublicData,
-} from "./types";
-import { createUpdate } from "./update/createUpdate";
+import { SnapshotPublicData, SyncMachineConfig } from "./types";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -92,36 +87,11 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   };
 };
 
-type CreateUpdateTestHelperParams = {
-  version: number;
-  signatureKeyPair?: KeyPair;
-};
-
-const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
-  const version = params?.version || 0;
-  const signatureKeyPair = params?.signatureKeyPair || clientAKeyPair;
-  const publicData: UpdatePublicData = {
-    refSnapshotId: snapshotId,
-    docId,
-    pubKey: sodium.to_base64(signatureKeyPair.publicKey),
-  };
-
-  const update = createUpdate(
-    "u",
-    publicData,
-    key,
-    signatureKeyPair,
-    version,
-    sodium
-  );
-
-  return { update };
-};
-
-test("send initial snapshot if received document didn't include one", (done) => {
+test("send ephemeralMessage", (done) => {
+  const onReceiveCallback = jest.fn();
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+      onReceive(onReceiveCallback);
 
       send({ type: "WEBSOCKET_CONNECTED" });
 
@@ -156,7 +126,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -178,13 +148,14 @@ test("send initial snapshot if received document didn't include one", (done) => 
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
         type: "document",
+        snapshot,
       },
     });
 
     setTimeout(() => {
       syncService.send({
-        type: "ADD_CHANGES",
-        data: ["H", "e"],
+        type: "ADD_EPHEMERAL_MESSAGE",
+        data: "Hello World",
       });
     }, 1);
   };
@@ -195,102 +166,16 @@ test("send initial snapshot if received document didn't include one", (done) => 
       runEvents();
     }
 
-    if (
-      state.matches("connected.idle") &&
-      state.context._snapshotInFlight !== null
-    ) {
-      expect(state.context._pendingChangesQueue).toEqual([]);
-      expect(state.context._updatesInFlight).toEqual([]);
-      done();
-    }
-  });
-
-  syncService.start();
-});
-
-test("send initial snapshot if received document didn't include one, but changes added before document was loaded", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-
-      send({ type: "WEBSOCKET_CONNECTED" });
-
-      return () => {};
-    };
-
-  let docValue = "";
-  let transitionCount = 0;
-
-  const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
-        documentId: docId,
-        websocketHost: url,
-        websocketSessionKey: "sessionKey",
-        isValidClient: (signingPublicKey) =>
-          clientAPublicKey === signingPublicKey ||
-          clientBPublicKey === signingPublicKey,
-        getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
-          return {
-            data: "New Snapshot Data",
-            id: generateId(sodium),
-            key,
-            publicData: {},
-          };
-        },
-        applySnapshot: (snapshot) => {
-          docValue = sodium.to_string(snapshot);
-        },
-        sodium: sodium,
-        signatureKeyPair: clientBKeyPair,
-        logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  );
-
-  const runEvents = () => {
-    syncService.send({
-      type: "ADD_CHANGES",
-      data: ["H", "e"],
-    });
-
-    setTimeout(() => {
-      syncService.send({
-        type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-        data: {
-          type: "document",
-        },
-      });
-    }, 1);
-  };
-
-  syncService.onTransition((state, event) => {
-    transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
-      runEvents();
-    }
-
-    if (
-      state.matches("connected.idle") &&
-      state.context._snapshotInFlight !== null
-    ) {
-      expect(state.context._pendingChangesQueue).toEqual([]);
-      expect(state.context._updatesInFlight).toEqual([]);
-      done();
+    if (transitionCount === 7) {
+      setTimeout(done, 0);
+      expect(onReceiveCallback).toHaveBeenCalledTimes(1);
+      expect(onReceiveCallback).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: "Hello World",
+          messageType: "message",
+          type: "SEND_EPHEMERAL_MESSAGE",
+        })
+      );
     }
   });
 

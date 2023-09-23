@@ -103,10 +103,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     sodium
   );
   return {
-    snapshot: {
-      ...snapshot,
-      serverData: { latestVersion: 0 },
-    },
+    snapshot,
     key,
     clientAKeyPair,
   };
@@ -133,7 +130,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
     sodium
   );
 
-  return { update: { ...update, serverData: { version } } };
+  return { update };
 };
 
 const createEphemeralMessageTestHelper = ({
@@ -235,7 +232,7 @@ test("should initially have _documentDecryptionState state", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -286,7 +283,7 @@ test("should load a document", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -348,7 +345,7 @@ test("should load a document with updates", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -422,7 +419,7 @@ test("should load a document and two additional updates", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -511,7 +508,7 @@ test("should load a document and an additional snapshot", (done) => {
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -591,7 +588,7 @@ test("should load a document with updates and two additional updates", (done) =>
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -666,7 +663,7 @@ test("should load a document with updates and two additional updates", (done) =>
   });
 });
 
-test("should load a document with updates and two two additional snapshots", (done) => {
+test("should load a document with updates and two additional snapshots", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -679,7 +676,7 @@ test("should load a document with updates and two two additional snapshots", (do
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
@@ -781,7 +778,7 @@ test("should load a document and process three additional ephemeral messages", (
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
-        isValidCollaborator: (signingPublicKey) =>
+        isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
         getSnapshotKey: () => key,
         applySnapshot: (snapshot) => {
