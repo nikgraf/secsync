@@ -883,8 +883,7 @@ export const createSyncMachine = () =>
               rawUpdates: Update[],
               relatedSnapshot: Snapshot,
               // TODO revisit these two decisions
-              skipIfCurrentClockIsHigher: boolean,
-              skipUpdatesAuthoredByCurrentClient: boolean
+              skipIfCurrentClockIsHigher: boolean
             ) => {
               try {
                 let key: Uint8Array;
@@ -960,7 +959,6 @@ export const createSyncMachine = () =>
                     ),
                     currentClock,
                     skipIfCurrentClockIsHigher,
-                    skipUpdatesAuthoredByCurrentClient,
                     context.sodium,
                     context.logging
                   );
@@ -1101,12 +1099,9 @@ export const createSyncMachine = () =>
                         // skipIfCurrentClockIsHigher to false since the document would
                         // be broken if the server sends update events with the same clock
                         // value multiple times
-                        // skipUpdatesAuthoredByCurrentClient is set to false since the server
-                        // should never send an update made by the current client in this case
                         await processUpdates(
                           event.updates,
                           event.snapshot,
-                          false,
                           false
                         );
                       }
@@ -1239,13 +1234,9 @@ export const createSyncMachine = () =>
                   if (event.updates) {
                     // skipIfCurrentClockIsHigher to true since the update might already
                     // have been received via update message
-                    // skipUpdatesAuthoredByCurrentClient is set to true since it can happen
-                    // that an update was sent, saved on the server, but the confirmation
-                    // `updated-saved` not yet received
                     await processUpdates(
                       event.updates,
                       event.snapshot ? event.snapshot : activeSnapshot,
-                      true,
                       true
                     );
                   }
@@ -1259,9 +1250,7 @@ export const createSyncMachine = () =>
                 case "update":
                   // skipIfCurrentClockIsHigher to true since the update might already
                   // have been received via snapshot-save-failed message
-                  // skipUpdatesAuthoredByCurrentClient is set to false since the server
-                  // should never send an update made by the current client in this case
-                  await processUpdates([event], activeSnapshot, true, false);
+                  await processUpdates([event], activeSnapshot, true);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {

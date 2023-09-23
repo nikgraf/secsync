@@ -94,7 +94,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
 };
 
 type CreateUpdateTestHelperParams = {
-  version: number;
+  version?: number;
   signatureKeyPair?: KeyPair;
 };
 
@@ -558,7 +558,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
   syncService.start();
 });
 
-test("should ignore update from snapshot-save-failed if it was created by the current client", (done) => {
+test("should apply update from snapshot-save-failed if it was created by the current client", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -633,7 +633,6 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
     // this case can happen when an update was sent, saved on the server,
     // but the confirmation `updated-saved` not yet received
     const update = createUpdateTestHelper({
-      version: 22,
       signatureKeyPair: clientBKeyPair,
     }).update;
 
@@ -658,7 +657,7 @@ test("should ignore update from snapshot-save-failed if it was created by the cu
 
     if (transitionCount === 10) {
       expect(state.matches("connected.idle")).toBe(true);
-      expect(docValue).toBe("Hello World");
+      expect(docValue).toBe("Hello Worldu");
       done();
     }
   });
