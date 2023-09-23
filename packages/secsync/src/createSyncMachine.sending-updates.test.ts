@@ -172,8 +172,9 @@ test("put changes in updatesInFlight when sending updates", (done) => {
       })
   );
 
+  const { snapshot } = createSnapshotTestHelper();
+  const snapshotId = snapshot.publicData.snapshotId;
   const runEvents = () => {
-    const { snapshot } = createSnapshotTestHelper();
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
@@ -209,15 +210,15 @@ test("put changes in updatesInFlight when sending updates", (done) => {
 
     if (state.context._updatesInFlight.length === 1) {
       expect(state.context._updatesInFlight).toStrictEqual([
-        { clock: 0, changes: ["H", "e", "llo"] },
+        { clock: 0, snapshotId, changes: ["H", "e", "llo"] },
       ]);
     } else if (
       state.context._updatesInFlight.length === 2 &&
       state.matches("connected.idle")
     ) {
       expect(state.context._updatesInFlight).toStrictEqual([
-        { clock: 0, changes: ["H", "e", "llo"] },
-        { clock: 1, changes: ["World"] },
+        { clock: 0, snapshotId, changes: ["H", "e", "llo"] },
+        { clock: 1, snapshotId, changes: ["World"] },
       ]);
       expect(state.context._pendingChangesQueue).toEqual([]);
       done();
@@ -378,6 +379,9 @@ test("allows to add changes before the document is loaded", (done) => {
       })
   );
 
+  const { snapshot } = createSnapshotTestHelper();
+  const snapshotId = snapshot.publicData.snapshotId;
+
   const runEvents = () => {
     syncService.send({
       type: "ADD_CHANGES",
@@ -385,7 +389,6 @@ test("allows to add changes before the document is loaded", (done) => {
     });
 
     setTimeout(() => {
-      const { snapshot } = createSnapshotTestHelper();
       syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
@@ -407,7 +410,7 @@ test("allows to add changes before the document is loaded", (done) => {
       state.matches("connected.idle")
     ) {
       expect(state.context._updatesInFlight).toStrictEqual([
-        { clock: 0, changes: ["H", "e"] },
+        { clock: 0, snapshotId, changes: ["H", "e"] },
       ]);
       expect(state.context._pendingChangesQueue).toEqual([]);
       done();

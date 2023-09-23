@@ -99,6 +99,7 @@ import { websocketService } from "./utils/websocketService";
 // Otherwise you might try to send an update that the server will reject.
 
 type UpdateInFlight = {
+  snapshotId: string;
   clock: number;
   changes: any[];
 };
@@ -722,6 +723,7 @@ export const createSyncMachine = () =>
                 );
 
                 updatesInFlight.push({
+                  snapshotId: activeSnapshot.publicData.snapshotId,
                   clock: updatesLocalClock,
                   changes,
                 });
@@ -1276,9 +1278,12 @@ export const createSyncMachine = () =>
                     snapshotId: event.snapshotId,
                     newClock: event.clock,
                   });
-                  // TODO add snapshotId to updateInFlight to make sure we remove the correct one
                   updatesInFlight = updatesInFlight.filter(
-                    (updateInFlight) => updateInFlight.clock !== event.clock
+                    (updateInFlight) =>
+                      !(
+                        updateInFlight.clock === event.clock &&
+                        updateInFlight.snapshotId === event.snapshotId
+                      )
                   );
 
                   break;
@@ -1301,6 +1306,7 @@ export const createSyncMachine = () =>
                         acc.concat(updateInFlight.changes),
                       [] as unknown[]
                     );
+                    updatesInFlight = [];
                     pendingChangesQueue = changes.concat(pendingChangesQueue);
 
                     const currentClientPublicKey = context.sodium.to_base64(
@@ -1313,8 +1319,6 @@ export const createSyncMachine = () =>
                     updatesLocalClock = Number.isInteger(unverifiedCurrentClock)
                       ? unverifiedCurrentClock
                       : -1;
-
-                    updatesInFlight = [];
                   }
 
                   break;
