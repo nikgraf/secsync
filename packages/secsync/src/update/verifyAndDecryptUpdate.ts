@@ -7,9 +7,7 @@ export function verifyAndDecryptUpdate(
   update: Update,
   key: Uint8Array,
   currentActiveSnapshotId: string,
-  currentClientPublicKey: string,
   currentClock: number,
-  skipIfCurrentClockIsHigher: boolean,
   sodium: typeof import("libsodium-wrappers"),
   logging?: "error" | "debug" | "off"
 ) {
@@ -47,13 +45,6 @@ export function verifyAndDecryptUpdate(
 
     if (currentActiveSnapshotId !== update.publicData.refSnapshotId) {
       return { error: new Error("SECSYNC_ERROR_213") };
-    }
-
-    if (
-      skipIfCurrentClockIsHigher &&
-      currentClock + 1 > update.publicData.clock
-    ) {
-      return {};
     }
 
     if (update.publicData.clock <= currentClock) {

@@ -881,9 +881,7 @@ export const createSyncMachine = () =>
 
             const processUpdates = async (
               rawUpdates: Update[],
-              relatedSnapshot: Snapshot,
-              // TODO revisit these two decisions
-              skipIfCurrentClockIsHigher: boolean
+              relatedSnapshot: Snapshot
             ) => {
               try {
                 let key: Uint8Array;
@@ -954,11 +952,7 @@ export const createSyncMachine = () =>
                     update,
                     key,
                     activeSnapshot.publicData.snapshotId,
-                    context.sodium.to_base64(
-                      context.signatureKeyPair.publicKey
-                    ),
                     currentClock,
-                    skipIfCurrentClockIsHigher,
                     context.sodium,
                     context.logging
                   );
@@ -1096,14 +1090,7 @@ export const createSyncMachine = () =>
                       documentDecryptionState = "partial";
 
                       if (event.updates) {
-                        // skipIfCurrentClockIsHigher to false since the document would
-                        // be broken if the server sends update events with the same clock
-                        // value multiple times
-                        await processUpdates(
-                          event.updates,
-                          event.snapshot,
-                          false
-                        );
+                        await processUpdates(event.updates, event.snapshot);
                       }
 
                       if (
@@ -1232,12 +1219,9 @@ export const createSyncMachine = () =>
                   }
 
                   if (event.updates) {
-                    // skipIfCurrentClockIsHigher to true since the update might already
-                    // have been received via update message
                     await processUpdates(
                       event.updates,
-                      event.snapshot ? event.snapshot : activeSnapshot,
-                      true
+                      event.snapshot ? event.snapshot : activeSnapshot
                     );
                   }
 
@@ -1248,9 +1232,7 @@ export const createSyncMachine = () =>
                   break;
 
                 case "update":
-                  // skipIfCurrentClockIsHigher to true since the update might already
-                  // have been received via snapshot-save-failed message
-                  await processUpdates([event], activeSnapshot, true);
+                  await processUpdates([event], activeSnapshot);
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {
