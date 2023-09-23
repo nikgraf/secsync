@@ -63,28 +63,22 @@ When you receive an EphemeralMessage that is not valid it simply is ignored and 
 
 Set the document to read only and show an error message to the user that the latest changes could not be synced.
 
-- `SECSYNC_ERROR_27`: getNewSnapshotData error -> throw an error
-- `SECSYNC_ERROR_28`: invalid context.signatureKeyPair -> throw an error
-- `SECSYNC_ERROR_29`: hash, sign, encrypt error -> throw an error
+- `SECSYNC_ERROR_401`: Failed to create a snapshot. Can be due invalid `signatureKeyPair` or functions like `getNewSnapshotData` or encryption throwing an error.
 
 Server:
 
-snapshot-save-failed -> retry and if not set internal state that sync is not possible due a server issue
+TODO snapshot-save-failed -> retry and if not set internal state that sync is not possible due a server issue
 
 ### Update
 
 Set the document to read only and show an error message to the user that the latest changes could not be synced.
 
-- `SECSYNC_ERROR_30`: serializeChanges error -> throw an error
-- `SECSYNC_ERROR_31`: getSnapshotKey error -> throw an error
-- `SECSYNC_ERROR_32`: getNewSnapshotData error -> throw an error
-- `SECSYNC_ERROR_33`: invalid context.signatureKeyPair -> throw an error
-- `SECSYNC_ERROR_34`: hash, sign, encrypt error -> throw an error
+- `SECSYNC_ERROR_501`: Failed to create a snapshot. Can be due invalid `signatureKeyPair` or functions like `getSnapshotKey`, `serializeChanges` or encryption throwing an error.
 
-update-save-failed -> retry and if not set internal state that sync is not possible due a server issue
+TODO update-save-failed -> retry and if not set internal state that sync is not possible due a server issue
 
 ### EphemeralMessage
 
 In case an error happens during the creation of an EphemeralMessage the error is ignored and stored in the `_ephemeralMessageAuthoringErrors` array. To avoid a memory leak only the last 20 errors are stored.
 
-- `SECSYNC_ERROR_35`: `getSnapshotKey` or signing or encrypting the EphemeralMessage throws an error
+- `SECSYNC_ERROR_601`: `getSnapshotKey` or signing or encrypting the EphemeralMessage throws an error

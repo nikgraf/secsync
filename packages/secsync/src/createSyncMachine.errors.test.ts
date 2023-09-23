@@ -10,6 +10,7 @@ import {
   EphemeralMessagePublicData,
   SnapshotPublicData,
   SnapshotUpdateClocks,
+  SyncMachineConfig,
   UpdatePublicData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
@@ -2777,6 +2778,312 @@ test("SECSYNC_ERROR_308 invalid signature", (done) => {
   });
 });
 
+test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+  let snapshotKeyCounter = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => {
+          return key;
+        },
+        getNewSnapshotData: async () => {
+          throw new Error("BREAK getNewSnapshotData");
+          // return {
+          //   data: "New Snapshot Data",
+          //   id: generateId(sodium),
+          //   key,
+          //   publicData: {},
+          // };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        shouldSendSnapshot: () => true,
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
+      });
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (state.matches("failed")) {
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_401"
+      );
+
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+  let snapshotKeyCounter = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => {
+          if (snapshotKeyCounter < 1) {
+            snapshotKeyCounter++;
+            return key;
+          } else {
+            throw new Error("BREAK getSnapshotKey");
+          }
+        },
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
+      });
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (state.matches("failed")) {
+      expect(state.context._updatesInFlight).toStrictEqual([]);
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_501"
+      );
+
+      done();
+    }
+  });
+
+  syncService.start();
+});
+
+test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive(async (event) => {
+        if (event.type === "SEND_EPHEMERAL_MESSAGE") {
+          try {
+            await event.getKey();
+          } catch (error) {
+            send({
+              type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
+              error: new Error("SECSYNC_ERROR_601"),
+            });
+          }
+        }
+      });
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+  let snapshotKeyCounter = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => {
+          if (snapshotKeyCounter < 1) {
+            snapshotKeyCounter++;
+            return key;
+          } else {
+            throw new Error("THROW ON SNAPSHOT KEY");
+          }
+        },
+        getNewSnapshotData: async () => {
+          return {
+            data: "New Snapshot Data",
+            id: generateId(sodium),
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      syncService.send({
+        type: "ADD_EPHEMERAL_MESSAGE",
+        data: "Hello World",
+      });
+    }, 1);
+  };
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      runEvents();
+    }
+
+    if (transitionCount === 7) {
+      setTimeout(done, 0);
+      expect(state.context._ephemeralMessageAuthoringErrors.length).toBe(1);
+      expect(state.context._ephemeralMessageAuthoringErrors[0].message).toBe(
+        "SECSYNC_ERROR_601"
+      );
+    }
+  });
+
+  syncService.start();
+});
+
 test("should ignore an update in case it's a reply attack with the same update", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
@@ -3563,15 +3870,14 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
       })
   ).onTransition((state) => {
     transitionCount = transitionCount + 1;
-    // console.log("transitionCount", transitionCount);
     if (transitionCount === 27 && state.matches("connected.idle")) {
       expect(state.context._ephemeralMessageAuthoringErrors.length).toEqual(20);
       expect(state.context._ephemeralMessageAuthoringErrors[0].message).toEqual(
-        `Wrong ephemeral message key #${23}`
+        "SECSYNC_ERROR_601"
       );
       expect(
         state.context._ephemeralMessageAuthoringErrors[19].message
-      ).toEqual(`Wrong ephemeral message key #${4}`);
+      ).toEqual("SECSYNC_ERROR_601");
       done();
     }
   });
@@ -3582,8 +3888,8 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
 
   for (let step = 0; step < 25; step++) {
     syncService.send({
-      type: "FAILED_CREATING_EPHEMERAL_UPDATE",
-      error: new Error(`Wrong ephemeral message key #${step}`),
+      type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
+      error: new Error("SECSYNC_ERROR_601"),
     });
   }
 });

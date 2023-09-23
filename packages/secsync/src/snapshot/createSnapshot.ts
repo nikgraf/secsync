@@ -29,9 +29,7 @@ export function createSnapshot<AdditionalSnapshotPublicData>(
     }),
   };
 
-  const publicDataAsBase64 = sodium.to_base64(
-    canonicalize(extendedPublicData) as string
-  );
+  const publicDataAsBase64 = sodium.to_base64(canonicalize(extendedPublicData));
 
   const { ciphertext, publicNonce } = encryptAead(
     content,

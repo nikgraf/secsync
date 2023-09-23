@@ -173,18 +173,18 @@ export const createSyncMachine = () =>
           | { type: "CONNECT" }
           | { type: "ADD_CHANGES"; data: any[] }
           | {
-              type: "ADD_EPHEMERAL_UPDATE";
+              type: "ADD_EPHEMERAL_MESSAGE";
               data: any;
               messageType?: keyof typeof messageTypes;
             }
           | {
-              type: "SEND_EPHEMERAL_UPDATE";
+              type: "SEND_EPHEMERAL_MESSAGE";
               data: any;
               messageType: keyof typeof messageTypes;
               getKey: () => Uint8Array | Promise<Uint8Array>;
             }
           | {
-              type: "FAILED_CREATING_EPHEMERAL_UPDATE";
+              type: "FAILED_CREATING_EPHEMERAL_MESSAGE";
               error: any;
             }
           | { type: "SEND"; message: any },
@@ -239,10 +239,10 @@ export const createSyncMachine = () =>
         SEND: {
           actions: forwardTo("websocketActor"),
         },
-        ADD_EPHEMERAL_UPDATE: {
+        ADD_EPHEMERAL_MESSAGE: {
           actions: sendTo("websocketActor", (context, event) => {
             return {
-              type: "SEND_EPHEMERAL_UPDATE",
+              type: "SEND_EPHEMERAL_MESSAGE",
               data: event.data,
               messageType: event.messageType || "message",
               getKey: async () => {
@@ -258,7 +258,7 @@ export const createSyncMachine = () =>
         },
         WEBSOCKET_DISCONNECTED: { target: "disconnected" },
         DISCONNECT: { target: "disconnected" },
-        FAILED_CREATING_EPHEMERAL_UPDATE: {
+        FAILED_CREATING_EPHEMERAL_MESSAGE: {
           actions: ["updateEphemeralMessageAuthoringErrors"],
         },
       },
@@ -598,127 +598,148 @@ export const createSyncMachine = () =>
 
           try {
             const createAndSendSnapshot = async () => {
-              const snapshotData = await context.getNewSnapshotData();
-              if (context.logging === "debug") {
-                console.log("createAndSendSnapshot", snapshotData);
-              }
+              try {
+                const snapshotData = await context.getNewSnapshotData();
+                if (context.logging === "debug") {
+                  console.log("createAndSendSnapshot", snapshotData);
+                }
 
-              // no snapshot exists so far
-              if (snapshotInfosWithUpdateClocks.length === 0) {
-                const publicData: SnapshotPublicData = {
-                  ...snapshotData.publicData,
-                  snapshotId: snapshotData.id,
+                // no snapshot exists so far
+                if (snapshotInfosWithUpdateClocks.length === 0) {
+                  const publicData: SnapshotPublicData = {
+                    ...snapshotData.publicData,
+                    snapshotId: snapshotData.id,
+                    docId: context.documentId,
+                    pubKey: context.sodium.to_base64(
+                      context.signatureKeyPair.publicKey
+                    ),
+                    parentSnapshotId: "",
+                    parentSnapshotUpdateClocks: {},
+                  };
+                  const snapshot = createInitialSnapshot(
+                    snapshotData.data,
+                    publicData,
+                    snapshotData.key,
+                    context.signatureKeyPair,
+                    context.sodium
+                  );
+
+                  snapshotInFlight = {
+                    updateClocks: {},
+                    snapshot,
+                  };
+                  pendingChangesQueue = [];
+
+                  send({
+                    type: "SEND",
+                    message: JSON.stringify({
+                      ...snapshot,
+                      // Note: send a faulty message to test the error handling
+                      // ciphertext: "lala",
+                      additionalServerData: snapshotData.additionalServerData,
+                    }),
+                  });
+                } else {
+                  const currentClientPublicKey = context.sodium.to_base64(
+                    context.signatureKeyPair.publicKey
+                  );
+                  const publicData: SnapshotPublicData = {
+                    ...snapshotData.publicData,
+                    snapshotId: snapshotData.id,
+                    docId: context.documentId,
+                    pubKey: currentClientPublicKey,
+                    parentSnapshotId: activeSnapshot.publicData.snapshotId,
+                    parentSnapshotUpdateClocks:
+                      snapshotInfosWithUpdateClocks.find(
+                        (entry) =>
+                          entry.snapshot.publicData.snapshotId ===
+                          activeSnapshot.publicData.snapshotId
+                      ).updateClocks || {},
+                  };
+                  const snapshot = createSnapshot(
+                    snapshotData.data,
+                    publicData,
+                    snapshotData.key,
+                    context.signatureKeyPair,
+                    activeSnapshot.ciphertext,
+                    activeSnapshot.publicData.parentSnapshotProof,
+                    context.sodium
+                  );
+
+                  snapshotInFlight = {
+                    updateClocks: {},
+                    snapshot,
+                  };
+                  pendingChangesQueue = [];
+
+                  send({
+                    type: "SEND",
+                    message: JSON.stringify({
+                      ...snapshot,
+                      // Note: send a faulty message to test the error handling
+                      // ciphertext: "lala",
+                      additionalServerData: snapshotData.additionalServerData,
+                    }),
+                  });
+                }
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error(err);
+                }
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_401");
+              }
+            };
+
+            const createAndSendUpdate = async (
+              changes: unknown[],
+              activeSnapshot: Snapshot,
+              clock: number
+            ) => {
+              try {
+                const key = await context.getSnapshotKey(activeSnapshot);
+                const refSnapshotId = activeSnapshot.publicData.snapshotId;
+
+                const update = context.serializeChanges(changes);
+                updatesLocalClock = clock + 1;
+
+                const publicData = {
+                  refSnapshotId,
                   docId: context.documentId,
                   pubKey: context.sodium.to_base64(
                     context.signatureKeyPair.publicKey
                   ),
-                  parentSnapshotId: "",
-                  parentSnapshotUpdateClocks: {},
                 };
-                const snapshot = createInitialSnapshot(
-                  snapshotData.data,
+                const message = createUpdate(
+                  update,
                   publicData,
-                  snapshotData.key,
+                  key,
                   context.signatureKeyPair,
+                  updatesLocalClock,
                   context.sodium
                 );
 
-                snapshotInFlight = {
-                  updateClocks: {},
-                  snapshot,
-                };
-                pendingChangesQueue = [];
-
+                updatesInFlight.push({
+                  clock: updatesLocalClock,
+                  changes,
+                });
                 send({
                   type: "SEND",
-                  message: JSON.stringify({
-                    ...snapshot,
-                    // Note: send a faulty message to test the error handling
-                    // ciphertext: "lala",
-                    additionalServerData: snapshotData.additionalServerData,
-                  }),
+                  message: JSON.stringify(message),
+                  // Note: send a faulty message to test the error handling
+                  // message: JSON.stringify({ ...message, ciphertext: "lala" }),
                 });
-              } else {
-                const currentClientPublicKey = context.sodium.to_base64(
-                  context.signatureKeyPair.publicKey
-                );
-                const publicData: SnapshotPublicData = {
-                  ...snapshotData.publicData,
-                  snapshotId: snapshotData.id,
-                  docId: context.documentId,
-                  pubKey: currentClientPublicKey,
-                  parentSnapshotId: activeSnapshot.publicData.snapshotId,
-                  parentSnapshotUpdateClocks:
-                    snapshotInfosWithUpdateClocks.find(
-                      (entry) =>
-                        entry.snapshot.publicData.snapshotId ===
-                        activeSnapshot.publicData.snapshotId
-                    ).updateClocks || {},
-                };
-                const snapshot = createSnapshot(
-                  snapshotData.data,
-                  publicData,
-                  snapshotData.key,
-                  context.signatureKeyPair,
-                  activeSnapshot.ciphertext,
-                  activeSnapshot.publicData.parentSnapshotProof,
-                  context.sodium
-                );
-
-                snapshotInFlight = {
-                  updateClocks: {},
-                  snapshot,
-                };
-                pendingChangesQueue = [];
-
-                send({
-                  type: "SEND",
-                  message: JSON.stringify({
-                    ...snapshot,
-                    // Note: send a faulty message to test the error handling
-                    // ciphertext: "lala",
-                    additionalServerData: snapshotData.additionalServerData,
-                  }),
-                });
+              } catch (err) {
+                if (
+                  context.logging === "debug" ||
+                  context.logging === "error"
+                ) {
+                  console.error(err);
+                }
+                errorCausingDocumentToFail = new Error("SECSYNC_ERROR_501");
               }
-            };
-
-            const createAndSendUpdate = (
-              changes: unknown[],
-              key: Uint8Array,
-              refSnapshotId: string,
-              clock: number
-            ) => {
-              // console.log("createAndSendUpdate", key);
-              const update = context.serializeChanges(changes);
-              updatesLocalClock = clock + 1;
-
-              const publicData = {
-                refSnapshotId,
-                docId: context.documentId,
-                pubKey: context.sodium.to_base64(
-                  context.signatureKeyPair.publicKey
-                ),
-              };
-              const message = createUpdate(
-                update,
-                publicData,
-                key,
-                context.signatureKeyPair,
-                updatesLocalClock,
-                context.sodium
-              );
-
-              updatesInFlight.push({
-                clock: updatesLocalClock,
-                changes,
-              });
-              send({
-                type: "SEND",
-                message: JSON.stringify(message),
-                // Note: send a faulty message to test the error handling
-                // message: JSON.stringify({ ...message, ciphertext: "lala" }),
-              });
             };
 
             const processSnapshot = async (
@@ -1357,7 +1378,7 @@ export const createSyncMachine = () =>
 
                     if (ephemeralMessageResult.proof) {
                       send({
-                        type: "ADD_EPHEMERAL_UPDATE",
+                        type: "ADD_EPHEMERAL_MESSAGE",
                         data: ephemeralMessageResult.proof,
                         messageType: ephemeralMessageResult.requestProof
                           ? "proofAndRequestProof"
@@ -1420,16 +1441,11 @@ export const createSyncMachine = () =>
                 if (context.logging === "debug") {
                   console.debug("send update");
                 }
-                if (activeSnapshot === null) {
-                  throw new Error("No active snapshot");
-                }
-                const key = await context.getSnapshotKey(activeSnapshot);
                 const rawChanges = context._pendingChangesQueue;
                 pendingChangesQueue = [];
-                createAndSendUpdate(
+                await createAndSendUpdate(
                   rawChanges,
-                  key,
-                  activeSnapshot.publicData.snapshotId,
+                  activeSnapshot,
                   updatesLocalClock
                 );
               }
