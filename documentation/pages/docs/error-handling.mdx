@@ -19,7 +19,7 @@ These errors result in an error state of the document and no new events are proc
 
 For these cases the error is ignored, logged and the document continues to work. Only in case this happens during loading the initial document the document ends up in an error state and no new events are processed.
 
-- `SECSYNC_ERROR_110`: parse error of message (e.g. field is missing)
+- `SECSYNC_ERROR_110`: snapshot parse error (e.g. field is missing)
 - `SECSYNC_ERROR_111`: Invalid signature
 - `SECSYNC_ERROR_112`: Invalid parentSnapshot verification (can happend if snapshots come in out of order) -> refetch
 - `SECSYNC_ERROR_113`: Invalid docId
@@ -37,7 +37,7 @@ For these cases the error is ignored, logged and the document continues to work.
 
 For these cases the error is ignored, logged and the document continues to work.
 
-- `SECSYNC_ERROR_211`: parse error of message (e.g. field is missing)
+- `SECSYNC_ERROR_211`: update parse error (e.g. field is missing)
 - `SECSYNC_ERROR_212`: invalid signature (manipulated message)
 - `SECSYNC_ERROR_213`: invalid snapshotId reference
 - `SECSYNC_ERROR_214`: Clock is lower or equal then the received clock (reply attack)
