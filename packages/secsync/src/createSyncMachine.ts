@@ -923,7 +923,6 @@ export const createSyncMachine = () =>
                       update.publicData.pubKey
                     );
                     if (!isValidClient) {
-                      // TODO test for completed and not completed case
                       snapshotAndUpdateErrors.unshift(
                         new Error("SECSYNC_ERROR_215")
                       );
