@@ -967,7 +967,7 @@ test("SECSYNC_ERROR_114 isValidClient returns false", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_201 should fail on decryption", (done) => {
+test("SECSYNC_ERROR_201 should fail decryption on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -1048,7 +1048,93 @@ test("SECSYNC_ERROR_201 should fail on decryption", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_202 should fail because the update clock increase by more than one", (done) => {
+test("SECSYNC_ERROR_201 should fail decryption on update event", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.matches("failed")) {
+      expect(docValue).toEqual("Hello World");
+      expect(state.context._documentDecryptionState).toBe("complete");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_201"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper({
+          key: sodium.from_hex(
+            "994b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
+          ),
+        }).update,
+        type: "update",
+      },
+    });
+  }, 1);
+});
+
+test("SECSYNC_ERROR_202 should fail because the update clock increase by more than one on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -1126,7 +1212,96 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
   });
 });
 
-test("SECSYNC_ERROR_203 applyChanges throws an error", (done) => {
+test("SECSYNC_ERROR_202 should fail because the update clock increase by more than one on update event", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.matches("failed")) {
+      expect(docValue).toEqual("Hello Worldu");
+      expect(state.context._documentDecryptionState).toBe("complete");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_202"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper().update,
+        type: "update",
+      },
+    });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper({ version: 2 }).update,
+        type: "update",
+      },
+    });
+  }, 1);
+});
+
+test("SECSYNC_ERROR_203 applyChanges throws an error on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -1202,7 +1377,94 @@ test("SECSYNC_ERROR_203 applyChanges throws an error", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_204 deserializeChanges throws an error", (done) => {
+test("SECSYNC_ERROR_203 applyChanges throws an error on update event", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          throw new Error("CAN NOT APPLY CHANGES");
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.matches("failed")) {
+      expect(docValue).toEqual("Hello World");
+      expect(state.context._documentDecryptionState).toBe("complete");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_203"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper().update,
+        type: "update",
+      },
+    });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper({ version: 1 }).update,
+        type: "update",
+      },
+    });
+  }, 1);
+});
+
+test("SECSYNC_ERROR_204 deserializeChanges throws an error on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -1277,7 +1539,89 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_205 isValidClient throws an errors", (done) => {
+test("SECSYNC_ERROR_204 deserializeChanges throws an error on update event", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          throw new Error("CAN NOT DESERIALIZE CHANGES");
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.matches("failed")) {
+      expect(docValue).toEqual("Hello World");
+      expect(state.context._documentDecryptionState).toBe("complete");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_204"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper().update,
+        type: "update",
+      },
+    });
+  }, 1);
+});
+
+test("SECSYNC_ERROR_205 isValidClient throws an errors on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -1359,7 +1703,96 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors", (done) => {
   });
 });
 
-test("SECSYNC_ERROR_206 getSnapshotKey throws an error", (done) => {
+test("SECSYNC_ERROR_205 isValidClient throws an errors on update event", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let isValidClientCounter = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) => {
+          if (isValidClientCounter === 0) {
+            isValidClientCounter++;
+            return true;
+          } else {
+            throw new Error("CAN NOT VALIDATE CLIENT");
+          }
+        },
+        getSnapshotKey: () => key,
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.matches("failed")) {
+      expect(state.context._documentDecryptionState).toBe("complete");
+      expect(docValue).toEqual("Hello World");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_205"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper().update,
+        type: "update",
+      },
+    });
+  }, 1);
+});
+
+test("SECSYNC_ERROR_206 getSnapshotKey throws an error on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
   let docValue = "";
@@ -1440,6 +1873,96 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error", (done) => {
       updates: [createUpdateTestHelper().update],
     },
   });
+});
+
+test("SECSYNC_ERROR_206 getSnapshotKey throws an error on update event", (done) => {
+  const websocketServiceMock = (context: any) => () => {};
+
+  let docValue = "";
+  let getSnapshotKeyCounter = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
+        getSnapshotKey: () => {
+          if (getSnapshotKeyCounter === 0) {
+            getSnapshotKeyCounter++;
+            return key;
+          } else {
+            throw new Error("CAN NOT GET SNAPSHOT KEY");
+          }
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientAKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            const ephemeralMessagesSession = createEphemeralSession(
+              context.sodium
+            );
+            return {
+              _ephemeralMessagesSession: ephemeralMessagesSession,
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  ).onTransition((state) => {
+    if (state.matches("failed")) {
+      expect(docValue).toEqual("Hello World");
+      expect(state.context._documentDecryptionState).toBe("complete");
+      expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_206"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  const { snapshot } = createSnapshotTestHelper();
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        ...createUpdateTestHelper().update,
+        type: "update",
+      },
+    });
+  }, 1);
 });
 
 test("SECSYNC_ERROR_211 failed to parse the error message on initial document load", (done) => {
