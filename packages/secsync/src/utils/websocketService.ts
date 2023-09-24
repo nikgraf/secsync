@@ -16,7 +16,7 @@ export const websocketService =
   (send: any, onReceive: any) => {
     let ephemeralSessionCounter = ephemeralMessagesSession.counter;
     const prepareAndSendEphemeralMessage = async (
-      data,
+      data: any,
       messageType: keyof typeof messageTypes,
       key: Uint8Array
     ) => {
@@ -60,7 +60,7 @@ export const websocketService =
       : "";
 
     let knownSnapshotUpdateClocks = "";
-    if (knownSnapshotIdParam !== "" && context.knownSnapshotInfo.updateClocks) {
+    if (knownSnapshotIdParam !== "" && context.knownSnapshotInfo) {
       try {
         const updateClocks = SnapshotUpdateClocks.parse(
           context.knownSnapshotInfo.updateClocks

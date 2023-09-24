@@ -1,9 +1,9 @@
-import canonicalize from "canonicalize";
 import { KeyPair } from "libsodium-wrappers";
 import { decryptAead } from "../crypto/decryptAead";
 import { idLength } from "../crypto/generateId";
 import { verifySignature } from "../crypto/verifySignature";
 import { EphemeralMessage, EphemeralMessagesSession } from "../types";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 import { extractPrefixFromUint8Array } from "../utils/extractPrefixFromUint8Array";
 import { uint8ArrayToNumber } from "../utils/uint8ArrayToInt";
 import { messageTypes } from "./createEphemeralMessage";
@@ -19,9 +19,11 @@ export function verifyAndDecryptEphemeralMessage(
   sodium: typeof import("libsodium-wrappers"),
   logging?: "error" | "debug" | "off"
 ) {
+  let publicDataAsBase64: string;
   try {
-    const publicDataAsBase64 = sodium.to_base64(
-      canonicalize(ephemeralMessage.publicData) as string
+    publicDataAsBase64 = canonicalizeAndToBase64(
+      ephemeralMessage.publicData,
+      sodium
     );
 
     const publicKey = sodium.from_base64(ephemeralMessage.publicData.pubKey);
@@ -55,7 +57,7 @@ export function verifyAndDecryptEphemeralMessage(
     try {
       content = decryptAead(
         sodium.from_base64(ephemeralMessage.ciphertext),
-        sodium.to_base64(canonicalize(ephemeralMessage.publicData) as string),
+        publicDataAsBase64,
         key,
         ephemeralMessage.nonce,
         sodium

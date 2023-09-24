@@ -1,8 +1,8 @@
-import canonicalize from "canonicalize";
 import type { KeyPair } from "libsodium-wrappers";
 import { encryptAead } from "../crypto/encryptAead";
 import { sign } from "../crypto/sign";
 import { Update, UpdatePublicData } from "../types";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 
 export function createUpdate(
   content: string | Uint8Array,
@@ -17,8 +17,9 @@ export function createUpdate(
     clock,
   };
 
-  const publicDataAsBase64 = sodium.to_base64(
-    canonicalize(publicDataWithClock) as string
+  const publicDataAsBase64 = canonicalizeAndToBase64(
+    publicDataWithClock,
+    sodium
   );
   const { ciphertext, publicNonce } = encryptAead(
     content,

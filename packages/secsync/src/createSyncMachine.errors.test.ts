@@ -3586,6 +3586,7 @@ test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -3780,6 +3781,7 @@ test("SECSYNC_ERROR_303 ignore an ephemeral message coming from a reply attack",
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -3920,6 +3922,7 @@ test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -4021,6 +4024,7 @@ test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -4114,6 +4118,7 @@ test("SECSYNC_ERROR_305 invalid messageType", (done) => {
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -4208,6 +4213,7 @@ test("SECSYNC_ERROR_306 process three additional ephemeral messages where the se
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -4336,6 +4342,7 @@ test("SECSYNC_ERROR_307 invalid messageType", (done) => {
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -4432,6 +4439,7 @@ test("SECSYNC_ERROR_308 invalid signature", (done) => {
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({
@@ -4647,7 +4655,7 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
   const onReceiveCallback = jest.fn();
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(async (event) => {
+      onReceive(async (event: any) => {
         if (event.type === "SEND_EPHEMERAL_MESSAGE") {
           try {
             await event.getKey();
@@ -5249,6 +5257,7 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({

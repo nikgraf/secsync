@@ -2,8 +2,8 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { createEphemeralMessageProof } from "./createEphemeralSessionProof";
 import { verifyEphemeralSessionProof } from "./verifyEphemeralSessionProof";
 
-let remoteClientSessionId;
-let currentClientSessionId;
+let remoteClientSessionId: string;
+let currentClientSessionId: string;
 let currentClientSignatureKeyPair: KeyPair;
 let proof: Uint8Array;
 

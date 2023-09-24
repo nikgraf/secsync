@@ -12,6 +12,8 @@ let snapshot3ProofEntry: SnapshotProofChainEntry;
 let snapshot4ProofEntry: SnapshotProofChainEntry;
 
 const createDummySnapshot = (
+  snapshotId: string,
+  parentSnapshotId: string,
   parentSnapshotProof: string,
   ciphertext: string
 ) => {
@@ -19,10 +21,10 @@ const createDummySnapshot = (
     nonce: "nonce",
     ciphertext,
     publicData: {
+      parentSnapshotId,
       parentSnapshotProof,
       docId: "docId",
-      subkeyId: 1,
-      snapshotId: "snapshotId",
+      snapshotId,
       pubKey: "pubKey",
       keyDerivationTrace: {
         workspaceKeyId: "workspaceKeyId",
@@ -87,6 +89,8 @@ test("returns true for a valid proof of one item", () => {
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,
     currentSnapshot: createDummySnapshot(
+      snapshot3ProofEntry.snapshotId,
+      snapshot2ProofEntry.snapshotId,
       snapshot3ProofEntry.parentSnapshotProof,
       "ghi"
     ),
@@ -105,6 +109,8 @@ test("returns false for an invalid proof due a modified proof", () => {
       },
       snapshotProofChain,
       currentSnapshot: createDummySnapshot(
+        snapshot3ProofEntry.snapshotId,
+        snapshot2ProofEntry.snapshotId,
         snapshot3ProofEntry.parentSnapshotProof,
         "ghi"
       ),
@@ -122,6 +128,8 @@ test("returns false for an invalid proof due a modified proof", () => {
         },
       ],
       currentSnapshot: createDummySnapshot(
+        snapshot3ProofEntry.snapshotId,
+        snapshot2ProofEntry.snapshotId,
         snapshot2ProofEntry.parentSnapshotProof,
         "def"
       ),
@@ -140,6 +148,8 @@ test("returns false for an invalid proof due a modified proof", () => {
         },
       ],
       currentSnapshot: createDummySnapshot(
+        snapshot3ProofEntry.snapshotId,
+        snapshot2ProofEntry.snapshotId,
         snapshot2ProofEntry.parentSnapshotProof,
         "def"
       ),
@@ -157,6 +167,8 @@ test("returns false for an invalid proof due a modified ciphertext hash", () => 
       },
       snapshotProofChain: [snapshot3ProofEntry],
       currentSnapshot: createDummySnapshot(
+        snapshot3ProofEntry.snapshotId,
+        snapshot2ProofEntry.snapshotId,
         snapshot3ProofEntry.parentSnapshotProof,
         "ghi"
       ),
@@ -175,6 +187,8 @@ test("returns false for an invalid proof due a modified ciphertext hash", () => 
         snapshot4ProofEntry,
       ],
       currentSnapshot: createDummySnapshot(
+        snapshot4ProofEntry.snapshotId,
+        snapshot2ProofEntry.snapshotId,
         snapshot4ProofEntry.parentSnapshotProof,
         "jkl"
       ),
@@ -193,6 +207,8 @@ test("returns false for an invalid proof due a modified ciphertext hash", () => 
         },
       ],
       currentSnapshot: createDummySnapshot(
+        snapshot4ProofEntry.snapshotId,
+        snapshot2ProofEntry.snapshotId,
         snapshot4ProofEntry.parentSnapshotProof,
         "jkl"
       ),
@@ -207,6 +223,8 @@ test("returns true for valid proof of multiple items", () => {
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,
     currentSnapshot: createDummySnapshot(
+      snapshot4ProofEntry.snapshotId,
+      snapshot2ProofEntry.snapshotId,
       snapshot4ProofEntry.parentSnapshotProof,
       "jkl"
     ),
@@ -221,6 +239,8 @@ test("returns true for a valid proof for the initial snapshot", () => {
     knownSnapshotProofEntry: snapshot1ProofEntry,
     snapshotProofChain,
     currentSnapshot: createDummySnapshot(
+      snapshot2ProofEntry.snapshotId,
+      snapshot1ProofEntry.snapshotId,
       snapshot2ProofEntry.parentSnapshotProof,
       "def"
     ),
@@ -235,6 +255,8 @@ test("returns false if an entry is missing", () => {
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,
     currentSnapshot: createDummySnapshot(
+      snapshot4ProofEntry.snapshotId,
+      snapshot3ProofEntry.snapshotId,
       snapshot4ProofEntry.parentSnapshotProof,
       "jkl"
     ),
@@ -249,6 +271,8 @@ test("returns false if an entry is missing using an initial snapshot", () => {
     knownSnapshotProofEntry: snapshot1ProofEntry,
     snapshotProofChain,
     currentSnapshot: createDummySnapshot(
+      snapshot3ProofEntry.snapshotId,
+      snapshot2ProofEntry.snapshotId,
       snapshot3ProofEntry.parentSnapshotProof,
       "ghi"
     ),
@@ -263,6 +287,8 @@ test("returns false for an empty chain", () => {
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,
     currentSnapshot: createDummySnapshot(
+      snapshot3ProofEntry.snapshotId,
+      snapshot2ProofEntry.snapshotId,
       snapshot3ProofEntry.parentSnapshotProof,
       "ghi"
     ),

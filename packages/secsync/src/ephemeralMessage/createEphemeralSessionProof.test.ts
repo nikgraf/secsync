@@ -1,8 +1,8 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { createEphemeralMessageProof } from "./createEphemeralSessionProof";
 
-let remoteClientSessionId;
-let currentClientSessionId;
+let remoteClientSessionId: string;
+let currentClientSessionId: string;
 let currentClientSignatureKeyPair: KeyPair;
 
 beforeEach(async () => {
@@ -39,6 +39,7 @@ it("should throw error if any of the required parameters is missing", () => {
     createEphemeralMessageProof(
       remoteClientSessionId,
       currentClientSessionId,
+      // @ts-expect-error
       null,
       sodium
     );
@@ -46,6 +47,7 @@ it("should throw error if any of the required parameters is missing", () => {
 
   expect(() => {
     createEphemeralMessageProof(
+      // @ts-expect-error
       null,
       currentClientSessionId,
       currentClientSignatureKeyPair,
@@ -56,6 +58,7 @@ it("should throw error if any of the required parameters is missing", () => {
   expect(() => {
     createEphemeralMessageProof(
       remoteClientSessionId,
+      // @ts-expect-error
       null,
       currentClientSignatureKeyPair,
       sodium
@@ -67,6 +70,7 @@ it("should throw error if any of the required parameters is missing", () => {
       remoteClientSessionId,
       currentClientSessionId,
       currentClientSignatureKeyPair,
+      // @ts-expect-error
       null
     );
   }).toThrow();

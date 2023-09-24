@@ -56,6 +56,7 @@ export function isValidAncestorSnapshot({
       knownSnapshotProofEntry.snapshotCiphertextHash,
     sodium,
   });
+
   if (
     snapshotProofChain.length > 0 &&
     snapshotProofChain[0].parentSnapshotProof !== known
@@ -68,7 +69,9 @@ export function isValidAncestorSnapshot({
     snapshotProofChain[snapshotProofChain.length - 1].parentSnapshotProof !==
       currentSnapshot.publicData.parentSnapshotProof ||
     snapshotProofChain[snapshotProofChain.length - 1].snapshotCiphertextHash !==
-      hash(currentSnapshot.ciphertext, sodium)
+      hash(currentSnapshot.ciphertext, sodium) ||
+    snapshotProofChain[snapshotProofChain.length - 1].snapshotId !==
+      currentSnapshot.publicData.snapshotId
   ) {
     return false;
   }

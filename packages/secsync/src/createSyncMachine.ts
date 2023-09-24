@@ -432,7 +432,7 @@ export const createSyncMachine = () =>
             (accumulator, updateInFlight) => {
               return [...accumulator, ...updateInFlight.changes];
             },
-            []
+            [] as any[]
           );
           unconfirmedChanges = [
             ...unconfirmedChanges,
@@ -581,10 +581,12 @@ export const createSyncMachine = () =>
             "none";
           let snapshotInfosWithUpdateClocks =
             context._snapshotInfosWithUpdateClocks;
-          let activeSnapshot: Snapshot | null =
+          let activeSnapshotInfoWithUpdateClocks: SnapshotInfoWithUpdateClocks | null =
             snapshotInfosWithUpdateClocks[
               snapshotInfosWithUpdateClocks.length - 1
-            ]?.snapshot || null;
+            ] || null;
+          let activeSnapshot: Snapshot | null =
+            activeSnapshotInfoWithUpdateClocks?.snapshot || null;
           let snapshotInFlight = context._snapshotInFlight;
           let updatesLocalClock = context._updatesLocalClock;
           let updatesInFlight = context._updatesInFlight;
@@ -643,7 +645,10 @@ export const createSyncMachine = () =>
                 }
 
                 // no snapshot exists so far
-                if (snapshotInfosWithUpdateClocks.length === 0) {
+                if (
+                  activeSnapshotInfoWithUpdateClocks === null ||
+                  activeSnapshot === null
+                ) {
                   const publicData: SnapshotPublicData = {
                     ...snapshotData.publicData,
                     snapshotId: newSnapshotId,
@@ -688,11 +693,7 @@ export const createSyncMachine = () =>
                     pubKey: currentClientPublicKey,
                     parentSnapshotId: activeSnapshot.publicData.snapshotId,
                     parentSnapshotUpdateClocks:
-                      snapshotInfosWithUpdateClocks.find(
-                        (entry) =>
-                          entry.snapshot.publicData.snapshotId ===
-                          activeSnapshot.publicData.snapshotId
-                      ).updateClocks || {},
+                      activeSnapshotInfoWithUpdateClocks.updateClocks || {},
                   };
                   const snapshot = createSnapshot(
                     snapshotData.data,
@@ -829,7 +830,7 @@ export const createSyncMachine = () =>
                   snapshotInfosWithUpdateClocks.find(
                     (entry) =>
                       entry.snapshot.publicData.snapshotId ===
-                      activeSnapshot.publicData.snapshotId
+                      activeSnapshot?.publicData.snapshotId
                   )?.updateClocks;
                 if (parentSnapshotProofInfo && parentSnapshotUpdateClocks) {
                   const currentClientPublicKey = context.sodium.to_base64(
@@ -1174,7 +1175,6 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.log("snapshot saved", event);
                   }
-                  // TODO test for ignoring the snapshot-saved event
                   if (
                     // Ignore snapshot-saved for an event that is not in flight
                     snapshotInFlight &&
@@ -1242,6 +1242,7 @@ export const createSyncMachine = () =>
                           sodium: context.sodium,
                         });
                         if (!isValid) {
+                          console.log("NOOOOOOT");
                           throw new Error(
                             "Invalid ancestor snapshot after snapshot-save-failed event"
                           );
@@ -1369,12 +1370,24 @@ export const createSyncMachine = () =>
                       return;
                     }
 
+                    if (ephemeralMessagesSession === null) {
+                      if (
+                        context.logging === "error" ||
+                        context.logging === "debug"
+                      ) {
+                        console.error(
+                          "context._ephemeralMessagesSession is not defined"
+                        );
+                      }
+                      return;
+                    }
+
                     const ephemeralMessageResult =
                       verifyAndDecryptEphemeralMessage(
                         ephemeralMessage,
                         key,
                         context.documentId,
-                        context._ephemeralMessagesSession,
+                        ephemeralMessagesSession,
                         context.signatureKeyPair,
                         context.sodium,
                         context.logging

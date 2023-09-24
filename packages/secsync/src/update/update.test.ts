@@ -43,7 +43,7 @@ test("createUpdate & verifyAndDecryptUpdate successfully", async () => {
     -1,
     sodium
   );
-  if (content === null) {
+  if (!content) {
     throw new Error("Update could not be verified.");
   }
   expect(sodium.to_string(content)).toBe("Hello World");
@@ -89,7 +89,7 @@ test("createUpdate & verifyAndDecryptUpdate successfully with higher clock numbe
     9,
     sodium
   );
-  if (content === null) {
+  if (!content) {
     throw new Error("Update could not be verified.");
   }
   expect(sodium.to_string(content)).toBe("Hello World");
@@ -141,7 +141,7 @@ test("createUpdate & verifyAndDecryptUpdate break due changed signature", async 
   expect(result.clock).toBeUndefined();
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_212");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_212");
 });
 
 test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async () => {
@@ -190,7 +190,7 @@ test("createUpdate & verifyAndDecryptUpdate break due changed ciphertext", async
   expect(result.clock).toBeUndefined();
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_212");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_212");
 });
 
 test("createUpdate & verifyAndDecryptUpdate fail due invalid clock", async () => {
@@ -235,7 +235,7 @@ test("createUpdate & verifyAndDecryptUpdate fail due invalid clock", async () =>
   expect(result.clock).toBeUndefined();
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_214");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_214");
 });
 
 test("verifyAndDecryptUpdate fail due currentActiveSnapshotId does not match", async () => {
@@ -280,5 +280,5 @@ test("verifyAndDecryptUpdate fail due currentActiveSnapshotId does not match", a
   expect(result.clock).toBeUndefined();
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_213");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_213");
 });
