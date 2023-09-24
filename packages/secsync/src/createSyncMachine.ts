@@ -7,6 +7,7 @@ import {
   sendTo,
   spawn,
 } from "xstate";
+import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
 import { messageTypes } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
@@ -205,13 +206,11 @@ export const createSyncMachine = () =>
         applySnapshot: () => undefined,
         getSnapshotKey: () => Promise.resolve(new Uint8Array()),
         applyChanges: () => undefined,
-        getNewSnapshotData: () =>
-          Promise.resolve({
-            id: "",
-            data: "",
-            key: new Uint8Array(),
-            publicData: {},
-          }),
+        getNewSnapshotData: () => ({
+          data: "",
+          key: new Uint8Array(),
+          publicData: {},
+        }),
         applyEphemeralMessage: () => undefined,
         shouldSendSnapshot: () => false,
         sodium: {},
@@ -635,7 +634,10 @@ export const createSyncMachine = () =>
           try {
             const createAndSendSnapshot = async () => {
               try {
-                const snapshotData = await context.getNewSnapshotData();
+                const newSnapshotId = generateId(context.sodium);
+                const snapshotData = await context.getNewSnapshotData({
+                  id: newSnapshotId,
+                });
                 if (context.logging === "debug") {
                   console.log("createAndSendSnapshot", snapshotData);
                 }
@@ -644,7 +646,7 @@ export const createSyncMachine = () =>
                 if (snapshotInfosWithUpdateClocks.length === 0) {
                   const publicData: SnapshotPublicData = {
                     ...snapshotData.publicData,
-                    snapshotId: snapshotData.id,
+                    snapshotId: newSnapshotId,
                     docId: context.documentId,
                     pubKey: context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
@@ -681,7 +683,7 @@ export const createSyncMachine = () =>
                   );
                   const publicData: SnapshotPublicData = {
                     ...snapshotData.publicData,
-                    snapshotId: snapshotData.id,
+                    snapshotId: newSnapshotId,
                     docId: context.documentId,
                     pubKey: currentClientPublicKey,
                     parentSnapshotId: activeSnapshot.publicData.snapshotId,
