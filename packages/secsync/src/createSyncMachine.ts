@@ -1175,6 +1175,7 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.log("snapshot saved", event);
                   }
+
                   if (
                     // Ignore snapshot-saved for an event that is not in flight
                     snapshotInFlight &&
@@ -1184,6 +1185,7 @@ export const createSyncMachine = () =>
                     // it doesn't match the currently active one.
                     // This can happen if another snapshot event has been received already.
                     (activeSnapshot === undefined ||
+                      activeSnapshot === null ||
                       activeSnapshot.publicData.snapshotId ===
                         snapshotInFlight.snapshot.publicData.parentSnapshotId)
                   ) {
