@@ -488,7 +488,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
       state.matches("connected.idle") &&
       state.context._snapshotInfosWithUpdateClocks.length === 2 &&
       state.context._snapshotInfosWithUpdateClocks[1].snapshot.publicData
-        .snapshotId === snapshotInFlight.publicData.snapshotId
+        .snapshotId === snapshotInFlight?.publicData.snapshotId
     ) {
       expect(docValue).toEqual("Hello Worlduu");
       expect(onDocumentUpdated).toHaveBeenCalledTimes(3);
@@ -551,7 +551,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
           type: "snapshot-saved",
-          snapshotId: snapshotInFlight.publicData.snapshotId,
+          snapshotId: snapshotInFlight?.publicData.snapshotId,
         },
       });
     }, 1);

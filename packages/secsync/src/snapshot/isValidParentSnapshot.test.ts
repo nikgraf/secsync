@@ -15,6 +15,7 @@ test("it returns true for a valid proof", () => {
       nonce: "nonce",
       ciphertext: "ciphertext",
       publicData: {
+        parentSnapshotId,
         parentSnapshotProof,
         docId: "docId",
         snapshotId: "snapshotId",
@@ -37,6 +38,7 @@ test("it returns false to due a changed parentSnapshotCiphertext", () => {
       nonce: "nonce",
       ciphertext: "ciphertext",
       publicData: {
+        parentSnapshotId,
         parentSnapshotProof,
         docId: "docId",
         snapshotId: "snapshotId",
@@ -59,6 +61,7 @@ test("it returns false to due a changed grandParentSnapshotProof", () => {
       nonce: "nonce",
       ciphertext: "ciphertext",
       publicData: {
+        parentSnapshotId,
         parentSnapshotProof,
         docId: "docId",
         snapshotId: "snapshotId",
@@ -81,6 +84,7 @@ test("it returns false if parentSnapshotCiphertext and grandParentSnapshotProof 
       nonce: "nonce",
       ciphertext: "ciphertext",
       publicData: {
+        parentSnapshotId,
         parentSnapshotProof,
         docId: "docId",
         snapshotId: "snapshotId",
@@ -103,6 +107,7 @@ test("it returns false to due a manipulated parentSnapshotProof", () => {
       nonce: "nonce",
       ciphertext: "ciphertext",
       publicData: {
+        parentSnapshotId,
         parentSnapshotProof: "WRONG",
         docId: "docId",
         snapshotId: "snapshotId",
@@ -125,6 +130,7 @@ test("it returns false for a changed parentSnapshotId", () => {
       nonce: "nonce",
       ciphertext: "ciphertext",
       publicData: {
+        parentSnapshotId,
         parentSnapshotProof,
         docId: "docId",
         snapshotId: "snapshotId",

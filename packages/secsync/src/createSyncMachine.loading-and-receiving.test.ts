@@ -839,6 +839,7 @@ test("should load a document and process three additional ephemeral messages", (
   });
 
   const receiverSessionId =
+    // @ts-expect-error _ephemeralMessagesSession is defined once the machine is initiate
     syncService.getSnapshot().context._ephemeralMessagesSession.id;
 
   const { ephemeralMessage } = createEphemeralMessageTestHelper({

@@ -54,7 +54,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully", () => {
     signatureKeyPairA.publicKey,
     sodium
   );
-  expect(sodium.to_string(result.content)).toBe("Hello World");
+  expect(sodium.to_string(result.content as Uint8Array)).toBe("Hello World");
   expect(result.error).toBeUndefined();
 });
 
@@ -90,7 +90,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
   );
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_111");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_111");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", () => {
@@ -126,7 +126,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed ciphertext", (
 
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_111");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_111");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying direct parentSnapshotProof", () => {
@@ -197,7 +197,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
       parentSnapshotProof: "",
     }
   );
-  expect(sodium.to_string(result.content)).toBe("Hello World");
+  expect(sodium.to_string(result.content as Uint8Array)).toBe("Hello World");
   expect(result.error).toBeUndefined();
 
   const result2 = verifyAndDecryptSnapshot(
@@ -212,7 +212,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     }
   );
-  expect(sodium.to_string(result2.content)).toBe("Hello World2");
+  expect(sodium.to_string(result2.content as Uint8Array)).toBe("Hello World2");
   expect(result2.error).toBeUndefined();
 
   const result3 = verifyAndDecryptSnapshot(
@@ -228,7 +228,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     }
   );
 
-  expect(sodium.to_string(result3.content)).toBe("Hello World3");
+  expect(sodium.to_string(result3.content as Uint8Array)).toBe("Hello World3");
   expect(result3.error).toBeUndefined();
 });
 
@@ -293,7 +293,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
 
   expect(result1.content).toBeUndefined();
   expect(result1.error).toBeDefined();
-  expect(result1.error.message).toBe("SECSYNC_ERROR_112");
+  expect(result1.error?.message).toBe("SECSYNC_ERROR_112");
 
   const result2 = verifyAndDecryptSnapshot(
     snapshot2,
@@ -315,7 +315,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
 
   expect(result2.content).toBeUndefined();
   expect(result2.error).toBeDefined();
-  expect(result2.error.message).toBe("SECSYNC_ERROR_112");
+  expect(result2.error?.message).toBe("SECSYNC_ERROR_112");
 
   const result3 = verifyAndDecryptSnapshot(
     snapshot2,
@@ -337,7 +337,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
 
   expect(result3.content).toBeUndefined();
   expect(result3.error).toBeDefined();
-  expect(result3.error.message).toBe("SECSYNC_ERROR_112");
+  expect(result3.error?.message).toBe("SECSYNC_ERROR_112");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSnapshotProof of snapshot with a parent", () => {
@@ -416,7 +416,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
 
   expect(result1.content).toBeUndefined();
   expect(result1.error).toBeDefined();
-  expect(result1.error.message).toBe("SECSYNC_ERROR_112");
+  expect(result1.error?.message).toBe("SECSYNC_ERROR_112");
 
   const result2 = verifyAndDecryptSnapshot(
     snapshot3,
@@ -437,7 +437,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   );
   expect(result2.content).toBeUndefined();
   expect(result2.error).toBeDefined();
-  expect(result2.error.message).toBe("SECSYNC_ERROR_112");
+  expect(result2.error?.message).toBe("SECSYNC_ERROR_112");
 
   const result3 = verifyAndDecryptSnapshot(
     snapshot3,
@@ -458,7 +458,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
   );
   expect(result3.content).toBeUndefined();
   expect(result3.error).toBeDefined();
-  expect(result3.error.message).toBe("SECSYNC_ERROR_112");
+  expect(result3.error?.message).toBe("SECSYNC_ERROR_112");
 });
 
 test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the client's own parentSnapshotUpdateClocks", () => {
@@ -515,7 +515,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     10 // no clock should be present
   );
 
-  expect(sodium.to_string(result2.content)).toBe("Hello World2");
+  expect(sodium.to_string(result2.content as Uint8Array)).toBe("Hello World2");
   expect(result2.error).toBeUndefined();
 });
 
@@ -574,7 +574,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
   );
   expect(result1.content).toBeUndefined();
   expect(result1.error).toBeDefined();
-  expect(result1.error.message).toBe("SECSYNC_ERROR_102");
+  expect(result1.error?.message).toBe("SECSYNC_ERROR_102");
 
   const result2 = verifyAndDecryptSnapshot(
     snapshot2,
@@ -591,7 +591,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
   );
   expect(result2.content).toBeUndefined();
   expect(result2.error).toBeDefined();
-  expect(result2.error.message).toBe("SECSYNC_ERROR_102");
+  expect(result2.error?.message).toBe("SECSYNC_ERROR_102");
 
   const result3 = verifyAndDecryptSnapshot(
     snapshot2,
@@ -609,7 +609,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
 
   expect(result3.content).toBeUndefined();
   expect(result3.error).toBeDefined();
-  expect(result3.error.message).toBe("SECSYNC_ERROR_102");
+  expect(result3.error?.message).toBe("SECSYNC_ERROR_102");
 
   const result4 = verifyAndDecryptSnapshot(
     snapshot2,
@@ -626,7 +626,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
   );
   expect(result4.content).toBeUndefined();
   expect(result4.error).toBeDefined();
-  expect(result4.error.message).toBe("SECSYNC_ERROR_102");
+  expect(result4.error?.message).toBe("SECSYNC_ERROR_102");
 });
 
 test("verifyAndDecryptSnapshot fails due wrong docId", () => {
@@ -664,5 +664,5 @@ test("verifyAndDecryptSnapshot fails due wrong docId", () => {
 
   expect(result.content).toBeUndefined();
   expect(result.error).toBeDefined();
-  expect(result.error.message).toBe("SECSYNC_ERROR_113");
+  expect(result.error?.message).toBe("SECSYNC_ERROR_113");
 });

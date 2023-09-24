@@ -1,7 +1,7 @@
-import canonicalize from "canonicalize";
 import { decryptAead } from "../crypto/decryptAead";
 import { verifySignature } from "../crypto/verifySignature";
 import { Update } from "../types";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 
 export function verifyAndDecryptUpdate(
   update: Update,
@@ -12,10 +12,9 @@ export function verifyAndDecryptUpdate(
   logging?: "error" | "debug" | "off"
 ) {
   try {
+    let publicDataAsBase64: string;
     try {
-      const publicDataAsBase64 = sodium.to_base64(
-        canonicalize(update.publicData)
-      );
+      publicDataAsBase64 = canonicalizeAndToBase64(update.publicData, sodium);
 
       const publicKey = sodium.from_base64(update.publicData.pubKey);
 
@@ -70,7 +69,7 @@ export function verifyAndDecryptUpdate(
     try {
       const content = decryptAead(
         sodium.from_base64(update.ciphertext),
-        sodium.to_base64(canonicalize(update.publicData) as string),
+        publicDataAsBase64,
         key,
         update.nonce,
         sodium

@@ -1,4 +1,3 @@
-import canonicalize from "canonicalize";
 import type { KeyPair } from "libsodium-wrappers";
 import { encryptAead } from "../crypto/encryptAead";
 import { sign } from "../crypto/sign";
@@ -7,6 +6,7 @@ import {
   SnapshotPublicData,
   SnapshotPublicDataWithParentSnapshotProof,
 } from "../types";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
 
 export function createSnapshot<AdditionalSnapshotPublicData>(
@@ -29,7 +29,10 @@ export function createSnapshot<AdditionalSnapshotPublicData>(
     }),
   };
 
-  const publicDataAsBase64 = sodium.to_base64(canonicalize(extendedPublicData));
+  const publicDataAsBase64 = canonicalizeAndToBase64(
+    extendedPublicData,
+    sodium
+  );
 
   const { ciphertext, publicNonce } = encryptAead(
     content,

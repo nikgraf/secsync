@@ -1,8 +1,8 @@
-import canonicalize from "canonicalize";
 import type { KeyPair } from "libsodium-wrappers";
 import { encryptAead } from "../crypto/encryptAead";
 import { sign } from "../crypto/sign";
 import { EphemeralMessage, EphemeralMessagePublicData } from "../types";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 import { intToUint8Array } from "../utils/intToUint8Array";
 import { prefixWithUint8Array } from "../utils/prefixWithUint8Array";
 
@@ -23,9 +23,7 @@ export function createEphemeralMessage(
   authorSessionCounter: number,
   sodium: typeof import("libsodium-wrappers")
 ) {
-  const publicDataAsBase64 = sodium.to_base64(
-    canonicalize(publicData) as string
-  );
+  const publicDataAsBase64 = canonicalizeAndToBase64(publicData, sodium);
 
   let prefixedContent = prefixWithUint8Array(
     content,

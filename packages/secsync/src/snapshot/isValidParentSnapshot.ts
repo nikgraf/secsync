@@ -22,5 +22,8 @@ export function isValidParentSnapshot({
     grandParentSnapshotProof,
     sodium,
   });
-  return parentSnapshotProof === snapshot.publicData.parentSnapshotProof;
+  return (
+    parentSnapshotProof === snapshot.publicData.parentSnapshotProof &&
+    parentSnapshotId === snapshot.publicData.parentSnapshotId
+  );
 }

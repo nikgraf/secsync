@@ -196,7 +196,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
             snapshot: snapshot2,
             snapshotProofChain: [
               {
-                id: snapshot2.publicData.snapshotId,
+                snapshotId: snapshot2.publicData.snapshotId,
                 parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
                 snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
               },
@@ -309,7 +309,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
             snapshot: snapshot2,
             snapshotProofChain: [
               {
-                id: snapshot2.publicData.snapshotId,
+                snapshotId: snapshot2.publicData.snapshotId,
                 parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
                 snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
               },

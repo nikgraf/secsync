@@ -1,7 +1,7 @@
-import canonicalize from "canonicalize";
 import { decryptAead } from "../crypto/decryptAead";
 import { verifySignature } from "../crypto/verifySignature";
 import { ParentSnapshotProofInfo, Snapshot } from "../types";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 import { isValidParentSnapshot } from "./isValidParentSnapshot";
 
 export function verifyAndDecryptSnapshot(
@@ -21,7 +21,7 @@ export function verifyAndDecryptSnapshot(
     try {
       publicKey = sodium.from_base64(snapshot.publicData.pubKey);
 
-      publicDataAsBase64 = sodium.to_base64(canonicalize(snapshot.publicData));
+      publicDataAsBase64 = canonicalizeAndToBase64(snapshot.publicData, sodium);
 
       const isValid = verifySignature(
         {

@@ -112,11 +112,12 @@ test("establish authentication and send a message between clientA and clientB ea
   expect(result1.content).toBe(undefined);
   expect(result1.validSessions).toStrictEqual({});
   expect(typeof result1.proof).toBe("object");
-  expect(result1.proof.length).toBe(64);
+  expect(result1.proof?.length).toBe(64);
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
   const ephemeralMessage2 = createEphemeralMessage(
+    // @ts-expect-error
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
@@ -144,19 +145,24 @@ test("establish authentication and send a message between clientA and clientB ea
   );
 
   expect(result2.content).toBe(undefined);
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey].sessionId).toBe(
     clientBSessionId
   );
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey].sessionCounter).toBe(
     clientBCounter - 1
   );
   expect(typeof result2.proof).toBe("object");
+  // @ts-expect-error
   expect(result2.proof.length).toBe(64);
   expect(result2.requestProof).toBe(false);
 
   // Client A generates the `proof` message
   const ephemeralMessage3 = createEphemeralMessage(
+    // @ts-expect-error
     result2.proof,
     "proof",
     clientAPublicData,
@@ -183,10 +189,13 @@ test("establish authentication and send a message between clientA and clientB ea
   );
 
   expect(result3.content).toBe(undefined);
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey].sessionId).toBe(
     clientASessionId
   );
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey].sessionCounter).toBe(
     clientACounter - 1
   );
@@ -214,6 +223,7 @@ test("establish authentication and send a message between clientA and clientB ea
     {
       id: clientBSessionId,
       counter: clientBCounter,
+      // @ts-expect-error
       validSessions: result3.validSessions,
     },
     clientBKeyPair,
@@ -221,14 +231,21 @@ test("establish authentication and send a message between clientA and clientB ea
   );
 
   expect(result4.content).toBeDefined();
+  // @ts-expect-error
   expect(result4.content.length).toBe(3);
+  // @ts-expect-error
   expect(result4.content[0]).toBe(42);
+  // @ts-expect-error
   expect(result4.content[1]).toBe(97);
+  // @ts-expect-error
   expect(result4.content[2]).toBe(97);
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey].sessionId).toBe(
     clientASessionId
   );
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey].sessionCounter).toBe(
     clientACounter - 1
   );
@@ -256,6 +273,7 @@ test("establish authentication and send a message between clientA and clientB ea
     {
       id: clientASessionId,
       counter: clientACounter,
+      // @ts-expect-error
       validSessions: result2.validSessions,
     },
     clientAKeyPair,
@@ -263,13 +281,19 @@ test("establish authentication and send a message between clientA and clientB ea
   );
 
   expect(result5.content).toBeDefined();
+  // @ts-expect-error
   expect(result5.content.length).toBe(2);
+  // @ts-expect-error
   expect(result5.content[0]).toBe(91);
+  // @ts-expect-error
   expect(result5.content[1]).toBe(11);
+  // @ts-expect-error
   expect(result5.validSessions[clientBPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result5.validSessions[clientBPublicKey].sessionId).toBe(
     clientBSessionId
   );
+  // @ts-expect-error
   expect(result5.validSessions[clientBPublicKey].sessionCounter).toBe(
     clientBCounter - 1
   );
@@ -309,11 +333,13 @@ test("establish authentication and ignore message if documentId is incorrect", a
   expect(result1.content).toBe(undefined);
   expect(result1.validSessions).toStrictEqual({});
   expect(typeof result1.proof).toBe("object");
+  // @ts-expect-error
   expect(result1.proof.length).toBe(64);
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
   const ephemeralMessage2 = createEphemeralMessage(
+    // @ts-expect-error
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
@@ -341,19 +367,24 @@ test("establish authentication and ignore message if documentId is incorrect", a
   );
 
   expect(result2.content).toBe(undefined);
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey].sessionId).toBe(
     clientBSessionId
   );
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey].sessionCounter).toBe(
     clientBCounter - 1
   );
   expect(typeof result2.proof).toBe("object");
+  // @ts-expect-error
   expect(result2.proof.length).toBe(64);
   expect(result2.requestProof).toBe(false);
 
   // Client A generates the `proof` message
   const ephemeralMessage3 = createEphemeralMessage(
+    // @ts-expect-error
     result2.proof,
     "proof",
     clientAPublicData,
@@ -380,10 +411,13 @@ test("establish authentication and ignore message if documentId is incorrect", a
   );
 
   expect(result3.content).toBe(undefined);
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey].sessionId).toBe(
     clientASessionId
   );
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey].sessionCounter).toBe(
     clientACounter - 1
   );
@@ -414,6 +448,7 @@ test("establish authentication and ignore message if documentId is incorrect", a
     {
       id: clientBSessionId,
       counter: clientBCounter,
+      // @ts-expect-error
       validSessions: result3.validSessions,
     },
     clientBKeyPair,
@@ -421,10 +456,13 @@ test("establish authentication and ignore message if documentId is incorrect", a
   );
 
   expect(result4.content).toBeUndefined();
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey].sessionId).toBe(
     clientASessionId
   );
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey].sessionCounter).toBe(
     clientACounter - 2
   );
@@ -464,11 +502,13 @@ test("establish authentication without an initialize message and send a message 
   expect(result1.content).toBe(undefined);
   expect(result1.validSessions).toStrictEqual({});
   expect(typeof result1.proof).toBe("object");
+  // @ts-expect-error
   expect(result1.proof.length).toBe(64);
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
   const ephemeralMessage2 = createEphemeralMessage(
+    // @ts-expect-error
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
@@ -496,19 +536,24 @@ test("establish authentication without an initialize message and send a message 
   );
 
   expect(result2.content).toBe(undefined);
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey].sessionId).toBe(
     clientBSessionId
   );
+  // @ts-expect-error
   expect(result2.validSessions[clientBPublicKey].sessionCounter).toBe(
     clientBCounter - 1
   );
   expect(typeof result2.proof).toBe("object");
+  // @ts-expect-error
   expect(result2.proof.length).toBe(64);
   expect(result2.requestProof).toBe(false);
 
   // Client A generates the `proof` message
   const ephemeralMessage3 = createEphemeralMessage(
+    // @ts-expect-error
     result2.proof,
     "proof",
     clientAPublicData,
@@ -535,10 +580,13 @@ test("establish authentication without an initialize message and send a message 
   );
 
   expect(result3.content).toBe(undefined);
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey].sessionId).toBe(
     clientASessionId
   );
+  // @ts-expect-error
   expect(result3.validSessions[clientAPublicKey].sessionCounter).toBe(
     clientACounter - 1
   );
@@ -566,6 +614,7 @@ test("establish authentication without an initialize message and send a message 
     {
       id: clientBSessionId,
       counter: clientBCounter,
+      // @ts-expect-error
       validSessions: result3.validSessions,
     },
     clientBKeyPair,
@@ -573,14 +622,21 @@ test("establish authentication without an initialize message and send a message 
   );
 
   expect(result4.content).toBeDefined();
+  // @ts-expect-error
   expect(result4.content.length).toBe(3);
+  // @ts-expect-error
   expect(result4.content[0]).toBe(42);
+  // @ts-expect-error
   expect(result4.content[1]).toBe(97);
+  // @ts-expect-error
   expect(result4.content[2]).toBe(97);
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey].sessionId).toBe(
     clientASessionId
   );
+  // @ts-expect-error
   expect(result4.validSessions[clientAPublicKey].sessionCounter).toBe(
     clientACounter - 1
   );
@@ -608,6 +664,7 @@ test("establish authentication without an initialize message and send a message 
     {
       id: clientASessionId,
       counter: clientACounter,
+      // @ts-expect-error
       validSessions: result2.validSessions,
     },
     clientAKeyPair,
@@ -615,13 +672,19 @@ test("establish authentication without an initialize message and send a message 
   );
 
   expect(result5.content).toBeDefined();
+  // @ts-expect-error
   expect(result5.content.length).toBe(2);
+  // @ts-expect-error
   expect(result5.content[0]).toBe(91);
+  // @ts-expect-error
   expect(result5.content[1]).toBe(11);
+  // @ts-expect-error
   expect(result5.validSessions[clientBPublicKey]).toBeDefined();
+  // @ts-expect-error
   expect(result5.validSessions[clientBPublicKey].sessionId).toBe(
     clientBSessionId
   );
+  // @ts-expect-error
   expect(result5.validSessions[clientBPublicKey].sessionCounter).toBe(
     clientBCounter - 1
   );
@@ -666,11 +729,13 @@ test("verifyAndDecryptEphemeralMessage ignores proof if only relevant for anothe
   expect(result1.content).toBe(undefined);
   expect(result1.validSessions).toStrictEqual({});
   expect(typeof result1.proof).toBe("object");
+  // @ts-expect-error
   expect(result1.proof.length).toBe(64);
   expect(result1.requestProof).toBe(true);
 
   // Client B generates the `proofAndRequestProof` message
   const ephemeralMessage2 = createEphemeralMessage(
+    // @ts-expect-error
     result1.proof,
     "proofAndRequestProof",
     clientBPublicData,
