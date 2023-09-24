@@ -3,9 +3,9 @@ import { hash } from "../crypto/hash";
 import { Snapshot } from "../types";
 
 export type SnapshotProofChainEntry = {
-  parentSnapshotProof: string;
   snapshotId: string;
   snapshotCiphertextHash: string;
+  parentSnapshotProof: string;
 };
 
 type IsValidAncestorSnapshotParams = {

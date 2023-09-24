@@ -40,7 +40,7 @@ const AutomergeTodosExample: React.FC<Props> = ({
     signatureKeyPair: authorKeyPair,
     websocketHost,
     websocketSessionKey: "your-secret-session-key",
-    onSnapshotSaved: async ({ snapshotId }) => {},
+    onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
     getNewSnapshotData: async () => {
       const docState = Automerge.save(currentDoc);
       const snapshotId = generateId(sodium);

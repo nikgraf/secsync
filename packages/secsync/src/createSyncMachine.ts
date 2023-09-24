@@ -20,6 +20,7 @@ import { verifyAndDecryptSnapshot } from "./snapshot/verifyAndDecryptSnapshot";
 import {
   EphemeralMessage,
   EphemeralMessagesSession,
+  OnDocumentUpdatedEventType,
   ParentSnapshotProofInfo,
   Snapshot,
   SnapshotInfoWithUpdateClocks,
@@ -57,7 +58,7 @@ import { websocketService } from "./utils/websocketService";
 // 3. then handle all pending updates
 // Background: There might be a new snapshot and this way we avoid retries
 //
-// Websockets reconnection logic:
+// WebSockets reconnection logic:
 // During the state connecting the sync machine will try to reconnect to the server.
 // If no connection can be established after 5 seconds it will trigger a retry after a delay.
 // The delay is based on the number of retries that have already been done using an exponential
@@ -216,7 +217,7 @@ export const createSyncMachine = () =>
         sodium: {},
         serializeChanges: () => "",
         deserializeChanges: () => [],
-        onSnapshotSaved: undefined,
+        onDocumentUpdated: undefined,
         isValidClient: async () => false,
         logging: "off",
         additionalAuthenticationDataValidations: undefined,
@@ -597,6 +598,40 @@ export const createSyncMachine = () =>
           let ephemeralMessageReceivingErrors =
             context._ephemeralMessageReceivingErrors;
 
+          const invokeOnDocumentUpdated = (
+            type: OnDocumentUpdatedEventType
+          ) => {
+            try {
+              if (context.onDocumentUpdated) {
+                const snapshotInfosWithUpdateClocksEntry =
+                  snapshotInfosWithUpdateClocks[
+                    snapshotInfosWithUpdateClocks.length - 1
+                  ] || null;
+
+                context.onDocumentUpdated({
+                  type,
+                  knownSnapshotInfo: {
+                    snapshotId:
+                      snapshotInfosWithUpdateClocksEntry.snapshot.publicData
+                        .snapshotId,
+                    parentSnapshotProof:
+                      snapshotInfosWithUpdateClocksEntry.snapshot.publicData
+                        .parentSnapshotProof,
+                    snapshotCiphertextHash: hash(
+                      snapshotInfosWithUpdateClocksEntry.snapshot.ciphertext,
+                      context.sodium
+                    ),
+                    updateClocks:
+                      snapshotInfosWithUpdateClocksEntry.updateClocks,
+                  },
+                });
+              }
+            } catch (err) {
+              // logging anyway since this is a error by the developer implementing it
+              console.error(err);
+            }
+          };
+
           try {
             const createAndSendSnapshot = async () => {
               try {
@@ -868,6 +903,8 @@ export const createSyncMachine = () =>
                 snapshotInfosWithUpdateClocks =
                   snapshotInfosWithUpdateClocks.slice(-3);
                 updatesLocalClock = -1;
+
+                invokeOnDocumentUpdated("snapshot-received");
               } catch (err) {
                 if (
                   context.logging === "debug" ||
@@ -1021,6 +1058,8 @@ export const createSyncMachine = () =>
                   }
                   errorCausingDocumentToFail = new Error("SECSYNC_ERROR_203");
                 }
+
+                invokeOnDocumentUpdated("update-received");
               } catch (err) {
                 if (
                   context.logging === "debug" ||
@@ -1133,36 +1172,30 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.log("snapshot saved", event);
                   }
-                  // in case the event is received for a snapshot that was not active in sending
-                  // we remove the snapshotInFlight since any snapshotInFlight
-                  // that is in flight will fail
+                  // TODO test for ignoring the snapshot-saved event
                   if (
-                    event.snapshotId !==
-                    snapshotInFlight?.snapshot.publicData.snapshotId
-                  ) {
-                    throw new Error(
-                      "Received snapshot-saved for other than the current snapshotInFlight"
-                    );
-                  }
-                  // don't update values in case this is not the activeSnapshot and another
-                  // snapshot event has been received already
-                  if (
-                    activeSnapshot === undefined ||
-                    activeSnapshot.publicData.snapshotId ===
-                      snapshotInFlight.snapshot.publicData.parentSnapshotId
+                    // Ignore snapshot-saved for an event that is not in flight
+                    snapshotInFlight &&
+                    event.snapshotId ===
+                      snapshotInFlight.snapshot.publicData.snapshotId &&
+                    // Ignore snapshot saved if there is an activeSnapshot and
+                    // it doesn't match the currently active one.
+                    // This can happen if another snapshot event has been received already.
+                    (activeSnapshot === undefined ||
+                      activeSnapshot.publicData.snapshotId ===
+                        snapshotInFlight.snapshot.publicData.parentSnapshotId)
                   ) {
                     snapshotInfosWithUpdateClocks.push({
                       snapshot: snapshotInFlight.snapshot,
                       updateClocks: {},
                     });
 
+                    invokeOnDocumentUpdated("snapshot-saved");
+
                     snapshotInFlight = null;
                     updatesLocalClock = -1;
                   }
 
-                  if (context.onSnapshotSaved) {
-                    context.onSnapshotSaved({ snapshotId: event.snapshotId });
-                  }
                   break;
                 case "snapshot-save-failed":
                   if (context.logging === "debug") {
@@ -1256,6 +1289,7 @@ export const createSyncMachine = () =>
                       )
                   );
 
+                  invokeOnDocumentUpdated("update-saved");
                   break;
                 case "update-save-failed":
                   if (context.logging === "debug") {
