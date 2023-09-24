@@ -6,7 +6,6 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
-import { generateId } from "secsync";
 import { useYjsSync } from "secsync-react-yjs";
 import * as Yjs from "yjs";
 
@@ -40,10 +39,8 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     websocketHost,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
-    getNewSnapshotData: async () => {
-      const snapshotId = generateId(sodium);
+    getNewSnapshotData: async ({ id }) => {
       return {
-        id: snapshotId,
         data: Yjs.encodeStateAsUpdateV2(yDocRef.current),
         key: documentKey,
         publicData: {},

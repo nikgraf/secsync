@@ -113,10 +113,9 @@ test("send ephemeralMessage", (done) => {
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };

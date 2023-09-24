@@ -143,10 +143,9 @@ test("put changes in updatesInFlight when sending updates", (done) => {
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -253,10 +252,9 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -350,10 +348,9 @@ test("allows to add changes before the document is loaded", (done) => {
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -445,10 +442,9 @@ test("keeps pending changes upon disconnect", (done) => {
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };

@@ -2,7 +2,6 @@ import type { Doc } from "@automerge/automerge";
 import * as Automerge from "@automerge/automerge";
 import { KeyPair, default as sodium } from "libsodium-wrappers";
 import React, { useState } from "react";
-import { generateId } from "secsync";
 import { useAutomergeSync } from "secsync-react-automerge";
 import { v4 as uuidv4 } from "uuid";
 
@@ -41,11 +40,9 @@ const AutomergeTodosExample: React.FC<Props> = ({
     websocketHost,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
-    getNewSnapshotData: async () => {
+    getNewSnapshotData: async ({ id }) => {
       const docState = Automerge.save(currentDoc);
-      const snapshotId = generateId(sodium);
       return {
-        id: snapshotId,
         data: docState,
         key: documentKey,
         publicData: {},

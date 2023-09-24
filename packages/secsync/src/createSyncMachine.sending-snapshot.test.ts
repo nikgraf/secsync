@@ -143,10 +143,9 @@ test("send initial snapshot if received document didn't include one", (done) => 
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -232,8 +231,7 @@ test("send initial snapshot if received document didn't include one, but changes
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
-        getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
             id: generateId(sodium),

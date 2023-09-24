@@ -5,7 +5,6 @@ import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import React, { useEffect, useState } from "react";
-import { generateId } from "secsync";
 import { useAutomergeSync } from "secsync-react-automerge";
 import { v4 as uuidv4 } from "uuid";
 
@@ -38,11 +37,9 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
     websocketHost,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
-    getNewSnapshotData: async () => {
+    getNewSnapshotData: async ({ id }) => {
       const docState = Automerge.save(currentDoc);
-      const snapshotId = generateId(sodium);
       return {
-        id: snapshotId,
         data: docState,
         key: documentKey,
         publicData: {},

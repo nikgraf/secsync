@@ -4476,7 +4476,7 @@ test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (don
         getSnapshotKey: () => {
           return key;
         },
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           throw new Error("BREAK getNewSnapshotData");
           // return {
           //   data: "New Snapshot Data",
@@ -4577,10 +4577,9 @@ test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done
             throw new Error("BREAK getSnapshotKey");
           }
         },
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -4689,10 +4688,9 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
             throw new Error("THROW ON SNAPSHOT KEY");
           }
         },
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };

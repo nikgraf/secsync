@@ -144,10 +144,9 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -251,10 +250,9 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -364,10 +362,9 @@ test("should apply update from snapshot-save-failed", (done) => {
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -464,10 +461,9 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };
@@ -583,10 +579,9 @@ test("should apply update from snapshot-save-failed if it was created by the cur
           clientAPublicKey === signingPublicKey ||
           clientBPublicKey === signingPublicKey,
         getSnapshotKey: () => key,
-        getNewSnapshotData: async () => {
+        getNewSnapshotData: async ({ id }) => {
           return {
             data: "New Snapshot Data",
-            id: generateId(sodium),
             key,
             publicData: {},
           };

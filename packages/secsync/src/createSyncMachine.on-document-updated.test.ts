@@ -453,8 +453,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
         shouldSendSnapshot: () => true,
-        getNewSnapshotData: () => {
-          const id = "lalalalaal"; // TODO fix it
+        getNewSnapshotData: async ({ id }) => {
           return {
             id,
             data: "NEW SNAPSHOT DATA",
