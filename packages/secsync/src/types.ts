@@ -125,13 +125,21 @@ export type SyncMachineConfig = {
   getSnapshotKey: (
     snapshot: any | undefined
   ) => Promise<Uint8Array> | Uint8Array;
-  getNewSnapshotData: () => Promise<{
-    readonly id: string;
-    readonly data: Uint8Array | string;
-    readonly key: Uint8Array;
-    readonly publicData: any;
-    readonly additionalServerData?: any;
-  }>;
+  getNewSnapshotData: () =>
+    | Promise<{
+        readonly id: string;
+        readonly data: Uint8Array | string;
+        readonly key: Uint8Array;
+        readonly publicData: any;
+        readonly additionalServerData?: any;
+      }>
+    | {
+        readonly id: string;
+        readonly data: Uint8Array | string;
+        readonly key: Uint8Array;
+        readonly publicData: any;
+        readonly additionalServerData?: any;
+      };
   applyChanges: (updates: any[]) => void;
   applyEphemeralMessage: (
     ephemeralMessages: any,

@@ -904,7 +904,6 @@ export const createSyncMachine = () =>
                   snapshotInfosWithUpdateClocks.slice(-3);
                 updatesLocalClock = -1;
 
-                // TODO test the callback
                 invokeOnDocumentUpdated("snapshot-received");
               } catch (err) {
                 if (
@@ -1060,7 +1059,6 @@ export const createSyncMachine = () =>
                   errorCausingDocumentToFail = new Error("SECSYNC_ERROR_203");
                 }
 
-                // TODO test the callback
                 invokeOnDocumentUpdated("update-received");
               } catch (err) {
                 if (
@@ -1178,7 +1176,7 @@ export const createSyncMachine = () =>
                   if (
                     // Ignore snapshot-saved for an event that is not in flight
                     snapshotInFlight &&
-                    event.snapshotId !==
+                    event.snapshotId ===
                       snapshotInFlight.snapshot.publicData.snapshotId &&
                     // Ignore snapshot saved if there is an activeSnapshot and
                     // it doesn't match the currently active one.
@@ -1192,7 +1190,6 @@ export const createSyncMachine = () =>
                       updateClocks: {},
                     });
 
-                    // TODO test the callback
                     invokeOnDocumentUpdated("snapshot-saved");
 
                     snapshotInFlight = null;
@@ -1292,7 +1289,6 @@ export const createSyncMachine = () =>
                       )
                   );
 
-                  // TODO test the callback
                   invokeOnDocumentUpdated("update-saved");
                   break;
                 case "update-save-failed":
