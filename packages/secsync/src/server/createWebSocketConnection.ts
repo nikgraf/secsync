@@ -1,6 +1,8 @@
 import { IncomingMessage } from "http";
+import sodium from "libsodium-wrappers";
 import { parse as parseUrl } from "url";
 import { WebSocket } from "ws";
+import { verifySignature } from "../crypto/verifySignature";
 import { parseEphemeralMessage } from "../ephemeralMessage/parseEphemeralMessage";
 import {
   SecsyncNewSnapshotRequiredError,
@@ -19,6 +21,7 @@ import {
   Update,
 } from "../types";
 import { parseUpdate } from "../update/parseUpdate";
+import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 import { retryAsyncFunction } from "../utils/retryAsyncFunction";
 import { addConnection, broadcastMessage, removeConnection } from "./store";
 
@@ -122,21 +125,44 @@ export const createWebSocketConnection =
 
         // new snapshot
         if (data?.publicData?.snapshotId) {
-          const documentAccess = await hasAccess({
-            action: "write-snapshot",
-            documentId,
-          });
-          if (!documentAccess) {
-            connection.send(JSON.stringify({ type: "unauthorized" }));
-            connection.close();
-            return;
-          }
-
           try {
             const snapshotMessage = parseSnapshotWithClientData(
               data,
               additionalAuthenticationDataValidations?.snapshot
             );
+
+            const documentAccess = await hasAccess({
+              action: "write-snapshot",
+              documentId,
+              publicKey: snapshotMessage.publicData.pubKey,
+            });
+            if (!documentAccess) {
+              connection.send(JSON.stringify({ type: "unauthorized" }));
+              connection.close();
+              return;
+            }
+
+            const snapshotPublicKey = sodium.from_base64(
+              snapshotMessage.publicData.pubKey
+            );
+            const snapshotPublicDataAsBase64 = canonicalizeAndToBase64(
+              snapshotMessage.publicData,
+              sodium
+            );
+            const isValid = verifySignature(
+              {
+                nonce: snapshotMessage.nonce,
+                ciphertext: snapshotMessage.ciphertext,
+                publicData: snapshotPublicDataAsBase64,
+              },
+              snapshotMessage.signature,
+              snapshotPublicKey,
+              sodium
+            );
+            if (!isValid) {
+              throw new Error("Snapshot message signature is not valid.");
+            }
+
             const snapshot: Snapshot = await createSnapshot({
               snapshot: snapshotMessage,
             });
@@ -245,22 +271,40 @@ export const createWebSocketConnection =
           }
           // new update
         } else if (data?.publicData?.refSnapshotId) {
-          const documentAccess = await hasAccess({
-            action: "write-update",
-            documentId,
-          });
-          if (!documentAccess) {
-            connection.send(JSON.stringify({ type: "unauthorized" }));
-            connection.close();
-            return;
-          }
-
-          const updateMessage = parseUpdate(
-            data,
-            additionalAuthenticationDataValidations?.update
-          );
           let savedUpdate: undefined | Update = undefined;
           try {
+            const updateMessage = parseUpdate(
+              data,
+              additionalAuthenticationDataValidations?.update
+            );
+
+            const documentAccess = await hasAccess({
+              action: "write-update",
+              documentId,
+              publicKey: updateMessage.publicData.pubKey,
+            });
+            if (!documentAccess) {
+              connection.send(JSON.stringify({ type: "unauthorized" }));
+              connection.close();
+              return;
+            }
+
+            const isValid = verifySignature(
+              {
+                nonce: updateMessage.nonce,
+                ciphertext: updateMessage.ciphertext,
+                publicData: canonicalizeAndToBase64(
+                  updateMessage.publicData,
+                  sodium
+                ),
+              },
+              updateMessage.signature,
+              sodium.from_base64(updateMessage.publicData.pubKey),
+              sodium
+            );
+            if (!isValid) {
+              throw new Error("Update message signature is not valid.");
+            }
             // const random = Math.floor(Math.random() * 10);
             // if (random < 8) {
             //   throw new Error("CUSTOM ERROR");
@@ -307,25 +351,53 @@ export const createWebSocketConnection =
           }
           // new ephemeral message
         } else {
-          const documentAccess = await hasAccess({
-            action: "send-ephemeral-message",
-            documentId,
-          });
-          if (!documentAccess) {
-            connection.send(JSON.stringify({ type: "unauthorized" }));
-            connection.close();
-            return;
-          }
+          try {
+            const ephemeralMessageMessage = parseEphemeralMessage(
+              data,
+              additionalAuthenticationDataValidations?.ephemeralMessage
+            );
 
-          const ephemeralMessageMessage = parseEphemeralMessage(
-            data,
-            additionalAuthenticationDataValidations?.ephemeralMessage
-          );
-          broadcastMessage({
-            documentId,
-            message: { ...ephemeralMessageMessage, type: "ephemeral-message" },
-            currentClientConnection: connection,
-          });
+            const documentAccess = await hasAccess({
+              action: "send-ephemeral-message",
+              documentId,
+              publicKey: ephemeralMessageMessage.publicData.pubKey,
+            });
+            if (!documentAccess) {
+              connection.send(JSON.stringify({ type: "unauthorized" }));
+              connection.close();
+              return;
+            }
+
+            const isValid = verifySignature(
+              {
+                nonce: ephemeralMessageMessage.nonce,
+                ciphertext: ephemeralMessageMessage.ciphertext,
+                publicData: canonicalizeAndToBase64(
+                  ephemeralMessageMessage.publicData,
+                  sodium
+                ),
+              },
+              ephemeralMessageMessage.signature,
+              sodium.from_base64(ephemeralMessageMessage.publicData.pubKey),
+              sodium
+            );
+            if (!isValid) {
+              return {
+                error: new Error("SECSYNC_ERROR_308"),
+              };
+            }
+
+            broadcastMessage({
+              documentId,
+              message: {
+                ...ephemeralMessageMessage,
+                type: "ephemeral-message",
+              },
+              currentClientConnection: connection,
+            });
+          } catch (err) {
+            console.error("Ephemeral message failed due:", err);
+          }
         }
       });
 
