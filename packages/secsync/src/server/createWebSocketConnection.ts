@@ -74,12 +74,20 @@ export const createWebSocketConnection =
       const urlParts = parseUrl(request.url, true);
       documentId = request.url?.slice(1)?.split("?")[0] || "";
 
+      const websocketSessionKey = Array.isArray(urlParts.query.sessionKey)
+        ? urlParts.query.sessionKey[0]
+        : urlParts.query.sessionKey;
+
       if (documentId === "") {
         handleDocumentError();
         return;
       }
 
-      const documentAccess = await hasAccess({ action: "read", documentId });
+      const documentAccess = await hasAccess({
+        action: "read",
+        documentId,
+        websocketSessionKey,
+      });
       if (!documentAccess) {
         connection.send(JSON.stringify({ type: "unauthorized" }));
         connection.close();
@@ -135,6 +143,7 @@ export const createWebSocketConnection =
               action: "write-snapshot",
               documentId,
               publicKey: snapshotMessage.publicData.pubKey,
+              websocketSessionKey,
             });
             if (!documentAccess) {
               connection.send(JSON.stringify({ type: "unauthorized" }));
@@ -282,6 +291,7 @@ export const createWebSocketConnection =
               action: "write-update",
               documentId,
               publicKey: updateMessage.publicData.pubKey,
+              websocketSessionKey,
             });
             if (!documentAccess) {
               connection.send(JSON.stringify({ type: "unauthorized" }));
@@ -361,6 +371,7 @@ export const createWebSocketConnection =
               action: "send-ephemeral-message",
               documentId,
               publicKey: ephemeralMessageMessage.publicData.pubKey,
+              websocketSessionKey,
             });
             if (!documentAccess) {
               connection.send(JSON.stringify({ type: "unauthorized" }));

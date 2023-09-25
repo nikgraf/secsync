@@ -180,11 +180,13 @@ export type HasAccessParams =
   | {
       action: "read";
       documentId: string;
+      websocketSessionKey: string | undefined;
     }
   | {
       action: "write-snapshot" | "write-update" | "send-ephemeral-message";
       documentId: string;
       publicKey: string;
+      websocketSessionKey: string | undefined;
     };
 
 export type ValidSessions = {
