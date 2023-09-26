@@ -168,7 +168,7 @@ export type CreateUpdateParams = {
   update: Update;
 };
 
-export type GetDocumentMode = "snapshot-and-updates" | "updates-only";
+export type GetDocumentMode = "complete" | "delta";
 
 export type GetDocumentParams = {
   documentId: string;

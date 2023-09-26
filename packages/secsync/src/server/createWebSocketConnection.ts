@@ -81,9 +81,7 @@ export const createWebSocketConnection =
         ? urlParts.query.getDocumentMode[0]
         : urlParts.query.getDocumentMode;
       const getDocumentMode =
-        getDocumentModeString === "updates-only"
-          ? "updates-only"
-          : "snapshot-and-updates";
+        getDocumentModeString === "delta" ? "delta" : "complete";
 
       if (documentId === "") {
         handleDocumentError();
@@ -212,7 +210,7 @@ export const createWebSocketConnection =
                 let document = await getDocument({
                   documentId,
                   knownSnapshotId: data.knownSnapshotId,
-                  mode: "updates-only",
+                  mode: "delta",
                 });
                 if (document) {
                   connection.send(
@@ -239,7 +237,7 @@ export const createWebSocketConnection =
                 const document = await getDocument({
                   documentId,
                   knownSnapshotId: data.knownSnapshotId,
-                  mode: "updates-only",
+                  mode: "delta",
                 });
                 if (document) {
                   connection.send(

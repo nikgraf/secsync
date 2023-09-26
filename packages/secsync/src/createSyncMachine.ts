@@ -417,7 +417,7 @@ export const createSyncMachine = () =>
           );
 
           // based on loadDocumentParams the _snapshotInfosWithUpdateClocks is initialized
-          // if loadDocumentParams exist and mode is "updates-only" the _snapshotInfosWithUpdateClocks the expectation
+          // if loadDocumentParams exist and mode is "delta" the _snapshotInfosWithUpdateClocks the expectation
           // is that the same snapshot should not be returned by the backend and therefor is expected to by in
           // _snapshotInfosWithUpdateClocks
           //
@@ -426,7 +426,7 @@ export const createSyncMachine = () =>
           // if loadDocumentParams.knownSnapshotInfo the snapshot ancestor relationship should still be validated
           return {
             _snapshotInfosWithUpdateClocks:
-              context.loadDocumentParams?.mode === "updates-only"
+              context.loadDocumentParams?.mode === "delta"
                 ? [
                     {
                       updateClocks: {},
@@ -475,7 +475,7 @@ export const createSyncMachine = () =>
             loadDocumentParams: activeSnapshotInfo
               ? {
                   knownSnapshotInfo: activeSnapshotInfo,
-                  mode: "updates-only",
+                  mode: "delta",
                 }
               : context.loadDocumentParams,
             // collected all unconfirmed changes to avoid them getting lost

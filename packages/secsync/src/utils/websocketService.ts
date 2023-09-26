@@ -61,7 +61,7 @@ export const websocketService =
 
     const modeParam = context.loadDocumentParams
       ? `&mode=${context.loadDocumentParams.mode}`
-      : `&mode=snapshot-and-updates`;
+      : `&mode=complete`;
 
     let knownSnapshotUpdateClocks = "";
     if (knownSnapshotIdParam !== "" && context.loadDocumentParams) {

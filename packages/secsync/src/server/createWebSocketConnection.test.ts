@@ -119,7 +119,7 @@ it("should add connection and send document if found", async () => {
     documentId: "test-document",
     knownSnapshotId: undefined,
     knownSnapshotUpdateClocks: undefined,
-    mode: "snapshot-and-updates",
+    mode: "complete",
   });
   expect(addConnection).toHaveBeenCalledWith({
     documentId: "test-document",
@@ -154,7 +154,7 @@ it("should properly parse and send through knownSnapshotId & knownSnapshotUpdate
     documentId: "test-document",
     knownSnapshotId: "123",
     knownSnapshotUpdateClocks: undefined,
-    mode: "snapshot-and-updates",
+    mode: "complete",
   });
 
   mockReq.url = "/test-document?knownSnapshotId=555";
@@ -164,7 +164,7 @@ it("should properly parse and send through knownSnapshotId & knownSnapshotUpdate
     documentId: "test-document",
     knownSnapshotId: "555",
     knownSnapshotUpdateClocks: undefined,
-    mode: "snapshot-and-updates",
+    mode: "complete",
   });
 
   const knownSnapshotUpdateClocks = { yhj: 1, jkl: 2 };
@@ -178,6 +178,6 @@ it("should properly parse and send through knownSnapshotId & knownSnapshotUpdate
     documentId: "test-document",
     knownSnapshotId: "42",
     knownSnapshotUpdateClocks: { yhj: 1, jkl: 2 },
-    mode: "snapshot-and-updates",
+    mode: "complete",
   });
 });
