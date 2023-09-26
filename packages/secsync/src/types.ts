@@ -207,6 +207,5 @@ export type SnapshotProofInfo = {
 };
 
 export type SnapshotInfoWithUpdateClocks = SnapshotProofInfo & {
-  parentSnapshotId: string;
   updateClocks: SnapshotUpdateClocks;
 };

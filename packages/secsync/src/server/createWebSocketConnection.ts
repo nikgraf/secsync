@@ -75,9 +75,15 @@ export const createWebSocketConnection =
         ? urlParts.query.sessionKey[0]
         : urlParts.query.sessionKey;
 
-      const getDocumentMode = Array.isArray(urlParts.query.getDocumentMode)
+      const getDocumentModeString = Array.isArray(
+        urlParts.query.getDocumentMode
+      )
         ? urlParts.query.getDocumentMode[0]
         : urlParts.query.getDocumentMode;
+      const getDocumentMode =
+        getDocumentModeString === "updates-only"
+          ? "updates-only"
+          : "snapshot-and-updates";
 
       if (documentId === "") {
         handleDocumentError();
@@ -116,10 +122,7 @@ export const createWebSocketConnection =
           ? urlParts.query.knownSnapshotId[0]
           : urlParts.query.knownSnapshotId,
         knownSnapshotUpdateClocks,
-        mode:
-          getDocumentMode === "updates-only"
-            ? "updates-only"
-            : "snapshot-and-updates",
+        mode: getDocumentMode,
       });
 
       if (!doc) {
@@ -209,6 +212,7 @@ export const createWebSocketConnection =
                 let document = await getDocument({
                   documentId,
                   knownSnapshotId: data.knownSnapshotId,
+                  mode: "updates-only",
                 });
                 if (document) {
                   connection.send(
@@ -235,6 +239,7 @@ export const createWebSocketConnection =
                 const document = await getDocument({
                   documentId,
                   knownSnapshotId: data.knownSnapshotId,
+                  mode: "updates-only",
                 });
                 if (document) {
                   connection.send(

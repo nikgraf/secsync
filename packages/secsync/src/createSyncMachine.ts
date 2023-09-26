@@ -106,6 +106,10 @@ type UpdateInFlight = {
   changes: any[];
 };
 
+type SnapshotInFlight = SnapshotInfoWithUpdateClocks & {
+  parentSnapshotId: string;
+};
+
 export type DocumentDecryptionState =
   | "pending"
   | "failed"
@@ -114,7 +118,7 @@ export type DocumentDecryptionState =
 
 type ProcessQueueData = {
   handledQueue: "customMessage" | "incoming" | "pending" | "none";
-  snapshotInFlight: SnapshotInfoWithUpdateClocks | null;
+  snapshotInFlight: SnapshotInFlight | null;
   snapshotInfosWithUpdateClocks: SnapshotInfoWithUpdateClocks[];
   updatesLocalClock: number;
   updatesInFlight: UpdateInFlight[];
@@ -128,7 +132,7 @@ type ProcessQueueData = {
 export type InternalContextReset = {
   _incomingQueue: any[];
   _customMessageQueue: any[];
-  _snapshotInFlight: SnapshotInfoWithUpdateClocks | null;
+  _snapshotInFlight: SnapshotInFlight | null;
   _updatesInFlight: UpdateInFlight[];
   _updatesLocalClock: number;
   _documentDecryptionState: DocumentDecryptionState;
@@ -411,7 +415,25 @@ export const createSyncMachine = () =>
           const ephemeralMessagesSession = createEphemeralSession(
             context.sodium
           );
+
+          // based on loadDocumentParams the _snapshotInfosWithUpdateClocks is initialized
+          // if loadDocumentParams exist and mode is "updates-only" the _snapshotInfosWithUpdateClocks the expectation
+          // is that the same snapshot should not be returned by the backend and therefor is expected to by in
+          // _snapshotInfosWithUpdateClocks
+          //
+          // in any other case the _snapshotInfosWithUpdateClocks is empty and the first snapshot received from the backend
+          // is the one that should be applied
+          // if loadDocumentParams.knownSnapshotInfo the snapshot ancestor relationship should still be validated
           return {
+            _snapshotInfosWithUpdateClocks:
+              context.loadDocumentParams?.mode === "updates-only"
+                ? [
+                    {
+                      updateClocks: {},
+                      ...context.loadDocumentParams.knownSnapshotInfo,
+                    },
+                  ]
+                : [],
             _ephemeralMessagesSession: ephemeralMessagesSession,
             _websocketActor: spawn(
               websocketService(context, ephemeralMessagesSession),
@@ -449,24 +471,13 @@ export const createSyncMachine = () =>
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
             // update loadDocumentParams to only fetch and verify the new relevant data
+            // Note: _snapshotInfosWithUpdateClocks also must be set, which is done in spawnWebsocketActor
             loadDocumentParams: activeSnapshotInfo
               ? {
-                  knownSnapshotInfo: {
-                    parentSnapshotProof: activeSnapshotInfo.parentSnapshotProof,
-                    snapshotId: activeSnapshotInfo.snapshotId,
-                    snapshotCiphertextHash:
-                      activeSnapshotInfo.snapshotCiphertextHash,
-                    updateClocks: activeSnapshotInfo.updateClocks,
-                  },
+                  knownSnapshotInfo: activeSnapshotInfo,
                   mode: "updates-only",
                 }
               : context.loadDocumentParams,
-            // since loadDocumentParams is overwritten and kept also the activeSnapshotInfoWithUpdateClocks needs to be kept, especially for the
-            // updateClocks so no clock errors are thrown with only the new updates
-            // coming in
-            _snapshotInfosWithUpdateClocks: activeSnapshotInfo
-              ? [activeSnapshotInfo]
-              : [],
             // collected all unconfirmed changes to avoid them getting lost
             _pendingChangesQueue: unconfirmedChanges,
             _websocketShouldReconnect: event.type !== "DISCONNECT",
@@ -934,7 +945,6 @@ export const createSyncMachine = () =>
                     context.sodium
                   ),
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
-                  parentSnapshotId: snapshot.publicData.parentSnapshotId,
                 });
 
                 // cleanup old snapshotInfosWithUpdateClocks entries and only keep the last 3 for debugging purposes
