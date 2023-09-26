@@ -427,12 +427,7 @@ export const createSyncMachine = () =>
           return {
             _snapshotInfosWithUpdateClocks:
               context.loadDocumentParams?.mode === "delta"
-                ? [
-                    {
-                      updateClocks: {},
-                      ...context.loadDocumentParams.knownSnapshotInfo,
-                    },
-                  ]
+                ? [context.loadDocumentParams.knownSnapshotInfo]
                 : [],
             _ephemeralMessagesSession: ephemeralMessagesSession,
             _websocketActor: spawn(
@@ -817,7 +812,8 @@ export const createSyncMachine = () =>
 
             const processSnapshot = async (
               rawSnapshot: Snapshot,
-              parentSnapshotProofInfo?: SnapshotProofInfo
+              snapshotProofChain: SnapshotProofInfo[],
+              knownSnapshotInfo?: SnapshotInfoWithUpdateClocks
             ) => {
               try {
                 if (context.logging === "debug") {
@@ -857,20 +853,45 @@ export const createSyncMachine = () =>
                   return;
                 }
 
-                let parentSnapshotUpdateClock: number | undefined = undefined;
+                const isAlreadyProcessedSnapshot =
+                  knownSnapshotInfo?.snapshotId ===
+                    snapshot.publicData.snapshotId &&
+                  knownSnapshotInfo?.snapshotCiphertextHash ===
+                    hash(snapshot.ciphertext, context.sodium) &&
+                  knownSnapshotInfo?.parentSnapshotProof ===
+                    snapshot.publicData.parentSnapshotProof;
 
-                const parentSnapshotUpdateClocks =
-                  snapshotInfosWithUpdateClocks.find(
-                    (entry) =>
-                      entry.snapshotId ===
-                      activeSnapshotInfoWithUpdateClocks?.snapshotId
-                  )?.updateClocks;
-                if (parentSnapshotProofInfo && parentSnapshotUpdateClocks) {
-                  const currentClientPublicKey = context.sodium.to_base64(
-                    context.signatureKeyPair.publicKey
-                  );
-                  parentSnapshotUpdateClock =
-                    parentSnapshotUpdateClocks[currentClientPublicKey];
+                if (isAlreadyProcessedSnapshot) {
+                  return;
+                }
+
+                let isValidAncestor = false;
+                let parentSnapshotUpdateClock: number | undefined;
+
+                if (knownSnapshotInfo && snapshotProofChain.length > 0) {
+                  isValidAncestor = isValidAncestorSnapshot({
+                    knownSnapshotProofEntry: knownSnapshotInfo,
+                    snapshotProofChain,
+                    currentSnapshot: snapshot,
+                    sodium: context.sodium,
+                  });
+                  parentSnapshotUpdateClock = undefined;
+                  if (!isValidAncestor) {
+                    snapshotAndUpdateErrors.unshift(
+                      new Error("SECSYNC_ERROR_115")
+                    );
+                    return;
+                  }
+                } else {
+                  const parentSnapshotUpdateClocks =
+                    knownSnapshotInfo?.updateClocks;
+                  if (parentSnapshotUpdateClocks) {
+                    const currentClientPublicKey = context.sodium.to_base64(
+                      context.signatureKeyPair.publicKey
+                    );
+                    parentSnapshotUpdateClock =
+                      parentSnapshotUpdateClocks[currentClientPublicKey];
+                  }
                 }
 
                 let snapshotKey: Uint8Array;
@@ -894,6 +915,7 @@ export const createSyncMachine = () =>
                   errorCausingDocumentToFail = new Error("SECSYNC_ERROR_103");
                   return;
                 }
+
                 // console.log("processSnapshot key", snapshotKey);
                 const decryptedSnapshotResult = verifyAndDecryptSnapshot(
                   snapshot,
@@ -901,8 +923,8 @@ export const createSyncMachine = () =>
                   context.documentId,
                   context.signatureKeyPair.publicKey,
                   context.sodium,
-                  parentSnapshotProofInfo,
-                  parentSnapshotUpdateClock
+                  isValidAncestor ? undefined : knownSnapshotInfo,
+                  isValidAncestor ? undefined : parentSnapshotUpdateClock
                 );
 
                 if (decryptedSnapshotResult.error) {
@@ -1128,40 +1150,33 @@ export const createSyncMachine = () =>
               switch (event.type) {
                 case "document":
                   documentDecryptionState = "failed";
-                  if (context.loadDocumentParams) {
-                    const isValid = isValidAncestorSnapshot({
-                      knownSnapshotProofEntry: {
-                        parentSnapshotProof:
-                          context.loadDocumentParams.knownSnapshotInfo
-                            .parentSnapshotProof,
-                        snapshotCiphertextHash:
-                          context.loadDocumentParams.knownSnapshotInfo
-                            .snapshotCiphertextHash,
-                        snapshotId:
-                          context.loadDocumentParams.knownSnapshotInfo
-                            .snapshotId,
-                      },
-                      snapshotProofChain: event.snapshotProofChain,
-                      currentSnapshot: event.snapshot,
-                      sodium: context.sodium,
-                    });
-                    if (!isValid) {
-                      throw new Error("Invalid ancestor snapshot");
-                    }
-                  }
 
                   if (
+                    context.loadDocumentParams?.mode !== "delta" &&
                     !event.snapshot &&
                     event.updates &&
                     event.updates.length > 0
                   ) {
-                    throw new Error("Document has no snapshot but has updates");
+                    if (
+                      context.logging === "debug" ||
+                      context.logging === "error"
+                    ) {
+                      console.error(
+                        "Loading document mode was 'complete', but received updates without a snapshot"
+                      );
+                    }
+                    throw new Error("SECSYNC_ERROR_100");
                   }
-                  if (event.snapshot) {
-                    const snapshotAndUpdateErrorsLength =
-                      snapshotAndUpdateErrors.length;
 
-                    await processSnapshot(event.snapshot);
+                  const snapshotAndUpdateErrorsLength =
+                    snapshotAndUpdateErrors.length;
+
+                  if (event.snapshot) {
+                    await processSnapshot(
+                      event.snapshot,
+                      event.snapshotProofChain || [],
+                      context.loadDocumentParams?.knownSnapshotInfo
+                    );
 
                     // if the initial snapshot fails the document can't be loaded
                     if (
@@ -1172,27 +1187,26 @@ export const createSyncMachine = () =>
                       // remove the item since it will be added later due errorCausingDocumentToFail being set
                       snapshotAndUpdateErrors.pop();
                     }
+                  }
 
-                    if (errorCausingDocumentToFail === null) {
-                      documentDecryptionState = "partial";
+                  if (errorCausingDocumentToFail === null) {
+                    documentDecryptionState = "partial";
 
-                      if (event.updates) {
-                        await processUpdates(
-                          event.updates,
-                          event.snapshot
-                            ? {
-                                snapshotId:
-                                  event.snapshot.publicData.snapshotId,
-                                parentSnapshotProof:
-                                  event.snapshot.publicData.parentSnapshotProof,
-                                snapshotCiphertextHash: hash(
-                                  event.snapshot.ciphertext,
-                                  context.sodium
-                                ),
-                              }
-                            : activeSnapshotInfoWithUpdateClocks
-                        );
-                      }
+                    if (event.updates) {
+                      await processUpdates(
+                        event.updates,
+                        event.snapshot
+                          ? {
+                              snapshotId: event.snapshot.publicData.snapshotId,
+                              parentSnapshotProof:
+                                event.snapshot.publicData.parentSnapshotProof,
+                              snapshotCiphertextHash: hash(
+                                event.snapshot.ciphertext,
+                                context.sodium
+                              ),
+                            }
+                          : activeSnapshotInfoWithUpdateClocks
+                      );
 
                       if (
                         snapshotAndUpdateErrors.length >
@@ -1202,12 +1216,10 @@ export const createSyncMachine = () =>
                         // remove the item since it will be added later due errorCausingDocumentToFail being set
                         snapshotAndUpdateErrors.pop();
                       }
-
-                      if (errorCausingDocumentToFail === null) {
-                        documentDecryptionState = "complete";
-                      }
                     }
-                  } else {
+                  }
+
+                  if (errorCausingDocumentToFail === null) {
                     documentDecryptionState = "complete";
                   }
 
@@ -1219,6 +1231,7 @@ export const createSyncMachine = () =>
                   }
                   await processSnapshot(
                     event.snapshot,
+                    [],
                     activeSnapshotInfoWithUpdateClocks
                       ? activeSnapshotInfoWithUpdateClocks
                       : undefined
@@ -1260,52 +1273,11 @@ export const createSyncMachine = () =>
                     console.log("snapshot saving failed", event);
                   }
                   if (event.snapshot) {
-                    let snapshot: Snapshot;
-                    try {
-                      snapshot = parseSnapshot(
-                        event.snapshot,
-                        context.additionalAuthenticationDataValidations
-                          ?.snapshot
-                      );
-                    } catch (err) {
-                      snapshotAndUpdateErrors.unshift(
-                        new Error("SECSYNC_ERROR_110")
-                      );
-                      return;
-                    }
-
-                    const isAlreadyProcessedSnapshot =
-                      activeSnapshotInfoWithUpdateClocks.snapshotId ===
-                        snapshot.publicData.snapshotId &&
-                      activeSnapshotInfoWithUpdateClocks.snapshotCiphertextHash ===
-                        hash(snapshot.ciphertext, context.sodium) &&
-                      activeSnapshotInfoWithUpdateClocks.parentSnapshotProof ===
-                        snapshot.publicData.parentSnapshotProof;
-
-                    if (!isAlreadyProcessedSnapshot) {
-                      if (activeSnapshotInfoWithUpdateClocks) {
-                        const isValid = isValidAncestorSnapshot({
-                          knownSnapshotProofEntry: {
-                            parentSnapshotProof:
-                              activeSnapshotInfoWithUpdateClocks.parentSnapshotProof,
-                            snapshotCiphertextHash:
-                              activeSnapshotInfoWithUpdateClocks.snapshotCiphertextHash,
-                            snapshotId:
-                              activeSnapshotInfoWithUpdateClocks.snapshotId,
-                          },
-                          snapshotProofChain: event.snapshotProofChain,
-                          currentSnapshot: snapshot,
-                          sodium: context.sodium,
-                        });
-                        if (!isValid) {
-                          throw new Error(
-                            "Invalid ancestor snapshot after snapshot-save-failed event"
-                          );
-                        }
-                      }
-
-                      await processSnapshot(snapshot);
-                    }
+                    await processSnapshot(
+                      event.snapshot,
+                      event.snapshotProofChain || [],
+                      activeSnapshotInfoWithUpdateClocks
+                    );
                   }
 
                   if (event.updates) {

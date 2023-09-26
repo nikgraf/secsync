@@ -99,12 +99,8 @@ export type OnDocumentUpdatedEventType =
   | "update-saved"
   | "update-received";
 
-type KnownSnapshotInfo = SnapshotProofInfo & {
-  updateClocks?: SnapshotUpdateClocks;
-};
-
 export type LoadDocumentParams = {
-  knownSnapshotInfo: KnownSnapshotInfo;
+  knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
   mode: GetDocumentMode;
 };
 
@@ -151,7 +147,7 @@ export type SyncMachineConfig = {
   sodium: any;
   onDocumentUpdated?: (params: {
     type: OnDocumentUpdatedEventType;
-    knownSnapshotInfo: KnownSnapshotInfo;
+    knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
   }) => void | Promise<void>;
   onCustomMessage?: (message: any) => Promise<void> | void;
   loadDocumentParams?: LoadDocumentParams;

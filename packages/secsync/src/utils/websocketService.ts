@@ -79,7 +79,7 @@ export const websocketService =
       `${context.websocketHost}/${context.documentId}?sessionKey=${
         context.websocketSessionKey
       }${modeParam}${knownSnapshotIdParam}${
-        knownSnapshotUpdateClocks ? `&${knownSnapshotUpdateClocks}` : ""
+        knownSnapshotUpdateClocks ? `${knownSnapshotUpdateClocks}` : ""
       }`
     );
 

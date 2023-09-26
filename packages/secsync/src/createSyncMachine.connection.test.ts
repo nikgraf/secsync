@@ -78,6 +78,7 @@ test("should connect and use knownSnapshotId as query param", (done) => {
           snapshotId: "mySnapshotId",
           parentSnapshotProof: "myParentSnapshotProof",
           snapshotCiphertextHash: "mySnapshotCiphertextHash",
+          updateClocks: {},
         },
       },
     })
@@ -85,7 +86,7 @@ test("should connect and use knownSnapshotId as query param", (done) => {
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      `wss://www.example.com/${docId}?sessionKey=mySessionKey&mode=complete&knownSnapshotId=mySnapshotId`
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&mode=complete&knownSnapshotId=mySnapshotId&knownSnapshotUpdateClocks=%7B%7D`
     );
     syncService.stop();
     done();
@@ -123,7 +124,7 @@ test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as quer
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      `wss://www.example.com/${docId}?sessionKey=mySessionKey&mode=complete&knownSnapshotId=mySnapshotId&&knownSnapshotUpdateClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&mode=complete&knownSnapshotId=mySnapshotId&knownSnapshotUpdateClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
     );
 
     const urlParts = parseUrl(socket.url, true);

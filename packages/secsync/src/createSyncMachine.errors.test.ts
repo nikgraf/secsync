@@ -1372,6 +1372,106 @@ test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (d
   });
 });
 
+test("SECSYNC_ERROR_112 fetch a snapshot, reconnect and receive a snapshot that is not a child of the first one", (done) => {
+  const onReceive = jest.fn();
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive(onReceive);
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async ({ id }) => {
+          return {
+            data: "New Snapshot Data",
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {},
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const { snapshot } = createSnapshotTestHelper();
+  const { update } = createUpdateTestHelper();
+
+  syncService.onTransition((state, event) => {
+    if (state.value === "failed") {
+      expect(state.context);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_112"
+      );
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+      updates: [update],
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({ type: "WEBSOCKET_DISCONNECTED" });
+    syncService.send({ type: "WEBSOCKET_RETRY" });
+    syncService.send({ type: "WEBSOCKET_CONNECTED" });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot: createSnapshotTestHelper().snapshot,
+      },
+    });
+  }, 1);
+});
+
 test("SECSYNC_ERROR_113 invalid docId on initial load", (done) => {
   const websocketServiceMock = (context: any) => () => {};
 
@@ -1686,6 +1786,144 @@ test("SECSYNC_ERROR_114 isValidClient returns false on snapshot event", (done) =
       snapshot: snapshot2,
     },
   });
+});
+
+test("SECSYNC_ERROR_115 reconnect receive a messed up chain", (done) => {
+  const onReceive = jest.fn();
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive(onReceive);
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async ({ id }) => {
+          return {
+            data: "New Snapshot Data",
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const { snapshot } = createSnapshotTestHelper();
+  const { snapshot: snapshot2 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot.publicData.snapshotId,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
+    grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    parentSnapshotUpdateClocks: {},
+    content: "Hello World again",
+  });
+  const { snapshot: snapshot3 } = createSnapshotTestHelper({
+    parentSnapshotId: snapshot2.publicData.snapshotId,
+    parentSnapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
+    grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
+    parentSnapshotUpdateClocks: {},
+    content: "Hello World again and again",
+  });
+
+  syncService.onTransition((state, event) => {
+    if (state.value === "failed") {
+      expect(docValue).toEqual("Hello World");
+      expect(state.context._snapshotAndUpdateErrors[0].message).toEqual(
+        "SECSYNC_ERROR_115"
+      );
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({ type: "WEBSOCKET_DISCONNECTED" });
+    syncService.send({ type: "WEBSOCKET_RETRY" });
+    syncService.send({ type: "WEBSOCKET_CONNECTED" });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshotProofChain: [
+          {
+            snapshotId: snapshot2.publicData.snapshotId,
+            parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
+            snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
+          },
+          {
+            snapshotId: snapshot3.publicData.snapshotId,
+            parentSnapshotProof: "WRONG_PROOF", // wrong proof
+            snapshotCiphertextHash: hash(snapshot3.ciphertext, sodium),
+          },
+        ],
+        snapshot: snapshot3,
+      },
+    });
+  }, 1);
 });
 
 test("SECSYNC_ERROR_201 should fail decryption on initial load", (done) => {
@@ -5309,6 +5547,8 @@ test("reset the context entries after websocket disconnect", (done) => {
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
+  const { snapshot } = createSnapshotTestHelper();
+
   const syncMachine = createSyncMachine();
   const syncService = interpret(
     syncMachine
@@ -5376,7 +5616,6 @@ test("reset the context entries after websocket disconnect", (done) => {
   syncService.send({ type: "WEBSOCKET_RETRY" });
   syncService.send({ type: "WEBSOCKET_CONNECTED" });
 
-  const { snapshot } = createSnapshotTestHelper();
   syncService.send({
     type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
     data: {
@@ -5390,7 +5629,7 @@ test("reset the context entries after websocket disconnect", (done) => {
   });
 
   syncService.send({
-    type: "WEBSOCKET_DISCONNECTED",
+    type: "DISCONNECT",
   });
 });
 

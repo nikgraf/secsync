@@ -28,8 +28,8 @@ import { addConnection, broadcastMessage, removeConnection } from "./store";
 
 type GetDocumentResult = {
   snapshot?: Snapshot;
+  snapshotProofChain?: SnapshotProofInfo[];
   updates: Update[];
-  snapshotProofChain: SnapshotProofInfo[];
 };
 
 type WebsocketConnectionParams = {
@@ -75,11 +75,9 @@ export const createWebSocketConnection =
         ? urlParts.query.sessionKey[0]
         : urlParts.query.sessionKey;
 
-      const getDocumentModeString = Array.isArray(
-        urlParts.query.getDocumentMode
-      )
-        ? urlParts.query.getDocumentMode[0]
-        : urlParts.query.getDocumentMode;
+      const getDocumentModeString = Array.isArray(urlParts.query.mode)
+        ? urlParts.query.mode[0]
+        : urlParts.query.mode;
       const getDocumentMode =
         getDocumentModeString === "delta" ? "delta" : "complete";
 

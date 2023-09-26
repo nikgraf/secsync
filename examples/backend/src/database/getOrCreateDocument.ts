@@ -6,6 +6,7 @@ export async function getOrCreateDocument({
   documentId,
   knownSnapshotId,
   knownSnapshotUpdateClocks,
+  mode,
 }: GetDocumentParams) {
   return prisma.$transaction(async (prisma) => {
     const doc = await prisma.document.findUnique({
@@ -88,6 +89,12 @@ export async function getOrCreateDocument({
               },
       },
     });
+
+    if (mode === "delta" && knownSnapshotId === activeSnapshot.id) {
+      return {
+        updates: serializeUpdates(activeSnapshot.updates),
+      };
+    }
 
     return {
       snapshot: serializeSnapshot(activeSnapshot),
