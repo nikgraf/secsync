@@ -61,7 +61,7 @@ test("should connect", (done) => {
   syncService.start();
 });
 
-test("should connect and use lastKnownSnapshotId as query param", (done) => {
+test("should connect and use knownSnapshotId as query param", (done) => {
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
@@ -91,7 +91,7 @@ test("should connect and use lastKnownSnapshotId as query param", (done) => {
   syncService.start();
 });
 
-test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdateClocks as query param", (done) => {
+test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as query param", (done) => {
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
@@ -121,11 +121,11 @@ test("should connect and use lastKnownSnapshotId & lastKnownSnapshotUpdateClocks
     );
 
     const urlParts = parseUrl(socket.url, true);
-    const lastKnownSnapshotUpdateClocks = JSON.parse(
+    const knownSnapshotUpdateClocks = JSON.parse(
       decodeURIComponent(urlParts.query.knownSnapshotUpdateClocks as string)
     );
 
-    expect(lastKnownSnapshotUpdateClocks).toEqual(updateClocks);
+    expect(knownSnapshotUpdateClocks).toEqual(updateClocks);
     syncService.stop();
     done();
   });

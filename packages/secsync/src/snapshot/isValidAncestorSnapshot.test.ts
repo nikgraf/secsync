@@ -1,6 +1,9 @@
-import sodium from "libsodium-wrappers";
+import sodium, { KeyPair } from "libsodium-wrappers";
+import { generateId } from "../crypto/generateId";
 import { hash } from "../crypto/hash";
+import { SnapshotPublicData } from "../types";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
+import { createSnapshot } from "./createSnapshot";
 import {
   isValidAncestorSnapshot,
   SnapshotProofChainEntry,
@@ -10,6 +13,10 @@ let snapshot1ProofEntry: SnapshotProofChainEntry;
 let snapshot2ProofEntry: SnapshotProofChainEntry;
 let snapshot3ProofEntry: SnapshotProofChainEntry;
 let snapshot4ProofEntry: SnapshotProofChainEntry;
+
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
+let signatureKeyPairA: KeyPair;
+let key: Uint8Array;
 
 const createDummySnapshot = (
   snapshotId: string,
@@ -36,7 +43,23 @@ const createDummySnapshot = (
   };
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await sodium.ready;
+
+  signatureKeyPairA = {
+    privateKey: sodium.from_base64(
+      "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
+    ),
+    publicKey: sodium.from_base64(
+      "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM"
+    ),
+    keyType: "ed25519",
+  };
+
+  key = sodium.from_hex(
+    "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
+  );
+
   const snapshot1Proof = createParentSnapshotProof({
     grandParentSnapshotProof: "",
     parentSnapshotId: "",
@@ -281,7 +304,42 @@ test("returns false if an entry is missing using an initial snapshot", () => {
   expect(isValid).toBe(false);
 });
 
-test("returns false for an empty chain", () => {
+test("returns true for an empty chain and identical snapshots", () => {
+  const snapshotProofChain: SnapshotProofChainEntry[] = [];
+
+  const snapshotId = generateId(sodium);
+  const publicData: SnapshotPublicData = {
+    snapshotId,
+    docId,
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotId: "",
+    parentSnapshotUpdateClocks: {},
+  };
+
+  const snapshot = createSnapshot(
+    "Hello World",
+    publicData,
+    key,
+    signatureKeyPairA,
+    "",
+    "",
+    sodium
+  );
+
+  const isValid = isValidAncestorSnapshot({
+    knownSnapshotProofEntry: {
+      snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
+      parentSnapshotProof: "NfF8Tk4hjG4W8tFmyA8uV_-DkjUwXyZ_BllfwNmhx88",
+    },
+    snapshotProofChain,
+    currentSnapshot: snapshot,
+    sodium,
+  });
+  expect(isValid).toBe(true);
+});
+
+test("returns false for an empty chain and different snapshots", () => {
   const snapshotProofChain: SnapshotProofChainEntry[] = [];
   const isValid = isValidAncestorSnapshot({
     knownSnapshotProofEntry: snapshot2ProofEntry,

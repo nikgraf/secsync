@@ -127,7 +127,7 @@ it("should add connection and send document if found", async () => {
   );
 });
 
-it("should properly parse and send through lastKnownSnapshotId & lastKnownSnapshotUpdateClocks", async () => {
+it("should properly parse and send through knownSnapshotId & knownSnapshotUpdateClocks", async () => {
   const mockDocument = {
     snapshot: {},
     updates: [],
@@ -144,32 +144,32 @@ it("should properly parse and send through lastKnownSnapshotId & lastKnownSnapsh
     hasAccess: mockHasAccess,
   });
 
-  mockReq.url = "/test-document?lastKnownSnapshotId=123";
+  mockReq.url = "/test-document?knownSnapshotId=123";
   await connection(mockWs, mockReq);
 
   expect(mockGetDocument).toHaveBeenCalledWith({
     documentId: "test-document",
-    lastKnownSnapshotId: "123",
+    knownSnapshotId: "123",
   });
 
-  mockReq.url = "/test-document?lastKnownSnapshotId=555";
+  mockReq.url = "/test-document?knownSnapshotId=555";
   await connection(mockWs, mockReq);
 
   expect(mockGetDocument).toHaveBeenCalledWith({
     documentId: "test-document",
-    lastKnownSnapshotId: "555",
+    knownSnapshotId: "555",
   });
 
-  const lastKnownSnapshotUpdateClocks = { yhj: 1, jkl: 2 };
-  const lastKnownSnapshotUpdateClocksQuery = encodeURIComponent(
-    JSON.stringify(lastKnownSnapshotUpdateClocks)
+  const knownSnapshotUpdateClocks = { yhj: 1, jkl: 2 };
+  const knownSnapshotUpdateClocksQuery = encodeURIComponent(
+    JSON.stringify(knownSnapshotUpdateClocks)
   );
-  mockReq.url = `/test-document?lastKnownSnapshotId=42&lastKnownSnapshotUpdateClocks=${lastKnownSnapshotUpdateClocksQuery}`;
+  mockReq.url = `/test-document?knownSnapshotId=42&knownSnapshotUpdateClocks=${knownSnapshotUpdateClocksQuery}`;
   await connection(mockWs, mockReq);
 
   expect(mockGetDocument).toHaveBeenCalledWith({
     documentId: "test-document",
-    lastKnownSnapshotId: "42",
-    lastKnownSnapshotUpdateClocks: { yhj: 1, jkl: 2 },
+    knownSnapshotId: "42",
+    knownSnapshotUpdateClocks: { yhj: 1, jkl: 2 },
   });
 });

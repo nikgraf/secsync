@@ -438,18 +438,29 @@ export const createSyncMachine = () =>
             ...unconfirmedChanges,
             ...context._pendingChangesQueue,
           ];
+
+          const activeSnapshot =
+            context._snapshotInfosWithUpdateClocks[
+              context._snapshotInfosWithUpdateClocks.length - 1
+            ];
+
           return {
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
-            // only take the last one since this will be used to re-connect
-            // TODO on reconnect verify this is correct and test it!
-            // _snapshotInfosWithUpdateClocks: [
-            //   context._snapshotInfosWithUpdateClocks[
-            //     context._snapshotInfosWithUpdateClocks.length - 1
-            //   ],
-            // ],
-            _snapshotInfosWithUpdateClocks: [],
+            // update knownSnapshotInfo to only fetch and verify the new relevant data
+            knownSnapshotInfo: activeSnapshot
+              ? {
+                  parentSnapshotProof:
+                    activeSnapshot.snapshot.publicData.parentSnapshotProof,
+                  snapshotId: activeSnapshot.snapshot.publicData.snapshotId,
+                  snapshotCiphertextHash: hash(
+                    activeSnapshot.snapshot.ciphertext,
+                    context.sodium
+                  ),
+                  updateClocks: activeSnapshot.updateClocks,
+                }
+              : context.knownSnapshotInfo,
             // collected all unconfirmed changes to avoid them getting lost
             _pendingChangesQueue: unconfirmedChanges,
             _websocketShouldReconnect: event.type !== "DISCONNECT",
@@ -1087,6 +1098,16 @@ export const createSyncMachine = () =>
                 case "document":
                   documentDecryptionState = "failed";
                   if (context.knownSnapshotInfo) {
+                    console.log(
+                      "context.knownSnapshotInfo",
+                      context.knownSnapshotInfo
+                    );
+                    console.log(
+                      "event.snapshotProofChain",
+                      event.snapshotProofChain
+                    );
+                    console.log("event.snapshot", event.snapshot);
+
                     const isValid = isValidAncestorSnapshot({
                       knownSnapshotProofEntry: {
                         parentSnapshotProof:

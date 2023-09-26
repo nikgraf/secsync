@@ -4,8 +4,8 @@ import { prisma } from "./prisma";
 
 export async function getOrCreateDocument({
   documentId,
-  lastKnownSnapshotId,
-  lastKnownSnapshotUpdateClocks,
+  knownSnapshotId,
+  knownSnapshotUpdateClocks,
 }: GetDocumentParams) {
   return prisma.$transaction(async (prisma) => {
     const doc = await prisma.document.findUnique({
@@ -34,10 +34,11 @@ export async function getOrCreateDocument({
       parentSnapshotProof: string;
       ciphertextHash: string;
     }[] = [];
-    if (lastKnownSnapshotId && lastKnownSnapshotId !== doc.activeSnapshot.id) {
+
+    if (knownSnapshotId && knownSnapshotId !== doc.activeSnapshot.id) {
       snapshotProofChain = await prisma.snapshot.findMany({
         where: { documentId },
-        cursor: { id: lastKnownSnapshotId },
+        cursor: { id: knownSnapshotId },
         skip: 1,
         select: {
           id: true,
@@ -51,10 +52,10 @@ export async function getOrCreateDocument({
 
     let lastKnownVersion: number | undefined = undefined;
     // in case the last known snapshot is the current one, try to find the lastKnownVersion number
-    if (lastKnownSnapshotId === doc.activeSnapshot.id) {
-      const updateIds = Object.entries(lastKnownSnapshotUpdateClocks).map(
+    if (knownSnapshotId === doc.activeSnapshot.id) {
+      const updateIds = Object.entries(knownSnapshotUpdateClocks).map(
         ([pubKey, clock]) => {
-          return `${lastKnownSnapshotId}-${pubKey}-${clock}`;
+          return `${knownSnapshotId}-${pubKey}-${clock}`;
         }
       );
       const lastUpdate = await prisma.update.findFirst({
@@ -93,7 +94,7 @@ export async function getOrCreateDocument({
       updates: serializeUpdates(activeSnapshot.updates),
       snapshotProofChain: snapshotProofChain.map((snapshotProofChainEntry) => {
         return {
-          id: snapshotProofChainEntry.id,
+          snapshotId: snapshotProofChainEntry.id,
           parentSnapshotProof: snapshotProofChainEntry.parentSnapshotProof,
           snapshotCiphertextHash: snapshotProofChainEntry.ciphertextHash,
         };

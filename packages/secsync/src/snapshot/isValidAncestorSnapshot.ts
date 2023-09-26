@@ -44,6 +44,18 @@ export function isValidAncestorSnapshot({
   sodium,
 }: IsValidAncestorSnapshotParams) {
   let isValid = true;
+
+  if (
+    knownSnapshotProofEntry.snapshotId ===
+      currentSnapshot.publicData.snapshotId &&
+    knownSnapshotProofEntry.snapshotCiphertextHash ===
+      hash(currentSnapshot.ciphertext, sodium) &&
+    knownSnapshotProofEntry.parentSnapshotProof ===
+      currentSnapshot.publicData.parentSnapshotProof
+  ) {
+    return true;
+  }
+
   if (snapshotProofChain.length === 0) {
     return false;
   }
