@@ -99,8 +99,9 @@ export type OnDocumentUpdatedEventType =
   | "update-saved"
   | "update-received";
 
-type KnownSnapshotInfo = SnapshotProofInfo & {
-  updateClocks?: SnapshotUpdateClocks;
+export type LoadDocumentParams = {
+  knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
+  mode: GetDocumentMode;
 };
 
 export type AdditionalAuthenticationDataValidations = {
@@ -146,10 +147,10 @@ export type SyncMachineConfig = {
   sodium: any;
   onDocumentUpdated?: (params: {
     type: OnDocumentUpdatedEventType;
-    knownSnapshotInfo: KnownSnapshotInfo;
+    knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
   }) => void | Promise<void>;
   onCustomMessage?: (message: any) => Promise<void> | void;
-  knownSnapshotInfo?: KnownSnapshotInfo;
+  loadDocumentParams?: LoadDocumentParams;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
   /** default: "off" */
   logging?: "off" | "error" | "debug";
@@ -163,10 +164,13 @@ export type CreateUpdateParams = {
   update: Update;
 };
 
+export type GetDocumentMode = "complete" | "delta";
+
 export type GetDocumentParams = {
   documentId: string;
   knownSnapshotId?: string;
   knownSnapshotUpdateClocks?: SnapshotUpdateClocks;
+  mode: GetDocumentMode;
 };
 
 export type HasAccessParams =
@@ -199,6 +203,5 @@ export type SnapshotProofInfo = {
 };
 
 export type SnapshotInfoWithUpdateClocks = SnapshotProofInfo & {
-  parentSnapshotId: string;
   updateClocks: SnapshotUpdateClocks;
 };

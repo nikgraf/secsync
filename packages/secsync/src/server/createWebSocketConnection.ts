@@ -28,8 +28,8 @@ import { addConnection, broadcastMessage, removeConnection } from "./store";
 
 type GetDocumentResult = {
   snapshot?: Snapshot;
+  snapshotProofChain?: SnapshotProofInfo[];
   updates: Update[];
-  snapshotProofChain: SnapshotProofInfo[];
 };
 
 type WebsocketConnectionParams = {
@@ -75,6 +75,12 @@ export const createWebSocketConnection =
         ? urlParts.query.sessionKey[0]
         : urlParts.query.sessionKey;
 
+      const getDocumentModeString = Array.isArray(urlParts.query.mode)
+        ? urlParts.query.mode[0]
+        : urlParts.query.mode;
+      const getDocumentMode =
+        getDocumentModeString === "delta" ? "delta" : "complete";
+
       if (documentId === "") {
         handleDocumentError();
         return;
@@ -112,6 +118,7 @@ export const createWebSocketConnection =
           ? urlParts.query.knownSnapshotId[0]
           : urlParts.query.knownSnapshotId,
         knownSnapshotUpdateClocks,
+        mode: getDocumentMode,
       });
 
       if (!doc) {
@@ -201,6 +208,7 @@ export const createWebSocketConnection =
                 let document = await getDocument({
                   documentId,
                   knownSnapshotId: data.knownSnapshotId,
+                  mode: "delta",
                 });
                 if (document) {
                   connection.send(
@@ -227,6 +235,7 @@ export const createWebSocketConnection =
                 const document = await getDocument({
                   documentId,
                   knownSnapshotId: data.knownSnapshotId,
+                  mode: "delta",
                 });
                 if (document) {
                   connection.send(

@@ -155,7 +155,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -244,7 +244,7 @@ test("send initial snapshot if received document didn't include one, but changes
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {

@@ -97,12 +97,14 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
 
 type CreateUpdateTestHelperParams = {
   version: number;
+  content?: string;
   signatureKeyPair?: KeyPair;
 };
 
 const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   const version = params?.version || 0;
   const signatureKeyPair = params?.signatureKeyPair || clientAKeyPair;
+  const content = params?.content || "u";
   const publicData: UpdatePublicData = {
     refSnapshotId: snapshotId,
     docId,
@@ -110,7 +112,7 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
   };
 
   const update = createUpdate(
-    "u",
+    content,
     publicData,
     key,
     signatureKeyPair,
@@ -167,7 +169,7 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -187,16 +189,19 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
 
   syncService.onTransition((state, event) => {
     if (docValue === "Hello Worldu") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({});
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
       done();
     }
   });
@@ -228,7 +233,7 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
   }, 1);
 });
 
-test("fetch a snapshot with an update, reconnect and receive the same snapshot with one more update", (done) => {
+test("fetch a snapshot with an update, reconnect and receive the same snapshot with one more update: snapshot is ignored, update applied", (done) => {
   const onReceive = jest.fn();
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
@@ -272,7 +277,7 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -292,17 +297,21 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
   const { update } = createUpdateTestHelper();
 
   syncService.onTransition((state, event) => {
-    if (docValue === "uuu") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({
+    if (docValue === "ux") {
+      expect(state.context.loadDocumentParams?.mode).toEqual("delta");
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({
         "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM": 0,
       });
       done();
@@ -331,13 +340,244 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
       data: {
         type: "document",
         snapshot,
-        updates: [update, createUpdateTestHelper({ version: 1 }).update],
+        updates: [
+          update,
+          createUpdateTestHelper({ version: 1, content: "x" }).update,
+        ],
       },
     });
   }, 1);
 });
 
-test("reconnect receive a new snapshot", (done) => {
+test("fetch a snapshot with an update, reconnect and receive the another snapshot", (done) => {
+  const onReceive = jest.fn();
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive(onReceive);
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async ({ id }) => {
+          return {
+            data: "New Snapshot Data",
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {},
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const { snapshot } = createSnapshotTestHelper();
+  const { update } = createUpdateTestHelper();
+
+  syncService.onTransition((state, event) => {
+    if (state.value === "failed") {
+      expect(state.context);
+      expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
+        "SECSYNC_ERROR_112"
+      );
+      expect(state.context.loadDocumentParams?.mode).toEqual("delta");
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({
+        "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM": 0,
+      });
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+      updates: [update],
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({ type: "WEBSOCKET_DISCONNECTED" });
+    syncService.send({ type: "WEBSOCKET_RETRY" });
+    syncService.send({ type: "WEBSOCKET_CONNECTED" });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot: createSnapshotTestHelper().snapshot,
+      },
+    });
+  }, 1);
+});
+
+test("fetch a snapshot with an update, reconnect and receive only a new update", (done) => {
+  const onReceive = jest.fn();
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive(onReceive);
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async ({ id }) => {
+          return {
+            data: "New Snapshot Data",
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {},
+        deserializeChanges: (changes) => {
+          return changes;
+        },
+        applyChanges: (changes) => {
+          changes.forEach((change) => {
+            docValue = docValue + change;
+          });
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+        // logging: "error",
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const { snapshot } = createSnapshotTestHelper();
+  const { update } = createUpdateTestHelper();
+
+  syncService.onTransition((state, event) => {
+    if (docValue === "uu") {
+      expect(state.context.loadDocumentParams?.mode).toBe("delta");
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({
+        "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM": 0,
+      });
+      done();
+    }
+  });
+
+  syncService.start();
+  syncService.send({ type: "WEBSOCKET_RETRY" });
+  syncService.send({ type: "WEBSOCKET_CONNECTED" });
+
+  syncService.send({
+    type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+    data: {
+      type: "document",
+      snapshot,
+      updates: [update],
+    },
+  });
+
+  setTimeout(() => {
+    syncService.send({ type: "WEBSOCKET_DISCONNECTED" });
+    syncService.send({ type: "WEBSOCKET_RETRY" });
+    syncService.send({ type: "WEBSOCKET_CONNECTED" });
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        updates: [createUpdateTestHelper({ version: 1 }).update],
+      },
+    });
+  }, 1);
+});
+
+test("reconnect and receive a new snapshot", (done) => {
   const onReceive = jest.fn();
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
@@ -382,7 +622,7 @@ test("reconnect receive a new snapshot", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -409,16 +649,19 @@ test("reconnect receive a new snapshot", (done) => {
 
   syncService.onTransition((state, event) => {
     if (docValue === "Hello World again") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({});
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
       done();
     }
   });
@@ -456,7 +699,7 @@ test("reconnect receive a new snapshot", (done) => {
   }, 1);
 });
 
-test("reconnect receive a new snapshot where one more was in between", (done) => {
+test("reconnect and receive a new snapshot where one more was in between", (done) => {
   const onReceive = jest.fn();
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
@@ -501,7 +744,7 @@ test("reconnect receive a new snapshot where one more was in between", (done) =>
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-        logging: "error",
+        // logging: "error",
       })
       .withConfig({
         actions: {
@@ -535,16 +778,19 @@ test("reconnect receive a new snapshot where one more was in between", (done) =>
 
   syncService.onTransition((state, event) => {
     if (docValue === "Hello World again and again") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({});
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
       done();
     }
   });

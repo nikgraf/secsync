@@ -55,15 +55,19 @@ export const websocketService =
       }
     }, 5000);
 
-    const knownSnapshotIdParam = context.knownSnapshotInfo
-      ? `&knownSnapshotId=${context.knownSnapshotInfo.snapshotId}`
+    const knownSnapshotIdParam = context.loadDocumentParams
+      ? `&knownSnapshotId=${context.loadDocumentParams.knownSnapshotInfo.snapshotId}`
       : "";
 
+    const modeParam = context.loadDocumentParams
+      ? `&mode=${context.loadDocumentParams.mode}`
+      : `&mode=complete`;
+
     let knownSnapshotUpdateClocks = "";
-    if (knownSnapshotIdParam !== "" && context.knownSnapshotInfo) {
+    if (knownSnapshotIdParam !== "" && context.loadDocumentParams) {
       try {
         const updateClocks = SnapshotUpdateClocks.parse(
-          context.knownSnapshotInfo.updateClocks
+          context.loadDocumentParams.knownSnapshotInfo.updateClocks
         );
         knownSnapshotUpdateClocks = `&knownSnapshotUpdateClocks=${encodeURIComponent(
           JSON.stringify(updateClocks)
@@ -74,8 +78,8 @@ export const websocketService =
     const websocketConnection = new WebSocket(
       `${context.websocketHost}/${context.documentId}?sessionKey=${
         context.websocketSessionKey
-      }${knownSnapshotIdParam}${
-        knownSnapshotUpdateClocks ? `&${knownSnapshotUpdateClocks}` : ""
+      }${modeParam}${knownSnapshotIdParam}${
+        knownSnapshotUpdateClocks ? `${knownSnapshotUpdateClocks}` : ""
       }`
     );
 
