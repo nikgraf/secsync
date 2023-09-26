@@ -176,10 +176,18 @@ export type GetDocumentParams = {
   lastKnownSnapshotUpdateClocks?: SnapshotUpdateClocks;
 };
 
-export type HasAccessParams = {
-  action: "read" | "write-snapshot" | "write-update" | "send-ephemeral-message";
-  documentId: string;
-};
+export type HasAccessParams =
+  | {
+      action: "read";
+      documentId: string;
+      websocketSessionKey: string | undefined;
+    }
+  | {
+      action: "write-snapshot" | "write-update" | "send-ephemeral-message";
+      documentId: string;
+      publicKey: string;
+      websocketSessionKey: string | undefined;
+    };
 
 export type ValidSessions = {
   [authorPublicKey: string]: { sessionId: string; sessionCounter: number };
