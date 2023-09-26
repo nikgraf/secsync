@@ -4,7 +4,7 @@ import { createParentSnapshotProof } from "./createParentSnapshotProof";
 type IsValidParentSnapshotParams = {
   snapshot: Snapshot;
   parentSnapshotId: string;
-  parentSnapshotCiphertext: string;
+  parentSnapshotCiphertextHash: string;
   grandParentSnapshotProof: string;
   sodium: typeof import("libsodium-wrappers");
 };
@@ -13,12 +13,12 @@ export function isValidParentSnapshot({
   snapshot,
   grandParentSnapshotProof,
   parentSnapshotId,
-  parentSnapshotCiphertext,
+  parentSnapshotCiphertextHash,
   sodium,
 }: IsValidParentSnapshotParams) {
   const parentSnapshotProof = createParentSnapshotProof({
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     grandParentSnapshotProof,
     sodium,
   });

@@ -51,7 +51,7 @@ beforeEach(async () => {
 
 type CreateSnapshotTestHelperParams = {
   parentSnapshotId: string;
-  parentSnapshotCiphertext: string;
+  parentSnapshotCiphertextHash: string;
   grandParentSnapshotProof: string;
   content: string;
   // Note: lacks the `parentSnapshotUpdateClocks` param from other test suites
@@ -61,7 +61,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
   const {
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     grandParentSnapshotProof,
     content,
   } = params || {};
@@ -82,7 +82,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
-    parentSnapshotCiphertext || "",
+    parentSnapshotCiphertextHash || "",
     grandParentSnapshotProof || "",
     sodium
   );
@@ -186,7 +186,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
         content: "Hello World1",
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
         parentSnapshotId: snapshot.publicData.snapshotId,
-        parentSnapshotCiphertext: snapshot.ciphertext,
+        parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       });
 
       setTimeout(() => {
@@ -292,7 +292,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
         content: "Hello World1",
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
         parentSnapshotId: snapshot.publicData.snapshotId,
-        parentSnapshotCiphertext: snapshot.ciphertext,
+        parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       });
 
       syncService.send({

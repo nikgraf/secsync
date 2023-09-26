@@ -2,6 +2,7 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { assign, interpret, spawn } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
+import { hash } from "./crypto/hash";
 import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
@@ -67,7 +68,7 @@ beforeEach(async () => {
 
 type CreateSnapshotTestHelperParams = {
   parentSnapshotId?: string;
-  parentSnapshotCiphertext?: string;
+  parentSnapshotCiphertextHash?: string;
   grandParentSnapshotProof?: string;
   content?: string;
   parentSnapshotUpdateClocks?: SnapshotUpdateClocks;
@@ -80,7 +81,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
   const {
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     grandParentSnapshotProof,
     content,
     parentSnapshotUpdateClocks,
@@ -107,7 +108,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     customKey || key,
     signingKeyPair,
-    parentSnapshotCiphertext || "",
+    parentSnapshotCiphertextHash || "",
     grandParentSnapshotProof || "",
     sodium
   );
@@ -354,7 +355,7 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on snapshot event", (done) => 
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
     key: sodium.from_hex(
@@ -451,7 +452,7 @@ test("SECSYNC_ERROR_102 invalid parentSnapshot verification on snapshot event", 
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     parentSnapshotUpdateClocks: {
       [clientAPublicKey]: 0,
@@ -618,7 +619,7 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on snapshot event", (done)
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
   });
@@ -779,7 +780,7 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on snapshot event", (done) 
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
     signingKeyPair: clientBKeyPair,
@@ -941,7 +942,7 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
   });
@@ -1103,7 +1104,7 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on snapshot event", (don
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
   });
@@ -1268,7 +1269,7 @@ test("SECSYNC_ERROR_111 invalid signature on snapshot event", (done) => {
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
   });
@@ -1358,7 +1359,7 @@ test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (d
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
     // parentSnapshotCiphertext: snapshot.ciphertext,
-    parentSnapshotCiphertext: "WRONG_CIPHERTEXT",
+    parentSnapshotCiphertextHash: "WRONG_CIPHERTEXT_HASH",
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
   });
@@ -1514,7 +1515,7 @@ test("SECSYNC_ERROR_113 invalid docId on snapshot event", (done) => {
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
     docId: "WRONG_DOC_ID",
@@ -1673,7 +1674,7 @@ test("SECSYNC_ERROR_114 isValidClient returns false on snapshot event", (done) =
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
     signingKeyPair: clientBKeyPair,

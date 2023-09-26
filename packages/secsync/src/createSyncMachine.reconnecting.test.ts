@@ -52,7 +52,7 @@ beforeEach(async () => {
 
 type CreateSnapshotTestHelperParams = {
   parentSnapshotId: string;
-  parentSnapshotCiphertext: string;
+  parentSnapshotCiphertextHash: string;
   grandParentSnapshotProof: string;
   content: string;
   parentSnapshotUpdateClocks?: SnapshotUpdateClocks;
@@ -62,7 +62,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
   const {
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     grandParentSnapshotProof,
     parentSnapshotUpdateClocks,
     content,
@@ -84,7 +84,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
-    parentSnapshotCiphertext || "",
+    parentSnapshotCiphertextHash || "",
     grandParentSnapshotProof || "",
     sodium
   );
@@ -401,7 +401,7 @@ test("reconnect receive a new snapshot", (done) => {
   const { snapshot } = createSnapshotTestHelper();
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     parentSnapshotUpdateClocks: {},
     content: "Hello World again",
@@ -520,14 +520,14 @@ test("reconnect receive a new snapshot where one more was in between", (done) =>
   const { snapshot } = createSnapshotTestHelper();
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     parentSnapshotUpdateClocks: {},
     content: "Hello World again",
   });
   const { snapshot: snapshot3 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot2.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot2.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
     grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
     parentSnapshotUpdateClocks: {},
     content: "Hello World again and again",

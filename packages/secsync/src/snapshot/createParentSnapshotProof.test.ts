@@ -1,4 +1,5 @@
 import sodium from "libsodium-wrappers";
+import { hash } from "../crypto/hash";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
 
 const grandParentSnapshotProof = "abc";
@@ -9,11 +10,11 @@ test("it returns a valid proof", () => {
   const parentSnapshotProof = createParentSnapshotProof({
     grandParentSnapshotProof,
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash: hash("abc", sodium),
     sodium,
   });
 
   expect(parentSnapshotProof).toEqual(
-    "Ie6yLlPGfPeNKANa7OOHbYKQbLfFAw9EAoIuVI1N9MY"
+    "qxgOve6L8OoCogYaKEGF65vkPa7Gq2-DFsQbjwhXcIQ"
   );
 });

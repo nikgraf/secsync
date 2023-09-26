@@ -22,9 +22,9 @@ import {
   EphemeralMessage,
   EphemeralMessagesSession,
   OnDocumentUpdatedEventType,
-  ParentSnapshotProofInfo,
   Snapshot,
   SnapshotInfoWithUpdateClocks,
+  SnapshotProofInfo,
   SnapshotPublicData,
   SyncMachineConfig,
   Update,
@@ -247,11 +247,11 @@ export const createSyncMachine = () =>
               data: event.data,
               messageType: event.messageType || "message",
               getKey: async () => {
-                const activeSnapshot =
+                const activeSnapshotInfo =
                   context._snapshotInfosWithUpdateClocks[
                     context._snapshotInfosWithUpdateClocks.length - 1
-                  ]?.snapshot;
-                const key = await context.getSnapshotKey(activeSnapshot);
+                  ];
+                const key = await context.getSnapshotKey(activeSnapshotInfo);
                 return key;
               },
             };
@@ -439,7 +439,7 @@ export const createSyncMachine = () =>
             ...context._pendingChangesQueue,
           ];
 
-          const activeSnapshot =
+          const activeSnapshotInfo =
             context._snapshotInfosWithUpdateClocks[
               context._snapshotInfosWithUpdateClocks.length - 1
             ];
@@ -450,23 +450,20 @@ export const createSyncMachine = () =>
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
             // update knownSnapshotInfo to only fetch and verify the new relevant data
 
-            knownSnapshotInfo: activeSnapshot
+            knownSnapshotInfo: activeSnapshotInfo
               ? {
-                  parentSnapshotProof:
-                    activeSnapshot.snapshot.publicData.parentSnapshotProof,
-                  snapshotId: activeSnapshot.snapshot.publicData.snapshotId,
-                  snapshotCiphertextHash: hash(
-                    activeSnapshot.snapshot.ciphertext,
-                    context.sodium
-                  ),
-                  updateClocks: activeSnapshot.updateClocks,
+                  parentSnapshotProof: activeSnapshotInfo.parentSnapshotProof,
+                  snapshotId: activeSnapshotInfo.snapshotId,
+                  snapshotCiphertextHash:
+                    activeSnapshotInfo.snapshotCiphertextHash,
+                  updateClocks: activeSnapshotInfo.updateClocks,
                 }
               : context.knownSnapshotInfo,
             // since knownSnapshotInfo is overwritten and kept also the activeSnapshotInfoWithUpdateClocks needs to be kept, especially for the
             // updateClocks so no clock errors are thrown with only the new updates
             // coming in
-            _snapshotInfosWithUpdateClocks: activeSnapshot
-              ? [activeSnapshot]
+            _snapshotInfosWithUpdateClocks: activeSnapshotInfo
+              ? [activeSnapshotInfo]
               : [],
             // collected all unconfirmed changes to avoid them getting lost
             _pendingChangesQueue: unconfirmedChanges,
@@ -603,8 +600,6 @@ export const createSyncMachine = () =>
             snapshotInfosWithUpdateClocks[
               snapshotInfosWithUpdateClocks.length - 1
             ] || null;
-          let activeSnapshot: Snapshot | null =
-            activeSnapshotInfoWithUpdateClocks?.snapshot || null;
           let snapshotInFlight = context._snapshotInFlight;
           let updatesLocalClock = context._updatesLocalClock;
           let updatesInFlight = context._updatesInFlight;
@@ -630,16 +625,11 @@ export const createSyncMachine = () =>
                 context.onDocumentUpdated({
                   type,
                   knownSnapshotInfo: {
-                    snapshotId:
-                      snapshotInfosWithUpdateClocksEntry.snapshot.publicData
-                        .snapshotId,
+                    snapshotId: snapshotInfosWithUpdateClocksEntry.snapshotId,
                     parentSnapshotProof:
-                      snapshotInfosWithUpdateClocksEntry.snapshot.publicData
-                        .parentSnapshotProof,
-                    snapshotCiphertextHash: hash(
-                      snapshotInfosWithUpdateClocksEntry.snapshot.ciphertext,
-                      context.sodium
-                    ),
+                      snapshotInfosWithUpdateClocksEntry.parentSnapshotProof,
+                    snapshotCiphertextHash:
+                      snapshotInfosWithUpdateClocksEntry.snapshotCiphertextHash,
                     updateClocks:
                       snapshotInfosWithUpdateClocksEntry.updateClocks,
                   },
@@ -663,10 +653,7 @@ export const createSyncMachine = () =>
                 }
 
                 // no snapshot exists so far
-                if (
-                  activeSnapshotInfoWithUpdateClocks === null ||
-                  activeSnapshot === null
-                ) {
+                if (activeSnapshotInfoWithUpdateClocks === null) {
                   const publicData: SnapshotPublicData = {
                     ...snapshotData.publicData,
                     snapshotId: newSnapshotId,
@@ -687,7 +674,14 @@ export const createSyncMachine = () =>
 
                   snapshotInFlight = {
                     updateClocks: {},
-                    snapshot,
+                    snapshotId: snapshot.publicData.snapshotId,
+                    snapshotCiphertextHash: hash(
+                      snapshot.ciphertext,
+                      context.sodium
+                    ),
+                    parentSnapshotProof:
+                      snapshot.publicData.parentSnapshotProof,
+                    parentSnapshotId: snapshot.publicData.parentSnapshotId,
                   };
                   pendingChangesQueue = [];
 
@@ -709,7 +703,8 @@ export const createSyncMachine = () =>
                     snapshotId: newSnapshotId,
                     docId: context.documentId,
                     pubKey: currentClientPublicKey,
-                    parentSnapshotId: activeSnapshot.publicData.snapshotId,
+                    parentSnapshotId:
+                      activeSnapshotInfoWithUpdateClocks.snapshotId,
                     parentSnapshotUpdateClocks:
                       activeSnapshotInfoWithUpdateClocks.updateClocks || {},
                   };
@@ -718,14 +713,21 @@ export const createSyncMachine = () =>
                     publicData,
                     snapshotData.key,
                     context.signatureKeyPair,
-                    activeSnapshot.ciphertext,
-                    activeSnapshot.publicData.parentSnapshotProof,
+                    activeSnapshotInfoWithUpdateClocks.snapshotCiphertextHash,
+                    activeSnapshotInfoWithUpdateClocks.parentSnapshotProof,
                     context.sodium
                   );
 
                   snapshotInFlight = {
                     updateClocks: {},
-                    snapshot,
+                    snapshotId: snapshot.publicData.snapshotId,
+                    snapshotCiphertextHash: hash(
+                      snapshot.ciphertext,
+                      context.sodium
+                    ),
+                    parentSnapshotProof:
+                      snapshot.publicData.parentSnapshotProof,
+                    parentSnapshotId: snapshot.publicData.parentSnapshotId,
                   };
                   pendingChangesQueue = [];
 
@@ -752,12 +754,12 @@ export const createSyncMachine = () =>
 
             const createAndSendUpdate = async (
               changes: unknown[],
-              activeSnapshot: Snapshot,
+              activeSnapshotInfo: SnapshotInfoWithUpdateClocks,
               clock: number
             ) => {
               try {
-                const key = await context.getSnapshotKey(activeSnapshot);
-                const refSnapshotId = activeSnapshot.publicData.snapshotId;
+                const key = await context.getSnapshotKey(activeSnapshotInfo);
+                const refSnapshotId = activeSnapshotInfo.snapshotId;
 
                 const update = context.serializeChanges(changes);
                 updatesLocalClock = clock + 1;
@@ -779,7 +781,7 @@ export const createSyncMachine = () =>
                 );
 
                 updatesInFlight.push({
-                  snapshotId: activeSnapshot.publicData.snapshotId,
+                  snapshotId: refSnapshotId,
                   clock: updatesLocalClock,
                   changes,
                 });
@@ -802,7 +804,7 @@ export const createSyncMachine = () =>
 
             const processSnapshot = async (
               rawSnapshot: Snapshot,
-              parentSnapshotProofInfo?: ParentSnapshotProofInfo
+              parentSnapshotProofInfo?: SnapshotProofInfo
             ) => {
               try {
                 if (context.logging === "debug") {
@@ -847,8 +849,8 @@ export const createSyncMachine = () =>
                 const parentSnapshotUpdateClocks =
                   snapshotInfosWithUpdateClocks.find(
                     (entry) =>
-                      entry.snapshot.publicData.snapshotId ===
-                      activeSnapshot?.publicData.snapshotId
+                      entry.snapshotId ===
+                      activeSnapshotInfoWithUpdateClocks?.snapshotId
                   )?.updateClocks;
                 if (parentSnapshotProofInfo && parentSnapshotUpdateClocks) {
                   const currentClientPublicKey = context.sodium.to_base64(
@@ -860,7 +862,15 @@ export const createSyncMachine = () =>
 
                 let snapshotKey: Uint8Array;
                 try {
-                  snapshotKey = await context.getSnapshotKey(snapshot);
+                  snapshotKey = await context.getSnapshotKey({
+                    snapshotId: snapshot.publicData.snapshotId,
+                    parentSnapshotProof:
+                      snapshot.publicData.parentSnapshotProof,
+                    snapshotCiphertextHash: hash(
+                      snapshot.ciphertext,
+                      context.sodium
+                    ),
+                  });
                 } catch (err) {
                   if (
                     context.logging === "debug" ||
@@ -916,7 +926,13 @@ export const createSyncMachine = () =>
                 // can be inserted in the last position since verifyAndDecryptSnapshot already verified the parent
                 snapshotInfosWithUpdateClocks.push({
                   updateClocks: {},
-                  snapshot,
+                  snapshotId: snapshot.publicData.snapshotId,
+                  snapshotCiphertextHash: hash(
+                    snapshot.ciphertext,
+                    context.sodium
+                  ),
+                  parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                  parentSnapshotId: snapshot.publicData.parentSnapshotId,
                 });
 
                 // cleanup old snapshotInfosWithUpdateClocks entries and only keep the last 3 for debugging purposes
@@ -939,12 +955,12 @@ export const createSyncMachine = () =>
 
             const processUpdates = async (
               rawUpdates: Update[],
-              relatedSnapshot: Snapshot
+              relatedSnapshotInfo: SnapshotProofInfo
             ) => {
               try {
                 let key: Uint8Array;
                 try {
-                  key = await context.getSnapshotKey(relatedSnapshot);
+                  key = await context.getSnapshotKey(relatedSnapshotInfo);
                 } catch (err) {
                   if (
                     context.logging === "debug" ||
@@ -955,10 +971,6 @@ export const createSyncMachine = () =>
                   errorCausingDocumentToFail = new Error("SECSYNC_ERROR_206");
                   return;
                 }
-
-                // must be redefined here, since a snapshot from loading a document might have been applied
-                // before updates are processed
-                const activeSnapshot = relatedSnapshot;
 
                 let changes: unknown[] = [];
 
@@ -1008,7 +1020,7 @@ export const createSyncMachine = () =>
                   const decryptUpdateResult = verifyAndDecryptUpdate(
                     update,
                     key,
-                    activeSnapshot.publicData.snapshotId,
+                    relatedSnapshotInfo.snapshotId,
                     currentClock,
                     context.sodium,
                     context.logging
@@ -1041,7 +1053,7 @@ export const createSyncMachine = () =>
 
                   snapshotInfosWithUpdateClocks = updateUpdateClocksEntry({
                     snapshotInfosWithUpdateClocks,
-                    snapshotId: activeSnapshot.publicData.snapshotId,
+                    snapshotId: relatedSnapshotInfo.snapshotId,
                     clientPublicKey: update.publicData.pubKey,
                     newClock: clock,
                   });
@@ -1149,7 +1161,21 @@ export const createSyncMachine = () =>
                       documentDecryptionState = "partial";
 
                       if (event.updates) {
-                        await processUpdates(event.updates, event.snapshot);
+                        await processUpdates(
+                          event.updates,
+                          event.snapshot
+                            ? {
+                                snapshotId:
+                                  event.snapshot.publicData.snapshotId,
+                                parentSnapshotProof:
+                                  event.snapshot.publicData.parentSnapshotProof,
+                                snapshotCiphertextHash: hash(
+                                  event.snapshot.ciphertext,
+                                  context.sodium
+                                ),
+                              }
+                            : activeSnapshotInfoWithUpdateClocks
+                        );
                       }
 
                       if (
@@ -1177,13 +1203,8 @@ export const createSyncMachine = () =>
                   }
                   await processSnapshot(
                     event.snapshot,
-                    activeSnapshot
-                      ? {
-                          id: activeSnapshot.publicData.snapshotId,
-                          ciphertext: activeSnapshot.ciphertext,
-                          parentSnapshotProof:
-                            activeSnapshot.publicData.parentSnapshotProof,
-                        }
+                    activeSnapshotInfoWithUpdateClocks
+                      ? activeSnapshotInfoWithUpdateClocks
                       : undefined
                   );
 
@@ -1197,18 +1218,17 @@ export const createSyncMachine = () =>
                   if (
                     // Ignore snapshot-saved for an event that is not in flight
                     snapshotInFlight &&
-                    event.snapshotId ===
-                      snapshotInFlight.snapshot.publicData.snapshotId &&
+                    event.snapshotId === snapshotInFlight.snapshotId &&
                     // Ignore snapshot saved if there is an activeSnapshot and
                     // it doesn't match the currently active one.
                     // This can happen if another snapshot event has been received already.
-                    (activeSnapshot === undefined ||
-                      activeSnapshot === null ||
-                      activeSnapshot.publicData.snapshotId ===
-                        snapshotInFlight.snapshot.publicData.parentSnapshotId)
+                    (activeSnapshotInfoWithUpdateClocks === undefined ||
+                      activeSnapshotInfoWithUpdateClocks === null ||
+                      activeSnapshotInfoWithUpdateClocks.snapshotId ===
+                        snapshotInFlight.parentSnapshotId)
                   ) {
                     snapshotInfosWithUpdateClocks.push({
-                      snapshot: snapshotInFlight.snapshot,
+                      ...snapshotInFlight,
                       updateClocks: {},
                     });
 
@@ -1239,23 +1259,23 @@ export const createSyncMachine = () =>
                     }
 
                     const isAlreadyProcessedSnapshot =
-                      activeSnapshot.publicData.snapshotId ===
+                      activeSnapshotInfoWithUpdateClocks.snapshotId ===
                         snapshot.publicData.snapshotId &&
-                      activeSnapshot.ciphertext === snapshot.ciphertext &&
-                      activeSnapshot.publicData.parentSnapshotProof ===
+                      activeSnapshotInfoWithUpdateClocks.snapshotCiphertextHash ===
+                        hash(snapshot.ciphertext, context.sodium) &&
+                      activeSnapshotInfoWithUpdateClocks.parentSnapshotProof ===
                         snapshot.publicData.parentSnapshotProof;
 
                     if (!isAlreadyProcessedSnapshot) {
-                      if (activeSnapshot) {
+                      if (activeSnapshotInfoWithUpdateClocks) {
                         const isValid = isValidAncestorSnapshot({
                           knownSnapshotProofEntry: {
                             parentSnapshotProof:
-                              activeSnapshot.publicData.parentSnapshotProof,
-                            snapshotCiphertextHash: hash(
-                              activeSnapshot.ciphertext,
-                              context.sodium
-                            ),
-                            snapshotId: activeSnapshot.publicData.snapshotId,
+                              activeSnapshotInfoWithUpdateClocks.parentSnapshotProof,
+                            snapshotCiphertextHash:
+                              activeSnapshotInfoWithUpdateClocks.snapshotCiphertextHash,
+                            snapshotId:
+                              activeSnapshotInfoWithUpdateClocks.snapshotId,
                           },
                           snapshotProofChain: event.snapshotProofChain,
                           currentSnapshot: snapshot,
@@ -1275,7 +1295,17 @@ export const createSyncMachine = () =>
                   if (event.updates) {
                     await processUpdates(
                       event.updates,
-                      event.snapshot ? event.snapshot : activeSnapshot
+                      event.snapshot
+                        ? {
+                            snapshotId: event.snapshot.publicData.snapshotId,
+                            parentSnapshotProof:
+                              event.snapshot.publicData.parentSnapshotProof,
+                            snapshotCiphertextHash: hash(
+                              event.snapshot.ciphertext,
+                              context.sodium
+                            ),
+                          }
+                        : activeSnapshotInfoWithUpdateClocks
                     );
                   }
 
@@ -1286,7 +1316,10 @@ export const createSyncMachine = () =>
                   break;
 
                 case "update":
-                  await processUpdates([event], activeSnapshot);
+                  await processUpdates(
+                    [event],
+                    activeSnapshotInfoWithUpdateClocks
+                  );
                   break;
                 case "update-saved":
                   if (context.logging === "debug") {
@@ -1319,7 +1352,8 @@ export const createSyncMachine = () =>
                       "update saving failed",
                       event,
                       " referencing active snapshot: ",
-                      activeSnapshot.publicData.snapshotId === event.snapshotId
+                      activeSnapshotInfoWithUpdateClocks.snapshotId ===
+                        event.snapshotId
                     );
                   }
 
@@ -1368,7 +1402,9 @@ export const createSyncMachine = () =>
                       return;
                     }
 
-                    const key = await context.getSnapshotKey(activeSnapshot);
+                    const key = await context.getSnapshotKey(
+                      activeSnapshotInfoWithUpdateClocks
+                    );
 
                     let isValidClient: boolean;
                     try {
@@ -1468,10 +1504,10 @@ export const createSyncMachine = () =>
               }, 0);
 
               if (
-                activeSnapshot === null ||
+                activeSnapshotInfoWithUpdateClocks === null ||
                 context.shouldSendSnapshot({
                   activeSnapshotId:
-                    activeSnapshot?.publicData.snapshotId || null,
+                    activeSnapshotInfoWithUpdateClocks?.snapshotId || null,
                   snapshotUpdatesCount,
                 })
               ) {
@@ -1487,7 +1523,7 @@ export const createSyncMachine = () =>
                 pendingChangesQueue = [];
                 await createAndSendUpdate(
                   rawChanges,
-                  activeSnapshot,
+                  activeSnapshotInfoWithUpdateClocks,
                   updatesLocalClock
                 );
               }

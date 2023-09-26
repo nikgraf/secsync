@@ -2,6 +2,7 @@ import sodium, { KeyPair } from "libsodium-wrappers";
 import { assign, interpret, spawn } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
+import { hash } from "./crypto/hash";
 import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
@@ -66,7 +67,7 @@ beforeEach(async () => {
 
 type CreateSnapshotTestHelperParams = {
   parentSnapshotId: string;
-  parentSnapshotCiphertext: string;
+  parentSnapshotCiphertextHash: string;
   grandParentSnapshotProof: string;
   content: string;
   parentSnapshotUpdateClocks?: SnapshotUpdateClocks;
@@ -76,7 +77,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
   snapshotId = generateId(sodium);
   const {
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     grandParentSnapshotProof,
     content,
     parentSnapshotUpdateClocks,
@@ -98,7 +99,7 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
     publicData,
     key,
     clientAKeyPair,
-    parentSnapshotCiphertext || "",
+    parentSnapshotCiphertextHash || "",
     grandParentSnapshotProof || "",
     sodium
   );
@@ -562,7 +563,7 @@ test("should load a document and an additional snapshot", (done) => {
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
   });
@@ -734,7 +735,7 @@ test("should load a document with updates and two additional snapshots", (done) 
 
   const { snapshot: snapshot2 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
     grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     content: "Hello World again",
     parentSnapshotUpdateClocks: {
@@ -751,7 +752,7 @@ test("should load a document with updates and two additional snapshots", (done) 
 
   const { snapshot: snapshot3 } = createSnapshotTestHelper({
     parentSnapshotId: snapshot2.publicData.snapshotId,
-    parentSnapshotCiphertext: snapshot2.ciphertext,
+    parentSnapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
     grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
     content: "Hello World again and again",
   });

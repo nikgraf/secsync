@@ -1,18 +1,15 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { generateId } from "../crypto/generateId";
 import { hash } from "../crypto/hash";
-import { SnapshotPublicData } from "../types";
+import { SnapshotProofInfo, SnapshotPublicData } from "../types";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { createSnapshot } from "./createSnapshot";
-import {
-  isValidAncestorSnapshot,
-  SnapshotProofChainEntry,
-} from "./isValidAncestorSnapshot";
+import { isValidAncestorSnapshot } from "./isValidAncestorSnapshot";
 
-let snapshot1ProofEntry: SnapshotProofChainEntry;
-let snapshot2ProofEntry: SnapshotProofChainEntry;
-let snapshot3ProofEntry: SnapshotProofChainEntry;
-let snapshot4ProofEntry: SnapshotProofChainEntry;
+let snapshot1ProofEntry: SnapshotProofInfo;
+let snapshot2ProofEntry: SnapshotProofInfo;
+let snapshot3ProofEntry: SnapshotProofInfo;
+let snapshot4ProofEntry: SnapshotProofInfo;
 
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 let signatureKeyPairA: KeyPair;
@@ -63,7 +60,7 @@ beforeEach(async () => {
   const snapshot1Proof = createParentSnapshotProof({
     grandParentSnapshotProof: "",
     parentSnapshotId: "",
-    parentSnapshotCiphertext: "",
+    parentSnapshotCiphertextHash: "",
     sodium,
   });
   snapshot1ProofEntry = {
@@ -74,7 +71,7 @@ beforeEach(async () => {
   const snapshot2Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot1Proof,
     parentSnapshotId: "s1",
-    parentSnapshotCiphertext: "abc",
+    parentSnapshotCiphertextHash: hash("abc", sodium),
     sodium,
   });
   snapshot2ProofEntry = {
@@ -85,7 +82,7 @@ beforeEach(async () => {
   const snapshot3Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot2Proof,
     parentSnapshotId: "s2",
-    parentSnapshotCiphertext: "def",
+    parentSnapshotCiphertextHash: hash("def", sodium),
     sodium,
   });
   snapshot3ProofEntry = {
@@ -96,7 +93,7 @@ beforeEach(async () => {
   const snapshot4Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot3Proof,
     parentSnapshotId: "s3",
-    parentSnapshotCiphertext: "ghi",
+    parentSnapshotCiphertextHash: hash("ghi", sodium),
     sodium,
   });
   snapshot4ProofEntry = {
@@ -305,7 +302,7 @@ test("returns false if an entry is missing using an initial snapshot", () => {
 });
 
 test("returns true for an empty chain and identical snapshots", () => {
-  const snapshotProofChain: SnapshotProofChainEntry[] = [];
+  const snapshotProofChain: SnapshotProofInfo[] = [];
 
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
@@ -330,7 +327,7 @@ test("returns true for an empty chain and identical snapshots", () => {
     knownSnapshotProofEntry: {
       snapshotId,
       snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
-      parentSnapshotProof: "NfF8Tk4hjG4W8tFmyA8uV_-DkjUwXyZ_BllfwNmhx88",
+      parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     },
     snapshotProofChain,
     currentSnapshot: snapshot,
@@ -340,7 +337,7 @@ test("returns true for an empty chain and identical snapshots", () => {
 });
 
 test("returns false for an empty chain and different snapshots", () => {
-  const snapshotProofChain: SnapshotProofChainEntry[] = [];
+  const snapshotProofChain: SnapshotProofInfo[] = [];
   const isValid = isValidAncestorSnapshot({
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,

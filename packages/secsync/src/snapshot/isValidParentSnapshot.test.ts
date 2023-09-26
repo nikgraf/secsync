@@ -1,16 +1,30 @@
 import sodium from "libsodium-wrappers";
+import { hash } from "../crypto/hash";
+import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { isValidParentSnapshot } from "./isValidParentSnapshot";
 
+let parentSnapshotCiphertextHash: string;
+let parentSnapshotProof: string;
 const grandParentSnapshotProof = "abc";
-const parentSnapshotCiphertext = "cde";
 const parentSnapshotId = "id12345";
-const parentSnapshotProof = "iw2EmzL2GvbiJr15Q2LFO5j5g883nEuLfs9jCRtxTUA";
+
+beforeEach(async () => {
+  await sodium.ready;
+  const parentSnapshotCiphertext = "cde";
+  parentSnapshotCiphertextHash = hash(parentSnapshotCiphertext, sodium);
+  parentSnapshotProof = createParentSnapshotProof({
+    grandParentSnapshotProof,
+    parentSnapshotId,
+    parentSnapshotCiphertextHash,
+    sodium,
+  });
+});
 
 test("it returns true for a valid proof", () => {
   const isValid = isValidParentSnapshot({
     grandParentSnapshotProof,
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     snapshot: {
       nonce: "nonce",
       ciphertext: "ciphertext",
@@ -33,7 +47,7 @@ test("it returns false to due a changed parentSnapshotCiphertext", () => {
   const isValid = isValidParentSnapshot({
     grandParentSnapshotProof,
     parentSnapshotId,
-    parentSnapshotCiphertext: "wrong",
+    parentSnapshotCiphertextHash: "wrong",
     snapshot: {
       nonce: "nonce",
       ciphertext: "ciphertext",
@@ -56,7 +70,7 @@ test("it returns false to due a changed grandParentSnapshotProof", () => {
   const isValid = isValidParentSnapshot({
     grandParentSnapshotProof: "wrong",
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     snapshot: {
       nonce: "nonce",
       ciphertext: "ciphertext",
@@ -75,11 +89,11 @@ test("it returns false to due a changed grandParentSnapshotProof", () => {
   expect(isValid).toBe(false);
 });
 
-test("it returns false if parentSnapshotCiphertext and grandParentSnapshotProof are flipped", () => {
+test("it returns false if parentSnapshotCiphertextHash and grandParentSnapshotProof are flipped", () => {
   const isValid = isValidParentSnapshot({
-    grandParentSnapshotProof: parentSnapshotCiphertext,
+    grandParentSnapshotProof: parentSnapshotCiphertextHash,
     parentSnapshotId,
-    parentSnapshotCiphertext: grandParentSnapshotProof,
+    parentSnapshotCiphertextHash: grandParentSnapshotProof,
     snapshot: {
       nonce: "nonce",
       ciphertext: "ciphertext",
@@ -102,7 +116,7 @@ test("it returns false to due a manipulated parentSnapshotProof", () => {
   const isValid = isValidParentSnapshot({
     grandParentSnapshotProof,
     parentSnapshotId,
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     snapshot: {
       nonce: "nonce",
       ciphertext: "ciphertext",
@@ -125,7 +139,7 @@ test("it returns false for a changed parentSnapshotId", () => {
   const isValid = isValidParentSnapshot({
     grandParentSnapshotProof,
     parentSnapshotId: "WRONG_ID",
-    parentSnapshotCiphertext,
+    parentSnapshotCiphertextHash,
     snapshot: {
       nonce: "nonce",
       ciphertext: "ciphertext",

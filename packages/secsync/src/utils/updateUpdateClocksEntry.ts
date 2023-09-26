@@ -15,7 +15,7 @@ export const updateUpdateClocksEntry = ({
 }: Params) => {
   return snapshotInfosWithUpdateClocks.map((entry) => {
     if (
-      entry.snapshot.publicData.snapshotId === snapshotId &&
+      entry.snapshotId === snapshotId &&
       // only apply the new clock if it's higher than the current one or doesn't exist
       (entry.updateClocks[clientPublicKey] === undefined ||
         (entry.updateClocks[clientPublicKey] !== undefined &&

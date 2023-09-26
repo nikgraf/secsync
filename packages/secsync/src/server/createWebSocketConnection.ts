@@ -17,6 +17,7 @@ import {
   GetDocumentParams,
   HasAccessParams,
   Snapshot,
+  SnapshotProofInfo,
   SnapshotUpdateClocks,
   Update,
 } from "../types";
@@ -28,11 +29,7 @@ import { addConnection, broadcastMessage, removeConnection } from "./store";
 type GetDocumentResult = {
   snapshot?: Snapshot;
   updates: Update[];
-  snapshotProofChain: {
-    id: string;
-    parentSnapshotProof: string;
-    snapshotCiphertextHash: string;
-  }[];
+  snapshotProofChain: SnapshotProofInfo[];
 };
 
 type WebsocketConnectionParams = {

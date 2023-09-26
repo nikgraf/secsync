@@ -1,6 +1,6 @@
 import { decryptAead } from "../crypto/decryptAead";
 import { verifySignature } from "../crypto/verifySignature";
-import { ParentSnapshotProofInfo, Snapshot } from "../types";
+import { Snapshot, SnapshotProofInfo } from "../types";
 import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
 import { isValidParentSnapshot } from "./isValidParentSnapshot";
 
@@ -10,7 +10,7 @@ export function verifyAndDecryptSnapshot(
   currentDocId: string,
   currentClientPublicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers"),
-  parentSnapshotProofInfo?: ParentSnapshotProofInfo,
+  parentSnapshotProofInfo?: SnapshotProofInfo,
   parentSnapshotUpdateClock?: number,
   logging?: "error" | "debug" | "off"
 ) {
@@ -57,8 +57,9 @@ export function verifyAndDecryptSnapshot(
       try {
         const isValid = isValidParentSnapshot({
           snapshot,
-          parentSnapshotCiphertext: parentSnapshotProofInfo.ciphertext,
-          parentSnapshotId: parentSnapshotProofInfo.id,
+          parentSnapshotCiphertextHash:
+            parentSnapshotProofInfo.snapshotCiphertextHash,
+          parentSnapshotId: parentSnapshotProofInfo.snapshotId,
           grandParentSnapshotProof: parentSnapshotProofInfo.parentSnapshotProof,
           sodium,
         });
