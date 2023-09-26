@@ -449,6 +449,7 @@ export const createSyncMachine = () =>
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
             // update knownSnapshotInfo to only fetch and verify the new relevant data
+
             knownSnapshotInfo: activeSnapshot
               ? {
                   parentSnapshotProof:
@@ -461,6 +462,12 @@ export const createSyncMachine = () =>
                   updateClocks: activeSnapshot.updateClocks,
                 }
               : context.knownSnapshotInfo,
+            // since knownSnapshotInfo is overwritten and kept also the activeSnapshotInfoWithUpdateClocks needs to be kept, especially for the
+            // updateClocks so no clock errors are thrown with only the new updates
+            // coming in
+            _snapshotInfosWithUpdateClocks: activeSnapshot
+              ? [activeSnapshot]
+              : [],
             // collected all unconfirmed changes to avoid them getting lost
             _pendingChangesQueue: unconfirmedChanges,
             _websocketShouldReconnect: event.type !== "DISCONNECT",
@@ -1098,16 +1105,6 @@ export const createSyncMachine = () =>
                 case "document":
                   documentDecryptionState = "failed";
                   if (context.knownSnapshotInfo) {
-                    console.log(
-                      "context.knownSnapshotInfo",
-                      context.knownSnapshotInfo
-                    );
-                    console.log(
-                      "event.snapshotProofChain",
-                      event.snapshotProofChain
-                    );
-                    console.log("event.snapshot", event.snapshot);
-
                     const isValid = isValidAncestorSnapshot({
                       knownSnapshotProofEntry: {
                         parentSnapshotProof:
@@ -1265,7 +1262,6 @@ export const createSyncMachine = () =>
                           sodium: context.sodium,
                         });
                         if (!isValid) {
-                          console.log("NOOOOOOT");
                           throw new Error(
                             "Invalid ancestor snapshot after snapshot-save-failed event"
                           );

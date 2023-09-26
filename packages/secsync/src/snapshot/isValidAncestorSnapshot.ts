@@ -56,6 +56,10 @@ export function isValidAncestorSnapshot({
     return true;
   }
 
+  if (!Array.isArray(snapshotProofChain)) {
+    return false;
+  }
+
   if (snapshotProofChain.length === 0) {
     return false;
   }
