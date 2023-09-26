@@ -4,20 +4,20 @@ import { hash } from "../crypto/hash";
 type CreateParentSnapshotProofParams = {
   grandParentSnapshotProof: string;
   parentSnapshotId: string;
-  parentSnapshotCiphertext: string;
+  parentSnapshotCiphertextHash: string;
   sodium: typeof import("libsodium-wrappers");
 };
 
 export function createParentSnapshotProof({
   grandParentSnapshotProof,
   parentSnapshotId,
-  parentSnapshotCiphertext,
+  parentSnapshotCiphertextHash,
   sodium,
 }: CreateParentSnapshotProofParams) {
   const snapshotProofData = canonicalize({
     grandParentSnapshotProof,
     parentSnapshotId,
-    parentSnapshotCiphertext: hash(parentSnapshotCiphertext, sodium),
+    parentSnapshotCiphertextHash,
   })!;
   const parentSnapshotProof = hash(snapshotProofData, sodium);
   return parentSnapshotProof;

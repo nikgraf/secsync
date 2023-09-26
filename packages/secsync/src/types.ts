@@ -1,6 +1,5 @@
 import type { KeyPair } from "libsodium-wrappers";
 import { z } from "zod";
-import { SnapshotProofChainEntry } from "./snapshot/isValidAncestorSnapshot";
 
 export const SnapshotUpdateClocks = z.record(z.string(), z.number());
 
@@ -94,19 +93,13 @@ export const Event = z.union([Snapshot, Update, EphemeralMessage]);
 
 export type Event = z.infer<typeof Event>;
 
-export type ParentSnapshotProofInfo = {
-  id: string;
-  ciphertext: string;
-  parentSnapshotProof: string;
-};
-
 export type OnDocumentUpdatedEventType =
   | "snapshot-saved"
   | "snapshot-received"
   | "update-saved"
   | "update-received";
 
-type KnownSnapshotInfo = SnapshotProofChainEntry & {
+type KnownSnapshotInfo = SnapshotProofInfo & {
   updateClocks?: SnapshotUpdateClocks;
 };
 
@@ -123,7 +116,7 @@ export type SyncMachineConfig = {
   websocketSessionKey: string;
   applySnapshot: (decryptedSnapshot: any) => void;
   getSnapshotKey: (
-    snapshot: any | undefined
+    snapshotInfo: SnapshotProofInfo | null
   ) => Promise<Uint8Array> | Uint8Array;
   getNewSnapshotData: ({ id }: { id: string }) =>
     | Promise<{
@@ -172,8 +165,8 @@ export type CreateUpdateParams = {
 
 export type GetDocumentParams = {
   documentId: string;
-  lastKnownSnapshotId?: string;
-  lastKnownSnapshotUpdateClocks?: SnapshotUpdateClocks;
+  knownSnapshotId?: string;
+  knownSnapshotUpdateClocks?: SnapshotUpdateClocks;
 };
 
 export type HasAccessParams =
@@ -199,7 +192,13 @@ export type EphemeralMessagesSession = {
   validSessions: ValidSessions;
 };
 
-export type SnapshotInfoWithUpdateClocks = {
-  snapshot: Snapshot;
+export type SnapshotProofInfo = {
+  snapshotId: string;
+  snapshotCiphertextHash: string;
+  parentSnapshotProof: string;
+};
+
+export type SnapshotInfoWithUpdateClocks = SnapshotProofInfo & {
+  parentSnapshotId: string;
   updateClocks: SnapshotUpdateClocks;
 };

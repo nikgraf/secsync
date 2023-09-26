@@ -14,7 +14,7 @@ export function createSnapshot<AdditionalSnapshotPublicData>(
   publicData: SnapshotPublicData & AdditionalSnapshotPublicData,
   key: Uint8Array,
   signatureKeyPair: KeyPair,
-  parentSnapshotCiphertext: string,
+  parentSnapshotCiphertextHash: string,
   grandParentSnapshotProof: string,
   sodium: typeof import("libsodium-wrappers")
 ) {
@@ -22,7 +22,7 @@ export function createSnapshot<AdditionalSnapshotPublicData>(
     AdditionalSnapshotPublicData = {
     ...publicData,
     parentSnapshotProof: createParentSnapshotProof({
-      parentSnapshotCiphertext,
+      parentSnapshotCiphertextHash,
       parentSnapshotId: publicData.parentSnapshotId,
       grandParentSnapshotProof,
       sodium,

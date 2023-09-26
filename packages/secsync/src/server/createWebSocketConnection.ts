@@ -17,6 +17,7 @@ import {
   GetDocumentParams,
   HasAccessParams,
   Snapshot,
+  SnapshotProofInfo,
   SnapshotUpdateClocks,
   Update,
 } from "../types";
@@ -28,11 +29,7 @@ import { addConnection, broadcastMessage, removeConnection } from "./store";
 type GetDocumentResult = {
   snapshot?: Snapshot;
   updates: Update[];
-  snapshotProofChain: {
-    id: string;
-    parentSnapshotProof: string;
-    snapshotCiphertextHash: string;
-  }[];
+  snapshotProofChain: SnapshotProofInfo[];
 };
 
 type WebsocketConnectionParams = {
@@ -94,29 +91,27 @@ export const createWebSocketConnection =
         return;
       }
 
-      let lastKnownSnapshotUpdateClocks: SnapshotUpdateClocks | undefined =
+      let knownSnapshotUpdateClocks: SnapshotUpdateClocks | undefined =
         undefined;
       try {
-        const lastKnownSnapshotUpdateClocksQueryEntry = Array.isArray(
-          urlParts.query.lastKnownSnapshotUpdateClocks
+        const knownSnapshotUpdateClocksQueryEntry = Array.isArray(
+          urlParts.query.knownSnapshotUpdateClocks
         )
-          ? urlParts.query.lastKnownSnapshotUpdateClocks[0]
-          : urlParts.query.lastKnownSnapshotUpdateClocks;
-        if (lastKnownSnapshotUpdateClocksQueryEntry) {
-          lastKnownSnapshotUpdateClocks = SnapshotUpdateClocks.parse(
-            JSON.parse(
-              decodeURIComponent(lastKnownSnapshotUpdateClocksQueryEntry)
-            )
+          ? urlParts.query.knownSnapshotUpdateClocks[0]
+          : urlParts.query.knownSnapshotUpdateClocks;
+        if (knownSnapshotUpdateClocksQueryEntry) {
+          knownSnapshotUpdateClocks = SnapshotUpdateClocks.parse(
+            JSON.parse(decodeURIComponent(knownSnapshotUpdateClocksQueryEntry))
           );
         }
       } catch (err) {}
 
       const doc = await getDocument({
         documentId,
-        lastKnownSnapshotId: Array.isArray(urlParts.query.lastKnownSnapshotId)
-          ? urlParts.query.lastKnownSnapshotId[0]
-          : urlParts.query.lastKnownSnapshotId,
-        lastKnownSnapshotUpdateClocks,
+        knownSnapshotId: Array.isArray(urlParts.query.knownSnapshotId)
+          ? urlParts.query.knownSnapshotId[0]
+          : urlParts.query.knownSnapshotId,
+        knownSnapshotUpdateClocks,
       });
 
       if (!doc) {
@@ -205,7 +200,7 @@ export const createWebSocketConnection =
               ) {
                 let document = await getDocument({
                   documentId,
-                  lastKnownSnapshotId: data.lastKnownSnapshotId,
+                  knownSnapshotId: data.knownSnapshotId,
                 });
                 if (document) {
                   connection.send(
@@ -231,7 +226,7 @@ export const createWebSocketConnection =
               } else if (error instanceof SecsyncSnapshotMissesUpdatesError) {
                 const document = await getDocument({
                   documentId,
-                  lastKnownSnapshotId: data.lastKnownSnapshotId,
+                  knownSnapshotId: data.knownSnapshotId,
                 });
                 if (document) {
                   connection.send(

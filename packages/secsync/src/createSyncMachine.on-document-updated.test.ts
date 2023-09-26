@@ -9,7 +9,7 @@ import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralS
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralMessagePublicData,
-  Snapshot,
+  SnapshotInfoWithUpdateClocks,
   SnapshotPublicData,
   SnapshotUpdateClocks,
   SyncMachineConfig,
@@ -423,7 +423,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
       return () => {};
     };
 
-  let snapshotInFlight: Snapshot | undefined = undefined;
+  let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
   const onDocumentUpdated = jest.fn();
   const { snapshot } = createSnapshotTestHelper();
@@ -480,15 +480,15 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
         },
       })
   ).onTransition((state) => {
-    if (state.context._snapshotInFlight?.snapshot) {
-      snapshotInFlight = state.context._snapshotInFlight.snapshot;
+    if (state.context._snapshotInFlight) {
+      snapshotInFlight = state.context._snapshotInFlight;
     }
 
     if (
       state.matches("connected.idle") &&
       state.context._snapshotInfosWithUpdateClocks.length === 2 &&
-      state.context._snapshotInfosWithUpdateClocks[1].snapshot.publicData
-        .snapshotId === snapshotInFlight?.publicData.snapshotId
+      state.context._snapshotInfosWithUpdateClocks[1].snapshotId ===
+        snapshotInFlight?.snapshotId
     ) {
       expect(docValue).toEqual("Hello Worlduu");
       expect(onDocumentUpdated).toHaveBeenCalledTimes(3);
@@ -515,9 +515,9 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
       expect(onDocumentUpdated).toHaveBeenNthCalledWith(3, {
         type: "snapshot-saved",
         knownSnapshotInfo: {
-          snapshotId: snapshotInFlight.publicData.snapshotId,
-          snapshotCiphertextHash: hash(snapshotInFlight.ciphertext, sodium),
-          parentSnapshotProof: snapshotInFlight.publicData.parentSnapshotProof,
+          snapshotId: snapshotInFlight.snapshotId,
+          snapshotCiphertextHash: snapshotInFlight.snapshotCiphertextHash,
+          parentSnapshotProof: snapshotInFlight.parentSnapshotProof,
           updateClocks: {},
         },
       });
@@ -551,7 +551,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
           type: "snapshot-saved",
-          snapshotId: snapshotInFlight?.publicData.snapshotId,
+          snapshotId: snapshotInFlight?.snapshotId,
         },
       });
     }, 1);

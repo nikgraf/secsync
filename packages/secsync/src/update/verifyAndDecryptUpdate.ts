@@ -58,9 +58,7 @@ export function verifyAndDecryptUpdate(
     if (currentClock + 1 !== update.publicData.clock) {
       if (logging === "error" || logging === "debug") {
         console.error(
-          `Clock ${update.publicData.clock} did increase by more than one: ${
-            currentClock + 1
-          } `
+          `Clock ${currentClock} did increase by more than one. Incoming Clock: ${update.publicData.clock} `
         );
       }
       return { error: new Error("SECSYNC_ERROR_202") };

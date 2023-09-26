@@ -1,5 +1,6 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { generateId } from "../crypto/generateId";
+import { hash } from "../crypto/hash";
 import { SnapshotPublicData } from "../types";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { createSnapshot } from "./createSnapshot";
@@ -162,7 +163,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     publicData2,
     key,
     signatureKeyPairA,
-    snapshot.ciphertext,
+    hash(snapshot.ciphertext, sodium),
     snapshot.publicData.parentSnapshotProof,
     sodium
   );
@@ -180,7 +181,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     publicData3,
     key,
     signatureKeyPairA,
-    snapshot2.ciphertext,
+    hash(snapshot2.ciphertext, sodium),
     snapshot2.publicData.parentSnapshotProof,
     sodium
   );
@@ -192,8 +193,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: "",
-      ciphertext: "",
+      snapshotId: "",
+      snapshotCiphertextHash: "",
       parentSnapshotProof: "",
     }
   );
@@ -207,8 +208,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     }
   );
@@ -222,8 +223,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying dire
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot2.publicData.snapshotId,
-      ciphertext: snapshot2.ciphertext,
+      snapshotId: snapshot2.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
       parentSnapshotProof: snapshot2.publicData.parentSnapshotProof,
     }
   );
@@ -247,7 +248,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData,
     key,
     signatureKeyPairA,
-
     "",
     "",
     sodium
@@ -267,8 +267,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData2,
     key,
     signatureKeyPairA,
-
-    snapshot.ciphertext,
+    hash(snapshot.ciphertext, sodium),
     snapshot.publicData.parentSnapshotProof,
     sodium
   );
@@ -280,10 +279,10 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       parentSnapshotProof: createParentSnapshotProof({
-        parentSnapshotCiphertext: snapshot.ciphertext, // wrong ciphertext
+        parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium), // wrong ciphertext
         parentSnapshotId: snapshot.publicData.snapshotId,
         grandParentSnapshotProof: "",
         sodium,
@@ -302,10 +301,10 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       parentSnapshotProof: createParentSnapshotProof({
-        parentSnapshotCiphertext: "",
+        parentSnapshotCiphertextHash: "",
         parentSnapshotId: snapshot.publicData.snapshotId,
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof, // wrong proof
         sodium,
@@ -324,11 +323,11 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot2.ciphertext, // wrong ciphertext
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
       parentSnapshotProof: createParentSnapshotProof({
         parentSnapshotId: "",
-        parentSnapshotCiphertext: "",
+        parentSnapshotCiphertextHash: "",
         grandParentSnapshotProof: "",
         sodium,
       }),
@@ -354,7 +353,6 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData,
     key,
     signatureKeyPairA,
-
     "",
     "",
     sodium
@@ -373,7 +371,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData2,
     key,
     signatureKeyPairA,
-    snapshot.ciphertext,
+    hash(snapshot.ciphertext, sodium),
     snapshot.publicData.parentSnapshotProof,
     sodium
   );
@@ -391,7 +389,7 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     publicData3,
     key,
     signatureKeyPairA,
-    snapshot2.ciphertext,
+    hash(snapshot2.ciphertext, sodium),
     snapshot2.publicData.parentSnapshotProof,
     sodium
   );
@@ -403,11 +401,11 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot2.publicData.snapshotId,
-      ciphertext: snapshot2.ciphertext,
+      snapshotId: snapshot2.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
       parentSnapshotProof: createParentSnapshotProof({
         parentSnapshotId: snapshot.publicData.snapshotId,
-        parentSnapshotCiphertext: snapshot2.ciphertext, // wrong ciphertext
+        parentSnapshotCiphertextHash: snapshot2.ciphertext, // wrong ciphertext
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
         sodium,
       }),
@@ -425,11 +423,11 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot2.publicData.snapshotId,
-      ciphertext: snapshot2.ciphertext,
+      snapshotId: snapshot2.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot2.ciphertext, sodium),
       parentSnapshotProof: createParentSnapshotProof({
         parentSnapshotId: snapshot.publicData.snapshotId,
-        parentSnapshotCiphertext: snapshot.ciphertext,
+        parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
         grandParentSnapshotProof: snapshot2.publicData.parentSnapshotProof, // wrong proof
         sodium,
       }),
@@ -446,11 +444,11 @@ test("createSnapshot & verifyAndDecryptSnapshot breaks due manipulated parentSna
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot2.publicData.snapshotId,
-      ciphertext: snapshot3.ciphertext, // wrong ciphertext
+      snapshotId: snapshot2.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot3.ciphertext, sodium), // wrong ciphertext
       parentSnapshotProof: createParentSnapshotProof({
         parentSnapshotId: snapshot.publicData.snapshotId,
-        parentSnapshotCiphertext: snapshot.ciphertext,
+        parentSnapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
         grandParentSnapshotProof: snapshot.publicData.parentSnapshotProof,
         sodium,
       }),
@@ -496,7 +494,7 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     publicData2,
     key,
     signatureKeyPairA,
-    snapshot.ciphertext,
+    hash(snapshot.ciphertext, sodium),
     snapshot.publicData.parentSnapshotProof,
     sodium
   );
@@ -508,8 +506,8 @@ test("createSnapshot & verifyAndDecryptSnapshot successfully with verifying the 
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium), // wrong ciphertext
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     },
     10 // no clock should be present
@@ -554,7 +552,7 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     publicData2,
     key,
     signatureKeyPairA,
-    snapshot.ciphertext,
+    hash(snapshot.ciphertext, sodium),
     snapshot.publicData.parentSnapshotProof,
     sodium
   );
@@ -566,8 +564,8 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: "",
-      ciphertext: "",
+      snapshotId: "",
+      snapshotCiphertextHash: "",
       parentSnapshotProof: "",
     },
     10 // no clock should be present
@@ -583,8 +581,8 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     },
     11 // clock should be 10
@@ -600,8 +598,8 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     },
     9 // clock should be 10
@@ -618,8 +616,8 @@ test("createSnapshot & verifyAndDecryptSnapshot fails due a wrong parentSnapshot
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: snapshot.publicData.snapshotId,
-      ciphertext: snapshot.ciphertext,
+      snapshotId: snapshot.publicData.snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
       parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
     },
     0 // clock should be 10
@@ -656,8 +654,8 @@ test("verifyAndDecryptSnapshot fails due wrong docId", () => {
     signatureKeyPairA.publicKey,
     sodium,
     {
-      id: "",
-      ciphertext: "",
+      snapshotId: "",
+      snapshotCiphertextHash: "",
       parentSnapshotProof: "",
     }
   );

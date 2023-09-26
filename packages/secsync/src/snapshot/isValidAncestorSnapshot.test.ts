@@ -1,15 +1,19 @@
-import sodium from "libsodium-wrappers";
+import sodium, { KeyPair } from "libsodium-wrappers";
+import { generateId } from "../crypto/generateId";
 import { hash } from "../crypto/hash";
+import { SnapshotProofInfo, SnapshotPublicData } from "../types";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
-import {
-  isValidAncestorSnapshot,
-  SnapshotProofChainEntry,
-} from "./isValidAncestorSnapshot";
+import { createSnapshot } from "./createSnapshot";
+import { isValidAncestorSnapshot } from "./isValidAncestorSnapshot";
 
-let snapshot1ProofEntry: SnapshotProofChainEntry;
-let snapshot2ProofEntry: SnapshotProofChainEntry;
-let snapshot3ProofEntry: SnapshotProofChainEntry;
-let snapshot4ProofEntry: SnapshotProofChainEntry;
+let snapshot1ProofEntry: SnapshotProofInfo;
+let snapshot2ProofEntry: SnapshotProofInfo;
+let snapshot3ProofEntry: SnapshotProofInfo;
+let snapshot4ProofEntry: SnapshotProofInfo;
+
+const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
+let signatureKeyPairA: KeyPair;
+let key: Uint8Array;
 
 const createDummySnapshot = (
   snapshotId: string,
@@ -36,11 +40,27 @@ const createDummySnapshot = (
   };
 };
 
-beforeEach(() => {
+beforeEach(async () => {
+  await sodium.ready;
+
+  signatureKeyPairA = {
+    privateKey: sodium.from_base64(
+      "g3dtwb9XzhSzZGkxTfg11t1KEIb4D8rO7K54R6dnxArvgg_OzZ2GgREtG7F5LvNp3MS8p9vsio4r6Mq7SZDEgw"
+    ),
+    publicKey: sodium.from_base64(
+      "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM"
+    ),
+    keyType: "ed25519",
+  };
+
+  key = sodium.from_hex(
+    "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
+  );
+
   const snapshot1Proof = createParentSnapshotProof({
     grandParentSnapshotProof: "",
     parentSnapshotId: "",
-    parentSnapshotCiphertext: "",
+    parentSnapshotCiphertextHash: "",
     sodium,
   });
   snapshot1ProofEntry = {
@@ -51,7 +71,7 @@ beforeEach(() => {
   const snapshot2Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot1Proof,
     parentSnapshotId: "s1",
-    parentSnapshotCiphertext: "abc",
+    parentSnapshotCiphertextHash: hash("abc", sodium),
     sodium,
   });
   snapshot2ProofEntry = {
@@ -62,7 +82,7 @@ beforeEach(() => {
   const snapshot3Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot2Proof,
     parentSnapshotId: "s2",
-    parentSnapshotCiphertext: "def",
+    parentSnapshotCiphertextHash: hash("def", sodium),
     sodium,
   });
   snapshot3ProofEntry = {
@@ -73,7 +93,7 @@ beforeEach(() => {
   const snapshot4Proof = createParentSnapshotProof({
     grandParentSnapshotProof: snapshot3Proof,
     parentSnapshotId: "s3",
-    parentSnapshotCiphertext: "ghi",
+    parentSnapshotCiphertextHash: hash("ghi", sodium),
     sodium,
   });
   snapshot4ProofEntry = {
@@ -281,8 +301,43 @@ test("returns false if an entry is missing using an initial snapshot", () => {
   expect(isValid).toBe(false);
 });
 
-test("returns false for an empty chain", () => {
-  const snapshotProofChain: SnapshotProofChainEntry[] = [];
+test("returns true for an empty chain and identical snapshots", () => {
+  const snapshotProofChain: SnapshotProofInfo[] = [];
+
+  const snapshotId = generateId(sodium);
+  const publicData: SnapshotPublicData = {
+    snapshotId,
+    docId,
+    pubKey: sodium.to_base64(signatureKeyPairA.publicKey),
+    parentSnapshotId: "",
+    parentSnapshotUpdateClocks: {},
+  };
+
+  const snapshot = createSnapshot(
+    "Hello World",
+    publicData,
+    key,
+    signatureKeyPairA,
+    "",
+    "",
+    sodium
+  );
+
+  const isValid = isValidAncestorSnapshot({
+    knownSnapshotProofEntry: {
+      snapshotId,
+      snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
+      parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+    },
+    snapshotProofChain,
+    currentSnapshot: snapshot,
+    sodium,
+  });
+  expect(isValid).toBe(true);
+});
+
+test("returns false for an empty chain and different snapshots", () => {
+  const snapshotProofChain: SnapshotProofInfo[] = [];
   const isValid = isValidAncestorSnapshot({
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,
