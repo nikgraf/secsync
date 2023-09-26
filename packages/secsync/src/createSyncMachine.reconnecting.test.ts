@@ -187,16 +187,19 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
 
   syncService.onTransition((state, event) => {
     if (docValue === "Hello Worldu") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({});
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
       done();
     }
   });
@@ -293,16 +296,19 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
 
   syncService.onTransition((state, event) => {
     if (docValue === "uuu") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({
         "74IPzs2dhoERLRuxeS7zadzEvKfb7IqOK-jKu0mQxIM": 0,
       });
       done();
@@ -409,16 +415,19 @@ test("reconnect receive a new snapshot", (done) => {
 
   syncService.onTransition((state, event) => {
     if (docValue === "Hello World again") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({});
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
       done();
     }
   });
@@ -535,16 +544,19 @@ test("reconnect receive a new snapshot where one more was in between", (done) =>
 
   syncService.onTransition((state, event) => {
     if (docValue === "Hello World again and again") {
-      expect(state.context.knownSnapshotInfo?.parentSnapshotProof).toEqual(
-        snapshot.publicData.parentSnapshotProof
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotId).toEqual(
-        snapshot.publicData.snapshotId
-      );
-      expect(state.context.knownSnapshotInfo?.snapshotCiphertextHash).toEqual(
-        hash(snapshot.ciphertext, sodium)
-      );
-      expect(state.context.knownSnapshotInfo?.updateClocks).toEqual({});
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
+      ).toEqual(snapshot.publicData.parentSnapshotProof);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.snapshotId
+      ).toEqual(snapshot.publicData.snapshotId);
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo
+          .snapshotCiphertextHash
+      ).toEqual(hash(snapshot.ciphertext, sodium));
+      expect(
+        state.context.loadDocumentParams?.knownSnapshotInfo.updateClocks
+      ).toEqual({});
       done();
     }
   });

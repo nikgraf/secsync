@@ -72,17 +72,20 @@ test("should connect and use knownSnapshotId as query param", (done) => {
       websocketHost: url,
       websocketSessionKey: "mySessionKey",
       sodium,
-      knownSnapshotInfo: {
-        snapshotId: "mySnapshotId",
-        parentSnapshotProof: "myParentSnapshotProof",
-        snapshotCiphertextHash: "mySnapshotCiphertextHash",
+      loadDocumentParams: {
+        mode: "snapshot-and-updates",
+        knownSnapshotInfo: {
+          snapshotId: "mySnapshotId",
+          parentSnapshotProof: "myParentSnapshotProof",
+          snapshotCiphertextHash: "mySnapshotCiphertextHash",
+        },
       },
     })
   );
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      `wss://www.example.com/${docId}?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId`
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&mode=snapshot-and-updates&knownSnapshotId=mySnapshotId`
     );
     syncService.stop();
     done();
@@ -106,18 +109,21 @@ test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as quer
       websocketHost: url,
       websocketSessionKey: "mySessionKey",
       sodium,
-      knownSnapshotInfo: {
-        snapshotId: "mySnapshotId",
-        parentSnapshotProof: "myParentSnapshotProof",
-        snapshotCiphertextHash: "mySnapshotCiphertextHash",
-        updateClocks,
+      loadDocumentParams: {
+        mode: "snapshot-and-updates",
+        knownSnapshotInfo: {
+          snapshotId: "mySnapshotId",
+          parentSnapshotProof: "myParentSnapshotProof",
+          snapshotCiphertextHash: "mySnapshotCiphertextHash",
+          updateClocks,
+        },
       },
     })
   );
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
-      `wss://www.example.com/${docId}?sessionKey=mySessionKey&knownSnapshotId=mySnapshotId&&knownSnapshotUpdateClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
+      `wss://www.example.com/${docId}?sessionKey=mySessionKey&mode=snapshot-and-updates&knownSnapshotId=mySnapshotId&&knownSnapshotUpdateClocks=%7B%22publicKeyA%22%3A2%2C%22publicKeyB%22%3A9999%7D`
     );
 
     const urlParts = parseUrl(socket.url, true);

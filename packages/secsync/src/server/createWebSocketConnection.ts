@@ -75,6 +75,10 @@ export const createWebSocketConnection =
         ? urlParts.query.sessionKey[0]
         : urlParts.query.sessionKey;
 
+      const getDocumentMode = Array.isArray(urlParts.query.getDocumentMode)
+        ? urlParts.query.getDocumentMode[0]
+        : urlParts.query.getDocumentMode;
+
       if (documentId === "") {
         handleDocumentError();
         return;
@@ -112,6 +116,10 @@ export const createWebSocketConnection =
           ? urlParts.query.knownSnapshotId[0]
           : urlParts.query.knownSnapshotId,
         knownSnapshotUpdateClocks,
+        mode:
+          getDocumentMode === "updates-only"
+            ? "updates-only"
+            : "snapshot-and-updates",
       });
 
       if (!doc) {

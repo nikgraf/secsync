@@ -448,18 +448,20 @@ export const createSyncMachine = () =>
             // reset the context and make sure there are no stale references
             // using JSON.parse(JSON.stringify()) to make sure we have a clean copy
             ...JSON.parse(JSON.stringify(disconnectionContextReset)),
-            // update knownSnapshotInfo to only fetch and verify the new relevant data
-
-            knownSnapshotInfo: activeSnapshotInfo
+            // update loadDocumentParams to only fetch and verify the new relevant data
+            loadDocumentParams: activeSnapshotInfo
               ? {
-                  parentSnapshotProof: activeSnapshotInfo.parentSnapshotProof,
-                  snapshotId: activeSnapshotInfo.snapshotId,
-                  snapshotCiphertextHash:
-                    activeSnapshotInfo.snapshotCiphertextHash,
-                  updateClocks: activeSnapshotInfo.updateClocks,
+                  knownSnapshotInfo: {
+                    parentSnapshotProof: activeSnapshotInfo.parentSnapshotProof,
+                    snapshotId: activeSnapshotInfo.snapshotId,
+                    snapshotCiphertextHash:
+                      activeSnapshotInfo.snapshotCiphertextHash,
+                    updateClocks: activeSnapshotInfo.updateClocks,
+                  },
+                  mode: "updates-only",
                 }
-              : context.knownSnapshotInfo,
-            // since knownSnapshotInfo is overwritten and kept also the activeSnapshotInfoWithUpdateClocks needs to be kept, especially for the
+              : context.loadDocumentParams,
+            // since loadDocumentParams is overwritten and kept also the activeSnapshotInfoWithUpdateClocks needs to be kept, especially for the
             // updateClocks so no clock errors are thrown with only the new updates
             // coming in
             _snapshotInfosWithUpdateClocks: activeSnapshotInfo
@@ -1116,14 +1118,18 @@ export const createSyncMachine = () =>
               switch (event.type) {
                 case "document":
                   documentDecryptionState = "failed";
-                  if (context.knownSnapshotInfo) {
+                  if (context.loadDocumentParams) {
                     const isValid = isValidAncestorSnapshot({
                       knownSnapshotProofEntry: {
                         parentSnapshotProof:
-                          context.knownSnapshotInfo.parentSnapshotProof,
+                          context.loadDocumentParams.knownSnapshotInfo
+                            .parentSnapshotProof,
                         snapshotCiphertextHash:
-                          context.knownSnapshotInfo.snapshotCiphertextHash,
-                        snapshotId: context.knownSnapshotInfo.snapshotId,
+                          context.loadDocumentParams.knownSnapshotInfo
+                            .snapshotCiphertextHash,
+                        snapshotId:
+                          context.loadDocumentParams.knownSnapshotInfo
+                            .snapshotId,
                       },
                       snapshotProofChain: event.snapshotProofChain,
                       currentSnapshot: event.snapshot,

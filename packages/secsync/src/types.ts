@@ -103,6 +103,11 @@ type KnownSnapshotInfo = SnapshotProofInfo & {
   updateClocks?: SnapshotUpdateClocks;
 };
 
+export type LoadDocumentParams = {
+  knownSnapshotInfo: KnownSnapshotInfo;
+  mode: GetDocumentMode;
+};
+
 export type AdditionalAuthenticationDataValidations = {
   snapshot?: z.SomeZodObject;
   update?: z.SomeZodObject;
@@ -149,7 +154,7 @@ export type SyncMachineConfig = {
     knownSnapshotInfo: KnownSnapshotInfo;
   }) => void | Promise<void>;
   onCustomMessage?: (message: any) => Promise<void> | void;
-  knownSnapshotInfo?: KnownSnapshotInfo;
+  loadDocumentParams?: LoadDocumentParams;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
   /** default: "off" */
   logging?: "off" | "error" | "debug";
@@ -163,10 +168,13 @@ export type CreateUpdateParams = {
   update: Update;
 };
 
+export type GetDocumentMode = "snapshot-and-updates" | "updates-only";
+
 export type GetDocumentParams = {
   documentId: string;
   knownSnapshotId?: string;
   knownSnapshotUpdateClocks?: SnapshotUpdateClocks;
+  mode: GetDocumentMode;
 };
 
 export type HasAccessParams =
