@@ -73,7 +73,7 @@ export async function createUpdate({ update }: CreateUpdateParams) {
       );
     },
     {
-      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     }
   );
 }

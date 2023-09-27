@@ -81,7 +81,7 @@ export async function createSnapshot({ snapshot }: CreateSnapshotParams) {
       return serializeSnapshot(newSnapshot);
     },
     {
-      isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead,
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
     }
   );
 }
