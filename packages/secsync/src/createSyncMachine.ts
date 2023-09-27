@@ -1373,97 +1373,110 @@ export const createSyncMachine = () =>
                 case "ephemeral-message":
                   // used so we can do early return
                   const handleEphemeralMessage = async () => {
-                    let ephemeralMessage: EphemeralMessage;
                     try {
-                      ephemeralMessage = parseEphemeralMessage(
-                        event,
-                        context.additionalAuthenticationDataValidations
-                          ?.ephemeralMessage
-                      );
-                    } catch (err) {
-                      if (context.logging === "error") {
-                        console.error(err);
+                      let ephemeralMessage: EphemeralMessage;
+                      try {
+                        ephemeralMessage = parseEphemeralMessage(
+                          event,
+                          context.additionalAuthenticationDataValidations
+                            ?.ephemeralMessage
+                        );
+                      } catch (err) {
+                        if (context.logging === "error") {
+                          console.error(err);
+                        }
+                        ephemeralMessageReceivingErrors.unshift(
+                          new Error("SECSYNC_ERROR_307")
+                        );
+                        return;
                       }
-                      ephemeralMessageReceivingErrors.unshift(
-                        new Error("SECSYNC_ERROR_307")
-                      );
-                      return;
-                    }
 
-                    const key = await context.getSnapshotKey(
-                      activeSnapshotInfoWithUpdateClocks
-                    );
-
-                    let isValidClient: boolean;
-                    try {
-                      isValidClient = await context.isValidClient(
-                        ephemeralMessage.publicData.pubKey
+                      const key = await context.getSnapshotKey(
+                        activeSnapshotInfoWithUpdateClocks
                       );
-                    } catch (err) {
-                      if (context.logging === "error") {
-                        console.error(err);
+
+                      let isValidClient: boolean;
+                      try {
+                        isValidClient = await context.isValidClient(
+                          ephemeralMessage.publicData.pubKey
+                        );
+                      } catch (err) {
+                        if (context.logging === "error") {
+                          console.error(err);
+                        }
+                        isValidClient = false;
                       }
-                      isValidClient = false;
-                    }
 
-                    if (!isValidClient) {
-                      ephemeralMessageReceivingErrors.unshift(
-                        new Error("SECSYNC_ERROR_304")
-                      );
-                      return;
-                    }
+                      if (!isValidClient) {
+                        ephemeralMessageReceivingErrors.unshift(
+                          new Error("SECSYNC_ERROR_304")
+                        );
+                        return;
+                      }
 
-                    if (ephemeralMessagesSession === null) {
+                      if (ephemeralMessagesSession === null) {
+                        if (
+                          context.logging === "error" ||
+                          context.logging === "debug"
+                        ) {
+                          console.error(
+                            "context._ephemeralMessagesSession is not defined"
+                          );
+                        }
+                        return;
+                      }
+
+                      const ephemeralMessageResult =
+                        verifyAndDecryptEphemeralMessage(
+                          ephemeralMessage,
+                          key,
+                          context.documentId,
+                          ephemeralMessagesSession,
+                          context.signatureKeyPair,
+                          context.sodium,
+                          context.logging
+                        );
+
+                      if (ephemeralMessageResult.error) {
+                        ephemeralMessageReceivingErrors.unshift(
+                          ephemeralMessageResult.error
+                        );
+                      }
+
+                      if (ephemeralMessageResult.proof) {
+                        send({
+                          type: "ADD_EPHEMERAL_MESSAGE",
+                          data: ephemeralMessageResult.proof,
+                          messageType: ephemeralMessageResult.requestProof
+                            ? "proofAndRequestProof"
+                            : "proof",
+                        });
+                      }
+
+                      if (ephemeralMessageResult.validSessions) {
+                        ephemeralMessagesSession.validSessions =
+                          ephemeralMessageResult.validSessions;
+                      }
+
+                      // content can be undefined if it's a new session or the
+                      // session data was invalid
+                      if (ephemeralMessageResult.content) {
+                        context.applyEphemeralMessage(
+                          ephemeralMessageResult.content,
+                          ephemeralMessage.publicData.pubKey
+                        );
+                      }
+                    } catch (err) {
                       if (
                         context.logging === "error" ||
                         context.logging === "debug"
                       ) {
-                        console.error(
-                          "context._ephemeralMessagesSession is not defined"
-                        );
+                        console.error(err);
                       }
-                      return;
-                    }
-
-                    const ephemeralMessageResult =
-                      verifyAndDecryptEphemeralMessage(
-                        ephemeralMessage,
-                        key,
-                        context.documentId,
-                        ephemeralMessagesSession,
-                        context.signatureKeyPair,
-                        context.sodium,
-                        context.logging
-                      );
-
-                    if (ephemeralMessageResult.error) {
                       ephemeralMessageReceivingErrors.unshift(
-                        ephemeralMessageResult.error
+                        new Error("SECSYNC_ERROR_300")
                       );
-                    }
-
-                    if (ephemeralMessageResult.proof) {
-                      send({
-                        type: "ADD_EPHEMERAL_MESSAGE",
-                        data: ephemeralMessageResult.proof,
-                        messageType: ephemeralMessageResult.requestProof
-                          ? "proofAndRequestProof"
-                          : "proof",
-                      });
-                    }
-
-                    if (ephemeralMessageResult.validSessions) {
-                      ephemeralMessagesSession.validSessions =
-                        ephemeralMessageResult.validSessions;
-                    }
-
-                    // content can be undefined if it's a new session or the
-                    // session data was invalid
-                    if (ephemeralMessageResult.content) {
-                      context.applyEphemeralMessage(
-                        ephemeralMessageResult.content,
-                        ephemeralMessage.publicData.pubKey
-                      );
+                      return;
                     }
                   };
 
