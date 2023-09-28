@@ -28,6 +28,8 @@ async function main() {
       createSnapshot: createSnapshotDb,
       createUpdate: createUpdateDb,
       hasAccess: async () => true,
+      hasBroadcastAccess: async ({ websocketSessionKeys }) =>
+        websocketSessionKeys.map(() => true),
       logging: "error",
     })
   );

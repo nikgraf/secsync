@@ -16,6 +16,7 @@ import {
   CreateUpdateParams,
   GetDocumentParams,
   HasAccessParams,
+  HasBroadcastAccessParams,
   Snapshot,
   SnapshotProofInfo,
   SnapshotUpdateClocks,
@@ -39,6 +40,9 @@ type WebsocketConnectionParams = {
   createSnapshot(createSnapshotParams: CreateSnapshotParams): Promise<Snapshot>;
   createUpdate(createUpdateParams: CreateUpdateParams): Promise<Update>;
   hasAccess(hasAccessParams: HasAccessParams): Promise<boolean>;
+  hasBroadcastAccess(
+    hasBroadcastAccessParams: HasBroadcastAccessParams
+  ): Promise<boolean[]>;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
   /** default: "off" */
   logging?: "off" | "error";
@@ -50,6 +54,7 @@ export const createWebSocketConnection =
     createSnapshot,
     createUpdate,
     hasAccess,
+    hasBroadcastAccess,
     additionalAuthenticationDataValidations,
     logging: loggingParam,
   }: WebsocketConnectionParams) =>
@@ -60,7 +65,10 @@ export const createWebSocketConnection =
     const handleDocumentError = () => {
       connection.send(JSON.stringify({ type: "document-error" }));
       connection.close();
-      removeConnection({ documentId, currentClientConnection: connection });
+      removeConnection({
+        documentId,
+        websocket: connection,
+      });
     };
 
     try {
@@ -74,6 +82,12 @@ export const createWebSocketConnection =
       const websocketSessionKey = Array.isArray(urlParts.query.sessionKey)
         ? urlParts.query.sessionKey[0]
         : urlParts.query.sessionKey;
+
+      // invalid connection without a sessionKey
+      if (websocketSessionKey === undefined) {
+        handleDocumentError();
+        return;
+      }
 
       const getDocumentModeString = Array.isArray(urlParts.query.mode)
         ? urlParts.query.mode[0]
@@ -127,7 +141,7 @@ export const createWebSocketConnection =
         return;
       }
 
-      addConnection({ documentId, currentClientConnection: connection });
+      addConnection({ documentId, websocket: connection, websocketSessionKey });
       connection.send(JSON.stringify({ type: "document", ...doc }));
 
       connection.on("message", async function message(messageContent) {
@@ -195,7 +209,8 @@ export const createWebSocketConnection =
                 type: "snapshot",
                 snapshot: snapshotMsgForOtherClients,
               },
-              currentClientConnection: connection,
+              currentWebsocket: connection,
+              hasBroadcastAccess,
             });
           } catch (error) {
             if (logging === "error") {
@@ -345,7 +360,8 @@ export const createWebSocketConnection =
             broadcastMessage({
               documentId,
               message: { ...savedUpdate, type: "update" },
-              currentClientConnection: connection,
+              currentWebsocket: connection,
+              hasBroadcastAccess,
             });
           } catch (err) {
             if (logging === "error") {
@@ -408,7 +424,8 @@ export const createWebSocketConnection =
                 ...ephemeralMessageMessage,
                 type: "ephemeral-message",
               },
-              currentClientConnection: connection,
+              currentWebsocket: connection,
+              hasBroadcastAccess,
             });
           } catch (err) {
             console.error("Ephemeral message failed due:", err);
@@ -417,7 +434,7 @@ export const createWebSocketConnection =
       });
 
       connection.on("close", function () {
-        removeConnection({ documentId, currentClientConnection: connection });
+        removeConnection({ documentId, websocket: connection });
       });
     } catch (error) {
       if (logging === "error") {

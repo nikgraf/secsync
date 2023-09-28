@@ -29,12 +29,18 @@ it("should handle document error if URL is undefined", async () => {
   const mockCreateSnapshot = jest.fn();
   const mockCreateUpdate = jest.fn();
   const mockHasAccess = jest.fn().mockReturnValue(true);
+  const mockHasBroadcastAccess = jest
+    .fn()
+    .mockImplementation((websocketSessionKeys) =>
+      websocketSessionKeys.map(() => true)
+    );
 
   const connection = createWebSocketConnection({
     getDocument: mockGetDocument,
     createSnapshot: mockCreateSnapshot,
     createUpdate: mockCreateUpdate,
     hasAccess: mockHasAccess,
+    hasBroadcastAccess: mockHasBroadcastAccess,
   });
 
   await connection(mockWs, mockReq);
@@ -45,20 +51,26 @@ it("should handle document error if URL is undefined", async () => {
   expect(mockWs.close).toHaveBeenCalledTimes(1);
   expect(removeConnection).toHaveBeenCalledWith({
     documentId: "",
-    currentClientConnection: mockWs,
+    websocket: mockWs,
   });
 });
 
 it("should close connection if unauthorized for read access", async () => {
-  mockReq.url = "/test-document";
+  mockReq.url = "/test-document?sessionKey=123";
 
   const mockHasAccess = jest.fn().mockReturnValue(false);
+  const mockHasBroadcastAccess = jest
+    .fn()
+    .mockImplementation((websocketSessionKeys) =>
+      websocketSessionKeys.map(() => true)
+    );
 
   const connection = createWebSocketConnection({
     getDocument: jest.fn(),
     createSnapshot: jest.fn(),
     createUpdate: jest.fn(),
     hasAccess: mockHasAccess,
+    hasBroadcastAccess: mockHasBroadcastAccess,
   });
 
   await connection(mockWs, mockReq);
@@ -66,6 +78,7 @@ it("should close connection if unauthorized for read access", async () => {
   expect(mockHasAccess).toHaveBeenCalledWith({
     action: "read",
     documentId: "test-document",
+    websocketSessionKey: "123",
   });
   expect(mockWs.send).toHaveBeenCalledWith(
     JSON.stringify({ type: "unauthorized" })
@@ -74,16 +87,22 @@ it("should close connection if unauthorized for read access", async () => {
 });
 
 it("should close connection if document not found", async () => {
-  mockReq.url = "/test-document";
+  mockReq.url = "/test-document?sessionKey=123";
 
   const mockGetDocument = jest.fn().mockReturnValue(undefined);
   const mockHasAccess = jest.fn().mockReturnValue(true);
+  const mockHasBroadcastAccess = jest
+    .fn()
+    .mockImplementation((websocketSessionKeys) =>
+      websocketSessionKeys.map(() => true)
+    );
 
   const connection = createWebSocketConnection({
     getDocument: mockGetDocument,
     createSnapshot: jest.fn(),
     createUpdate: jest.fn(),
     hasAccess: mockHasAccess,
+    hasBroadcastAccess: mockHasBroadcastAccess,
   });
 
   await connection(mockWs, mockReq);
@@ -95,7 +114,7 @@ it("should close connection if document not found", async () => {
 });
 
 it("should add connection and send document if found", async () => {
-  mockReq.url = "/test-document";
+  mockReq.url = "/test-document?sessionKey=123";
 
   const mockDocument = {
     snapshot: {},
@@ -105,12 +124,18 @@ it("should add connection and send document if found", async () => {
 
   const mockGetDocument = jest.fn().mockReturnValue(mockDocument);
   const mockHasAccess = jest.fn().mockReturnValue(true);
+  const mockHasBroadcastAccess = jest
+    .fn()
+    .mockImplementation((websocketSessionKeys) =>
+      websocketSessionKeys.map(() => true)
+    );
 
   const connection = createWebSocketConnection({
     getDocument: mockGetDocument,
     createSnapshot: jest.fn(),
     createUpdate: jest.fn(),
     hasAccess: mockHasAccess,
+    hasBroadcastAccess: mockHasBroadcastAccess,
   });
 
   await connection(mockWs, mockReq);
@@ -123,7 +148,8 @@ it("should add connection and send document if found", async () => {
   });
   expect(addConnection).toHaveBeenCalledWith({
     documentId: "test-document",
-    currentClientConnection: mockWs,
+    websocket: mockWs,
+    websocketSessionKey: "123",
   });
   expect(mockWs.send).toHaveBeenCalledWith(
     JSON.stringify({ type: "document", ...mockDocument })
@@ -139,15 +165,22 @@ it("should properly parse and send through knownSnapshotId & knownSnapshotUpdate
 
   const mockGetDocument = jest.fn().mockReturnValue(mockDocument);
   const mockHasAccess = jest.fn().mockReturnValue(true);
+  const mockHasBroadcastAccess = jest
+    .fn()
+    .mockImplementation((websocketSessionKeys) =>
+      websocketSessionKeys.map(() => true)
+    );
 
   const connection = createWebSocketConnection({
     getDocument: mockGetDocument,
     createSnapshot: jest.fn(),
     createUpdate: jest.fn(),
     hasAccess: mockHasAccess,
+    hasBroadcastAccess: mockHasBroadcastAccess,
   });
 
-  mockReq.url = "/test-document?knownSnapshotId=123";
+  mockReq.url = "/test-document?sessionKey=123&knownSnapshotId=123";
+
   await connection(mockWs, mockReq);
 
   expect(mockGetDocument).toHaveBeenCalledWith({
@@ -157,7 +190,7 @@ it("should properly parse and send through knownSnapshotId & knownSnapshotUpdate
     mode: "complete",
   });
 
-  mockReq.url = "/test-document?knownSnapshotId=555";
+  mockReq.url = "/test-document?sessionKey=123&knownSnapshotId=555";
   await connection(mockWs, mockReq);
 
   expect(mockGetDocument).toHaveBeenCalledWith({
@@ -171,7 +204,7 @@ it("should properly parse and send through knownSnapshotId & knownSnapshotUpdate
   const knownSnapshotUpdateClocksQuery = encodeURIComponent(
     JSON.stringify(knownSnapshotUpdateClocks)
   );
-  mockReq.url = `/test-document?knownSnapshotId=42&knownSnapshotUpdateClocks=${knownSnapshotUpdateClocksQuery}`;
+  mockReq.url = `/test-document?sessionKey=123&knownSnapshotId=42&knownSnapshotUpdateClocks=${knownSnapshotUpdateClocksQuery}`;
   await connection(mockWs, mockReq);
 
   expect(mockGetDocument).toHaveBeenCalledWith({
