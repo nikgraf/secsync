@@ -108,6 +108,7 @@ type UpdateInFlight = {
 
 type SnapshotInFlight = SnapshotInfoWithUpdateClocks & {
   parentSnapshotId: string;
+  changes: any[];
 };
 
 export type DocumentDecryptionState =
@@ -127,6 +128,7 @@ type ProcessQueueData = {
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
   snapshotAndUpdateErrors: Error[];
+  snapshotSaveFailedCounter: number;
 };
 
 export type InternalContextReset = {
@@ -149,6 +151,7 @@ export type Context = SyncMachineConfig &
     _snapshotAndUpdateErrors: Error[];
     _ephemeralMessageReceivingErrors: Error[];
     _ephemeralMessageAuthoringErrors: Error[];
+    _snapshotSaveFailedCounter: number;
     logging: SyncMachineConfig["logging"];
   };
 
@@ -163,7 +166,7 @@ const disconnectionContextReset: InternalContextReset = {
 };
 
 export const createSyncMachine = () =>
-  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGcQE4A7ADpxMgKwA2JQBYlAJnEAOTeoA0IFIgC0i9XPU29M9Vq0rdMlSoC+746ky4CxMgBBWloAfUoABQAJSixKACVAgBlQgFUI2kCAFUomViQQLh5+QWExBEkleUZHGRd1XS1GRhljUwqGqQV9RgBmFXVewd1erU9vdGw8IhJSAHVKACFyAHkAYQBpSizQ2gBJcjWV6mpKNZyGFmEivgEhAvKqtsRR3WslPS0pVQcNdRlxiAfFN-LN9odjqdznlrtxbqUHogniZEFoZPIpCpHEpGFIWiopNJAcC-DMyAAxQJ7JKUMJreKUbJ7agAcXC0ViCWSaQy2VyVwKNxK91A7TMjnEckxvSUMt6jF0IxkUmM5ScVQU4iqvVGdUcvWJk1JATkGEEJAw-DQUHmS1Wm22oSOJzOFxhgrhwrKEjUSgUMj6vT0NXU4i0RhRCH6VhsVRUYZUjBxScNvmmJrNaAtVptwTpUUCrMo5HdHE9d29FXRjClg1cKnlunEQdakYsjWs6N0Sik6lkLT6qZBZNN5rAluIUDkAHccLdrbblustjsGVl4gBNUuFcsI0DlSSjOQB3u9THOD7-Z5R-Tdbu9-7qBtaKpD40kUdZ8e8SCL+0r3Z1lSOJqB2agVh2ckVlSOhtyFCtEQQJomjkM8RikF8pBGf4lGvcRGD7VCMMcKRejqXEXzfdMP0zbNfwWJcHR2GDAlSLIohWeI9gALVpODdxFUQJEJP0tVxVQWj7cQ8LPLRrFkj4tB1ew0So0EwE-OiID-ZdHVoICQJ2BJ4k4-jigQ-dURqSURiqfQDCqPo8IMKUtEVHUviUD4ajUkdaO-SA5EICAABsyAY-9HTzUIshWUJmSOLBmTZABFVJKHSsz4UEtVmjkNRFSURUlJcfpejwpMVGPIYXzUL5D18jMx0tQLgrCnSmNCaLYqdVJyFirBQjichyECFlKFCNKMv5fIy3MvchKQvKCu7YrelKhs8K1OTbNcF91D6LyAS8IEjWojT-JaiAgtCoIQidAsixLAU5uyys3L9FaPixOVvrwpxJUYeMagI5tdEJRqaOan9rvYAAnTgMDgHhrRSgBXMAMdgUgIEEDTiAAN04ABrDT4cR5H0cxuAsq9RD8I1BxvjPeNm2bFVI0PSU-gJGpXFlA0TpJc7NIC2GEaR2AUagKmsdIMA4YRuG5HYEKcF4AAzTg4YAWxViXKYxrHaYsxbpC1BQcW+RN7EJf6cTkKo9GfLzSI8IWzvU0Wrv1impcnWW4A6gDurihKViS1lJvSzKXp3eacsQFR7DkRoNF0BsAybaTObBx3ZH+OoAyTAjIYu6HAvJyXpcD7GIt0nZQ96-qI6G4tRvG6PppNhbygGGt0UTJMyPjIrcM5gi5L7HtmiDeUhndiY0y9y6Yd96uA6NoPorWR7xue2b47e+mwzktEsKTL4CKwlQZKU-KekYcQ1G+IrF9O5e-Ir66CHHYnJ3JNrLA2swCBz2D+HWdc7QNy6vdHq4dI6pRjjNWECdKziEfHIBUQZCSaHWlIXsW0exyHDJoN+4ZnaCyXsOJqX4fa-wwP-a0gC4bALhqAre4CwCQODlFOBcU1h9QGm3EaY0JpTVjofeCvcJA2BrIGGQOgnxYnBhVBsCgmZNiBjIRQKYPaf1oVpU0+A-4AKASAsBEDsY7z3sWHuicKg9isPhNE-xdCHXjK2doGDQz5VIsqcMQZkLqDLt7NeDCmFQBYWwjh1MuE8JELAXg6sNI4A1j+OGAAKRgABKUgwsV7f2MaY5h5j2GWO4bAex6DT7WGKmoRQZEez-QGAob4iiCLiTfqE1egUIlmNYRYzhVjSCJOST+OQaSMnZLyQUr+dDwkmMYQMmJFTIH0HEFIgS6CmiShKjoHUvYn7XkaPIMSTQkzPz7G5UJEBCCwF6dpGxhZ97VMQphEhT4S4HVGLiW+kY6hSmbOGAkkh8JniULc+5jzSDOihFkN5lkEAEisD2SQ-w+jKDUHhVpWd0SEhHm4TQUKHnf1IIixaPYqpXxlIE7QLhdDXh1APAigwbAyBHqMTwJ00CcAgHAYQcyAioOPki-5YonBdGlLKWUColRSB6dDScIq6ZItcL0BQQ9XB9DBd8a8TgWXdhaK4QYOINCKoWZOOQ7DeBwxQMqj0aD6YLxIXiDBCppBGojO0IYbxpCxj7IGoYg59E0Khpa60M45w5hVabco2dNXNG1UGSQerIz9ElNIcMvZ+bKEURarSsaZEIA0NeAkclk5KVDE-XsjgQmhvfOXBZrVbpFocS4raAZXVog5fKbQCp63UMbWEyuBt-aoy3vAR1orFrOHkI0J+7iCINiKv9M8fjwYjEVGGUiVCP5hqbUY-ppTBnlOGZUtt6D+35T1HUdxtac7eINahJ8zZ4xNmCSSx5l7EJDElMqJseoXA-DTe0L4U8qgBnwl8rCoTeWBAwNXH9SLHB5R1EGA6OI3HInaCMKquDMTon6ISHRoSNZzjChAZDi0KF+ixTKU5jQlJrq6ASTd60P2kUhdyoAA */
+  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGAEwAWAJwA6SbPHSAbAA51AdkbStAZmkAaECgmMtirXr3q5+2foCskgL6uTqTLgLEyAQVpaAH1KAAUACUosSgAlfwAZYJjycn8AcUomViQQLh5+QWExBHFxDXlraScpRhlVMvETM1K3DxAvbDwiElIAdUoAIXIAeQBhAGlKABVg2gBJcjGR6mpKMenKBhZhfL4BIVyS1S1mxGkHeRdGbTr1RhVqp3dPdC7fXoWllbWN7N3uPsikdECczgh9KoFNdbpJ7o8nM92p0fD0yAAxfzzBJbYJjWKUfzTebUdKhSLROKJZKUVIZLI7XJ7QqHUAlRrqeT6LSqKFOdROaSMfQqcHiJzWeSyOqSGRlRw3cQvDpvVF+eQYQQkDD8NBQfpDUaTGZ4n7rTbbHIcQEs4oSXn6eTiLR2SEunSybTg6qciz6fTaWROWSqYWGZUo7rqzVobW6-WBEJjCL+Um0-5Mm0HO0Qxi8xTqQzqcT6Cx54ymRCSLTieTqWQyPOMJyqaqOCOqqMkDVasA64hQeQAdxw+z1BuG4ymswJ01iAE0M9aCtmQaUVLWAyoeWV+S3vVpLAZpPXnLLW0L9B3vF2wD3Y33eJAJ0bp3NxgBVGLUWbUEazdERg-OglzyLNgTZCQG0keQ5DUQ8pBPMpTkrUoRVUSpFVDRhZGkWUg2vd40XvONnwGSdjVmYD-A-aYIhGWJ5gALS2UDmVXSDSkcGC4JOGsZGLZ0xUhDCnH9VRuRUYNuSvZFOw+O8Y1IiAXynE1aE-b9ZjiWIGLY8DWVEKCpFg3C+MQwSUJaKR800SQNFLPCXBUQi1W7JTH0geRCAgAAbMhyNfE1E2CaYRmCElliwEkyQARQ-SgEv0lcIKMhBJHERh5FUfl6yFVRJH0OFVDFFROShAVm1kQ9qiVOSbwUkjPIgby-ICw01NmEKwrxD9yDCrAaTpTJgnixKGStMCUsMkoMqynLNFwvNCuKsUZEdaqRXsupSxuLRXNvJqdS8nz-NIELk1TTJyGSoEZqrTLstypaCqK9QStQktLhkd0Ay0RsMoOxqPOOlr2AAJ04DA4B4PVYoAVzARHYFICBBDvYgADdOAAazvCGoZhhGkbgW7bTXRpLE9RyeThB4SzW51sshCVJEVE9-SB4iQafMHIeh2BYagYnkdIMBwch8H5HYXycF4AAzThwYAW2l-micR5GyY4tLxG40z4P4pChM+6p5rhHRnHuaQ9Fk14Gu53tQbVwnBYHEW4FUyjgm68LIpGaLSVGhKksZZc7pzDRpCdBoTxsHkK2s-DYL13QdCFAVnC56Mnd5l2BaFj2UcCzqfaCULwrGPqBqGtIRrG0PJvY1LjicLKyjZ7bZGqttSsMJ0bbwqEgyUfls-c3OvIJgv3c1z2LpTNMbrDqaI7XawYOsbRcrb-13rFYVOXekMtGUNs6nHxTJ5agg+xxgd0SVrAlbAD35ifZXi4673fYi6gopisHca2sW4SBPDBHCmULhVUFMGNacgpR2G0Jlf0hVnSXyOnnW+GB756kfuDZ+4NX5z3fmAT+Xs3y-yrv1AOtd6RAMbgCaaOZHi+mkOUCSTYOGSFKoKSomUpAikLMIu2KoHY5wfM7bBuCoD4MIcQkmpDyELyuumFezd7qlEFPNF01YXTck9FoJwB9gywWcNyMShhB6yAwTzLy0iH5Pxfm-D+KMRCwF4HLO8OB5ZPnBgACkYAASlIJGYG18NT4Dvo4ghziSGuJAZosoIoY4PCDPWCUJ9hJ8JtlIDce07i2IiQ4vBTiiEuLIW4jxXj5A+L8YEkJYTHaSKwVEnBMT5EVM-vQcQTcDIsLZgoZQDxeTSgkvxcEyghkSkRHhIxIo1AYIgIQWAdiVIqKXoknMaDOTikqvlf0PJ1DglLI6RgDxuRVRslneqRF1TLNWdfUgyxVjmi2WuUMThsr2RFCWUMpY4Tekem3ZsVsagtneqoJZKy1mkHeZxT53yJLJP+Xcb0oYuTbSkNKIqPIoXKjQJwCAcBhBNL8EwtenFyhijsFcPkOFT6cP+tIIpLSBwUvJpxBCdYirnM7jbf6TRULOGjuUGsQoJW4TKPi+2dyJ5sr1PIIhvBwYoHZZmZhFMRWKE9GzOoG5QxWXOOw0y5zT4PAeBlGVYi5VXwVYOEcY4oAcp1iUYsChCx6v5XoDK3ocmaHFHxKEuh1CsuUi60BCBWzghdF8+4Lgayhl5LHMNzVWr+QjUkqQa0GjyBGTocoS1T6pudtPGGs8SbwA1ZStKUIMLqBkDIXCmg61CuskVBQUIDEnmlPUGxty3J2uUpE6JpTYnlPiZUzNLCXCchFc2Fs1Y4QyGyVlSQwYGiaAbQVMS0LHktMgNOtczhawlnYeJBwEkcremFFYUMi0bCthLBgwl-gMAFyPZxWUhY80yn5AC2U3JhJwkUOJNuGVNrhgHYdeWo5-IQE-Wlb9Zy-2FhlIVI1pQLiOkRNWAMDhdHuHcEAA */
   createMachine(
     {
       schema: {
@@ -234,6 +237,7 @@ export const createSyncMachine = () =>
         _updatesInFlight: [], // is needed to collect all changes from updates that haven't been confirmed in case of a disconnect
         _updatesLocalClock: -1,
         _snapshotAndUpdateErrors: [],
+        _snapshotSaveFailedCounter: 0,
         _ephemeralMessageReceivingErrors: [],
         _ephemeralMessageAuthoringErrors: [],
         _ephemeralMessagesSession: null,
@@ -514,6 +518,7 @@ export const createSyncMachine = () =>
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "customMessage") {
             return {
@@ -529,6 +534,7 @@ export const createSyncMachine = () =>
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
               _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "pending") {
             return {
@@ -543,6 +549,7 @@ export const createSyncMachine = () =>
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
               _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "none") {
             return {};
@@ -616,6 +623,7 @@ export const createSyncMachine = () =>
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
           let snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
           let errorCausingDocumentToFail: Error | null = null;
+          let snapshotSaveFailedCounter = context._snapshotSaveFailedCounter;
 
           let ephemeralMessageReceivingErrors =
             context._ephemeralMessageReceivingErrors;
@@ -690,6 +698,7 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
+                    changes: pendingChangesQueue,
                   };
                   pendingChangesQueue = [];
 
@@ -736,6 +745,7 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
+                    changes: pendingChangesQueue,
                   };
                   pendingChangesQueue = [];
 
@@ -1256,6 +1266,8 @@ export const createSyncMachine = () =>
                       activeSnapshotInfoWithUpdateClocks.snapshotId ===
                         snapshotInFlight.parentSnapshotId)
                   ) {
+                    snapshotSaveFailedCounter = 0; // reset the counter since we got a positive save response
+
                     snapshotInfosWithUpdateClocks.push({
                       ...snapshotInFlight,
                       updateClocks: {},
@@ -1269,6 +1281,7 @@ export const createSyncMachine = () =>
 
                   break;
                 case "snapshot-save-failed":
+                  snapshotSaveFailedCounter += 1;
                   if (context.logging === "debug") {
                     console.log("snapshot saving failed", event);
                   }
@@ -1313,6 +1326,7 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.debug("update saved", event);
                   }
+                  snapshotSaveFailedCounter = 0; // reset the counter since we got a positive save response
 
                   // only increases if the event.clock is larger since the server
                   // might have returned them out of order
@@ -1546,6 +1560,7 @@ export const createSyncMachine = () =>
               documentDecryptionState,
               ephemeralMessagesSession,
               snapshotAndUpdateErrors,
+              snapshotSaveFailedCounter,
             };
           } catch (error) {
             if (context.logging === "debug" || context.logging === "error") {
