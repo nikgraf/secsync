@@ -186,6 +186,11 @@ export type HasAccessParams =
       websocketSessionKey: string | undefined;
     };
 
+export type HasBroadcastAccessParams = {
+  documentId: string;
+  websocketSessionKeys: string[];
+};
+
 export type ValidSessions = {
   [authorPublicKey: string]: { sessionId: string; sessionCounter: number };
 };

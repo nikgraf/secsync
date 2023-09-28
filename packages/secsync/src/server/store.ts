@@ -1,58 +1,94 @@
-type DocumentStoreEntry = {
-  connections: Set<any>;
-};
+import WebSocket from "ws";
+import { HasBroadcastAccessParams } from "../types";
 
-const documents: { [key: string]: DocumentStoreEntry } = {};
+type ConnectionEntry = { websocketSessionKey: string; websocket: WebSocket };
+
+const documents: { [key: string]: ConnectionEntry[] } = {};
+const messageQueues: { [key: string]: BroadcastMessageParams[] } = {};
 
 export type BroadcastMessageParams = {
   documentId: string;
   message: any;
-  currentClientConnection: any;
+  currentWebsocket: any;
+  hasBroadcastAccess: (params: HasBroadcastAccessParams) => Promise<boolean[]>;
 };
 
-export const broadcastMessage = ({
-  documentId,
-  message,
-  currentClientConnection,
-}: BroadcastMessageParams) => {
-  documents[documentId]?.connections?.forEach((conn) => {
-    if (currentClientConnection !== conn) {
-      conn.send(JSON.stringify(message));
-    }
-    // for debugging purposes
-    // conn.send(JSON.stringify(update));
+export const broadcastMessage = async (params: BroadcastMessageParams) => {
+  const { documentId } = params;
+
+  if (!messageQueues[documentId]) {
+    messageQueues[documentId] = [];
+  }
+
+  messageQueues[documentId].push(params);
+
+  // only start processing if this is the only message in the queue to avoid overlapping calls
+  if (messageQueues[documentId].length === 1) {
+    processMessageQueue(documentId);
+  }
+};
+
+const processMessageQueue = async (documentId: string) => {
+  if (!documents[documentId] || messageQueues[documentId].length === 0) return;
+
+  const { hasBroadcastAccess } = messageQueues[documentId][0];
+
+  const websocketSessionKeys = documents[documentId].map(
+    ({ websocketSessionKey }) => websocketSessionKey
+  );
+
+  const accessResults = await hasBroadcastAccess({
+    documentId,
+    websocketSessionKeys,
   });
+
+  documents[documentId] = documents[documentId].filter(
+    (_, index) => accessResults[index]
+  );
+
+  // Send all the messages in the queue to the allowed connections
+  messageQueues[documentId].forEach(({ message, currentWebsocket }) => {
+    documents[documentId].forEach(({ websocket }) => {
+      if (websocket !== currentWebsocket) {
+        websocket.send(JSON.stringify(message));
+      }
+    });
+  });
+
+  // clear the message queue after it's broadcasted
+  messageQueues[documentId] = [];
 };
 
 export type AddConnectionParams = {
   documentId: string;
-  currentClientConnection: any;
+  websocket: WebSocket;
+  websocketSessionKey: string;
 };
 
 export const addConnection = ({
   documentId,
-  currentClientConnection,
+  websocket,
+  websocketSessionKey,
 }: AddConnectionParams) => {
   if (documents[documentId]) {
-    documents[documentId].connections.add(currentClientConnection);
+    documents[documentId].push({ websocket, websocketSessionKey });
   } else {
-    documents[documentId] = {
-      connections: new Set<any>(),
-    };
-    documents[documentId].connections.add(currentClientConnection);
+    documents[documentId] = [{ websocket, websocketSessionKey }];
   }
 };
 
 export type RemoveConnectionParams = {
   documentId: string;
-  currentClientConnection: any;
+  websocket: WebSocket;
 };
 
 export const removeConnection = ({
   documentId,
-  currentClientConnection,
+  websocket: currentWebsocket,
 }: RemoveConnectionParams) => {
   if (documents[documentId]) {
-    documents[documentId].connections.delete(currentClientConnection);
+    documents[documentId] = documents[documentId].filter(
+      ({ websocket }) => websocket !== currentWebsocket
+    );
   }
 };
