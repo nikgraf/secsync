@@ -63,7 +63,7 @@ export interface Typegen0 {
   eventsCausingDelays: {};
   eventsCausingGuards: {
     hasMoreItemsInQueues: "xstate.after(0)#syncMachine.connected.checkingForMoreQueueItems";
-    lessThan5SnapshotSavedFailed: "done.invoke.processQueues";
+    hasNoErrorTriggeringADisconnect: "done.invoke.processQueues";
     shouldReconnect: "";
   };
   eventsCausingServices: {

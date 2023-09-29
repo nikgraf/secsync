@@ -129,6 +129,7 @@ type ProcessQueueData = {
   ephemeralMessagesSession: EphemeralMessagesSession | null;
   snapshotAndUpdateErrors: Error[];
   snapshotSaveFailedCounter: number;
+  errorNotCausingDocumentToFail: Error | null;
 };
 
 export type InternalContextReset = {
@@ -336,9 +337,9 @@ export const createSyncMachine = () =>
                 src: "processQueues",
                 onDone: [
                   {
+                    cond: "hasNoErrorTriggeringADisconnect", // Note: guard runs before the actions
                     actions: ["removeOldestItemFromQueueAndUpdateContext"],
                     target: "checkingForMoreQueueItems",
-                    cond: "lessThan5SnapshotSavedFailed",
                   },
                   {
                     actions: ["removeOldestItemFromQueueAndUpdateContext"],
@@ -512,6 +513,13 @@ export const createSyncMachine = () =>
           };
         }),
         removeOldestItemFromQueueAndUpdateContext: assign((context, event) => {
+          const snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
+          if (event.data.errorNotCausingDocumentToFail) {
+            snapshotAndUpdateErrors.unshift(
+              event.data.errorNotCausingDocumentToFail
+            );
+          }
+
           if (event.data.handledQueue === "incoming") {
             return {
               _incomingQueue: context._incomingQueue.slice(1),
@@ -525,7 +533,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
-              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotAndUpdateErrors: snapshotAndUpdateErrors,
               _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "customMessage") {
@@ -541,7 +549,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
-              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotAndUpdateErrors: snapshotAndUpdateErrors,
               _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "pending") {
@@ -556,7 +564,7 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
-              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotAndUpdateErrors: snapshotAndUpdateErrors,
               _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "none") {
@@ -629,8 +637,8 @@ export const createSyncMachine = () =>
           let pendingChangesQueue = context._pendingChangesQueue;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
-          let snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
           let errorCausingDocumentToFail: Error | null = null;
+          let errorNotCausingDocumentToFail: Error | null = null;
           let snapshotSaveFailedCounter = context._snapshotSaveFailedCounter;
 
           let ephemeralMessageReceivingErrors =
@@ -844,8 +852,8 @@ export const createSyncMachine = () =>
                     context.additionalAuthenticationDataValidations?.snapshot
                   );
                 } catch (err) {
-                  snapshotAndUpdateErrors.unshift(
-                    new Error("SECSYNC_ERROR_110")
+                  errorNotCausingDocumentToFail = new Error(
+                    "SECSYNC_ERROR_110"
                   );
                   return;
                 }
@@ -855,8 +863,8 @@ export const createSyncMachine = () =>
                     snapshot.publicData.pubKey
                   );
                   if (!isValidClient) {
-                    snapshotAndUpdateErrors.unshift(
-                      new Error("SECSYNC_ERROR_114")
+                    errorNotCausingDocumentToFail = new Error(
+                      "SECSYNC_ERROR_114"
                     );
                     return;
                   }
@@ -895,8 +903,8 @@ export const createSyncMachine = () =>
                   });
                   parentSnapshotUpdateClock = undefined;
                   if (!isValidAncestor) {
-                    snapshotAndUpdateErrors.unshift(
-                      new Error("SECSYNC_ERROR_115")
+                    errorNotCausingDocumentToFail = new Error(
+                      "SECSYNC_ERROR_115"
                     );
                     return;
                   }
@@ -956,9 +964,8 @@ export const createSyncMachine = () =>
                   ) {
                     errorCausingDocumentToFail = decryptedSnapshotResult.error;
                   } else {
-                    snapshotAndUpdateErrors.unshift(
-                      decryptedSnapshotResult.error
-                    );
+                    errorNotCausingDocumentToFail =
+                      decryptedSnapshotResult.error;
                   }
 
                   return;
@@ -1034,8 +1041,8 @@ export const createSyncMachine = () =>
                       context.additionalAuthenticationDataValidations?.update
                     );
                   } catch (err) {
-                    snapshotAndUpdateErrors.unshift(
-                      new Error("SECSYNC_ERROR_211")
+                    errorNotCausingDocumentToFail = new Error(
+                      "SECSYNC_ERROR_211"
                     );
                     continue;
                   }
@@ -1045,8 +1052,8 @@ export const createSyncMachine = () =>
                       update.publicData.pubKey
                     );
                     if (!isValidClient) {
-                      snapshotAndUpdateErrors.unshift(
-                        new Error("SECSYNC_ERROR_215")
+                      errorNotCausingDocumentToFail = new Error(
+                        "SECSYNC_ERROR_215"
                       );
                       continue;
                     }
@@ -1091,9 +1098,7 @@ export const createSyncMachine = () =>
                         decryptUpdateResult.error.message
                       )
                     ) {
-                      snapshotAndUpdateErrors.unshift(
-                        decryptUpdateResult.error
-                      );
+                      errorNotCausingDocumentToFail = decryptUpdateResult.error;
                       continue;
                     } else {
                       errorCausingDocumentToFail = decryptUpdateResult.error;
@@ -1186,9 +1191,6 @@ export const createSyncMachine = () =>
                     throw new Error("SECSYNC_ERROR_100");
                   }
 
-                  const snapshotAndUpdateErrorsLength =
-                    snapshotAndUpdateErrors.length;
-
                   if (event.snapshot) {
                     await processSnapshot(
                       event.snapshot,
@@ -1197,13 +1199,9 @@ export const createSyncMachine = () =>
                     );
 
                     // if the initial snapshot fails the document can't be loaded
-                    if (
-                      snapshotAndUpdateErrors.length >
-                      snapshotAndUpdateErrorsLength
-                    ) {
-                      errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
-                      // remove the item since it will be added later due errorCausingDocumentToFail being set
-                      snapshotAndUpdateErrors.pop();
+                    if (errorNotCausingDocumentToFail) {
+                      errorCausingDocumentToFail =
+                        errorNotCausingDocumentToFail;
                     }
                   }
 
@@ -1226,13 +1224,9 @@ export const createSyncMachine = () =>
                           : activeSnapshotInfoWithUpdateClocks
                       );
 
-                      if (
-                        snapshotAndUpdateErrors.length >
-                        snapshotAndUpdateErrorsLength
-                      ) {
-                        errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
-                        // remove the item since it will be added later due errorCausingDocumentToFail being set
-                        snapshotAndUpdateErrors.pop();
+                      if (errorNotCausingDocumentToFail) {
+                        errorCausingDocumentToFail =
+                          errorNotCausingDocumentToFail;
                       }
                     }
                   }
@@ -1523,6 +1517,8 @@ export const createSyncMachine = () =>
                 // pending changes are ignored until the document is loaded
                 return {
                   handledQueue: "none",
+                  snapshotSaveFailedCounter,
+                  errorNotCausingDocumentToFail,
                 };
               }
 
@@ -1577,8 +1573,8 @@ export const createSyncMachine = () =>
                 ephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
               documentDecryptionState,
               ephemeralMessagesSession,
-              snapshotAndUpdateErrors,
               snapshotSaveFailedCounter,
+              errorNotCausingDocumentToFail,
             };
           } catch (error) {
             if (context.logging === "debug" || context.logging === "error") {
@@ -1602,8 +1598,19 @@ export const createSyncMachine = () =>
         shouldReconnect: (context, event) => {
           return context._websocketShouldReconnect;
         },
-        lessThan5SnapshotSavedFailed: (context) => {
-          return context._snapshotSaveFailedCounter < 5;
+        hasNoErrorTriggeringADisconnect: (context, event) => {
+          const { errorNotCausingDocumentToFail, snapshotSaveFailedCounter } =
+            event.data;
+
+          return (
+            snapshotSaveFailedCounter < 5 &&
+            !(
+              errorNotCausingDocumentToFail &&
+              ["SECSYNC_ERROR_112", "SECSYNC_ERROR_115"].includes(
+                errorNotCausingDocumentToFail.message
+              )
+            )
+          );
         },
       },
     }
