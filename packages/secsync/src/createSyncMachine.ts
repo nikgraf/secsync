@@ -139,6 +139,7 @@ export type InternalContextReset = {
   _updatesLocalClock: number;
   _documentDecryptionState: DocumentDecryptionState;
   _ephemeralMessagesSession: EphemeralMessagesSession | null;
+  _snapshotSaveFailedCounter: number;
 };
 
 export type Context = SyncMachineConfig &
@@ -151,7 +152,6 @@ export type Context = SyncMachineConfig &
     _snapshotAndUpdateErrors: Error[];
     _ephemeralMessageReceivingErrors: Error[];
     _ephemeralMessageAuthoringErrors: Error[];
-    _snapshotSaveFailedCounter: number;
     logging: SyncMachineConfig["logging"];
   };
 
@@ -163,10 +163,11 @@ const disconnectionContextReset: InternalContextReset = {
   _updatesLocalClock: -1,
   _documentDecryptionState: "pending",
   _ephemeralMessagesSession: null,
+  _snapshotSaveFailedCounter: 0,
 };
 
 export const createSyncMachine = () =>
-  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGAEwAWAJwA6SbPHSAbAA51AdkbStAZmkAaECgmMtirXr3q5+2foCskgL6uTqTLgLEyAQVpaAH1KAAUACUosSgAlfwAZYJjycn8AcUomViQQLh5+QWExBHFxDXlraScpRhlVMvETM1K3DxAvbDwiElIAdUoAIXIAeQBhAGlKABVg2gBJcjGR6mpKMenKBhZhfL4BIVyS1S1mxGkHeRdGbTr1RhVqp3dPdC7fXoWllbWN7N3uPsikdECczgh9KoFNdbpJ7o8nM92p0fD0yAAxfzzBJbYJjWKUfzTebUdKhSLROKJZKUVIZLI7XJ7QqHUAlRrqeT6LSqKFOdROaSMfQqcHiJzWeSyOqSGRlRw3cQvDpvVF+eQYQQkDD8NBQfpDUaTGZ4n7rTbbHIcQEs4oSXn6eTiLR2SEunSybTg6qciz6fTaWROWSqYWGZUo7rqzVobW6-WBEJjCL+Um0-5Mm0HO0Qxi8xTqQzqcT6Cx54ymRCSLTieTqWQyPOMJyqaqOCOqqMkDVasA64hQeQAdxw+z1BuG4ymswJ01iAE0M9aCtmQaUVLWAyoeWV+S3vVpLAZpPXnLLW0L9B3vF2wD3Y33eJAJ0bp3NxgBVGLUWbUEazdERg-OglzyLNgTZCQG0keQ5DUQ8pBPMpTkrUoRVUSpFVDRhZGkWUg2vd40XvONnwGSdjVmYD-A-aYIhGWJ5gALS2UDmVXSDSkcGC4JOGsZGLZ0xUhDCnH9VRuRUYNuSvZFOw+O8Y1IiAXynE1aE-b9ZjiWIGLY8DWVEKCpFg3C+MQwSUJaKR800SQNFLPCXBUQi1W7JTH0geRCAgAAbMhyNfE1E2CaYRmCElliwEkyQARQ-SgEv0lcIKMhBJHERh5FUfl6yFVRJH0OFVDFFROShAVm1kQ9qiVOSbwUkjPIgby-ICw01NmEKwrxD9yDCrAaTpTJgnixKGStMCUsMkoMqynLNFwvNCuKsUZEdaqRXsupSxuLRXNvJqdS8nz-NIELk1TTJyGSoEZqrTLstypaCqK9QStQktLhkd0Ay0RsMoOxqPOOlr2AAJ04DA4B4PVYoAVzARHYFICBBDvYgADdOAAazvCGoZhhGkbgW7bTXRpLE9RyeThB4SzW51sshCVJEVE9-SB4iQafMHIeh2BYagYnkdIMBwch8H5HYXycF4AAzThwYAW2l-micR5GyY4tLxG40z4P4pChM+6p5rhHRnHuaQ9Fk14Gu53tQbVwnBYHEW4FUyjgm68LIpGaLSVGhKksZZc7pzDRpCdBoTxsHkK2s-DYL13QdCFAVnC56Mnd5l2BaFj2UcCzqfaCULwrGPqBqGtIRrG0PJvY1LjicLKyjZ7bZGqttSsMJ0bbwqEgyUfls-c3OvIJgv3c1z2LpTNMbrDqaI7XawYOsbRcrb-13rFYVOXekMtGUNs6nHxTJ5agg+xxgd0SVrAlbAD35ifZXi4673fYi6gopisHca2sW4SBPDBHCmULhVUFMGNacgpR2G0Jlf0hVnSXyOnnW+GB756kfuDZ+4NX5z3fmAT+Xs3y-yrv1AOtd6RAMbgCaaOZHi+mkOUCSTYOGSFKoKSomUpAikLMIu2KoHY5wfM7bBuCoD4MIcQkmpDyELyuumFezd7qlEFPNF01YXTck9FoJwB9gywWcNyMShhB6yAwTzLy0iH5Pxfm-D+KMRCwF4HLO8OB5ZPnBgACkYAASlIJGYG18NT4Dvo4ghziSGuJAZosoIoY4PCDPWCUJ9hJ8JtlIDce07i2IiQ4vBTiiEuLIW4jxXj5A+L8YEkJYTHaSKwVEnBMT5EVM-vQcQTcDIsLZgoZQDxeTSgkvxcEyghkSkRHhIxIo1AYIgIQWAdiVIqKXoknMaDOTikqvlf0PJ1DglLI6RgDxuRVRslneqRF1TLNWdfUgyxVjmi2WuUMThsr2RFCWUMpY4Tekem3ZsVsagtneqoJZKy1mkHeZxT53yJLJP+Xcb0oYuTbSkNKIqPIoXKjQJwCAcBhBNL8EwtenFyhijsFcPkOFT6cP+tIIpLSBwUvJpxBCdYirnM7jbf6TRULOGjuUGsQoJW4TKPi+2dyJ5sr1PIIhvBwYoHZZmZhFMRWKE9GzOoG5QxWXOOw0y5zT4PAeBlGVYi5VXwVYOEcY4oAcp1iUYsChCx6v5XoDK3ocmaHFHxKEuh1CsuUi60BCBWzghdF8+4Lgayhl5LHMNzVWr+QjUkqQa0GjyBGTocoS1T6pudtPGGs8SbwA1ZStKUIMLqBkDIXCmg61CuskVBQUIDEnmlPUGxty3J2uUpE6JpTYnlPiZUzNLCXCchFc2Fs1Y4QyGyVlSQwYGiaAbQVMS0LHktMgNOtczhawlnYeJBwEkcremFFYUMi0bCthLBgwl-gMAFyPZxWUhY80yn5AC2U3JhJwkUOJNuGVNrhgHYdeWo5-IQE-Wlb9Zy-2FhlIVI1pQLiOkRNWAMDhdHuHcEAA */
+  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGAEwBOaQDoA7AoBsAFgAc45WoDMa5QBoQKCYwVzJC1VYXrV0nQ4CskgL6ujqTLgLEyAQVpaAH1KAAUACUosSgAlfwAZYJjycn8AcUomViQQLh5+QWExBClxeUkZFw1xdSdGSR0jE1K3DxAvbDwiElIAdUoAIXIAeQBhAGlKABVg2gBJcjGR6mpKMenKBhZhfL4BIVyS5QVmxFVHORdGdR1xPScFKXUFd090Lt9ehaWVtY3srtuPsikdECczgg9PJrnYdE5pOJ7i43h0Pj4emQAGL+eYJLbBMaxSj+abzajpUKRaJxRLJSipDJZHa5PaFQ6gEpI5TqOTqZTiBQ3NQKaSVQzGCQCxhyO6MVQucSMeU3NrvbzdPxyDCCEgYfhoKD9IajSYzQl-dabbY5DjA9nFKU8uSC24Kxj3aTKpyQ+yqPmqZTw1SqQXSfmMJyozoYrU6tB6g1GwIhMYRfwUhmA1n2g6OqHiR4WJw6UO1aROepNSUISziPlinQKSrSHlKyvR9Gakja3VgfXEKByADuOH2huNw3GU1mxOmsQAmtm7QU82DSuJQ7LNBchapJEqm76lIpS3V5V6nFo1J2NV8wL2E-3eJBJ6aZ3NxgBVGLUWbUEZZixEYvzoZc8lzUFOUQSQGh0ORA0DJsTlUBp1Ehe5tBdQN1GkENZAFLRb0+TFH0TV8BinM1ZlA-wv2mCIRlieYAC0tnAtk12g2tlXgxCgxUKw0IwxULERJt1EYHkrCcZRiNjHt43IiA32nc1aG-X9ZjiWImI4yCOVEGC4IQ-RkKEyR0JrTdCzkaRmybQsrzuPD5O7B8lOfSA5EICAABsyEo99zRTYJphGYJyWWLByUpABFL9KES-TVygozayVORlCcdRz0IoV6h9aytHkZRwz0dRJEeFwo3aGN3LIryIB8-zApNNTZlC8LCS-chwqwelGUyYIEqS5lbQg1LDJKA8ZWy3L6nyyNIwwyQ1Ds5tw1uRgdFVV46q7e9Gv1bzfIC0hQrTDNMnIFKQWmmDMvmvKkQKlbrL0GVJGsBQ9ELb6VDkg671IzyTua9gACdOAwOAeENOKAFcwGR2BSAgQQH2IAA3TgAGsHyhmG4aRlG4Duh11yVXCrmynblB2yTvqslpXv9WwrG+pFyiVNU0RBuM+3BuQidh2B4agUnUdIMBIehyGRb8nBeAAM04SGAFsRehsXYCl8mWRXe781g+5TKQwTUMs1bfr5X6FUqhRK0aNyjrBl8IZ1uHB31tGgo64IuoiqKRhiikRsS5LDcm431x5f0tE3UMZCFLRVFW+oEPLHK7l+77XdBoWPe14nxZ95Hpf96jA6CMKIrGXr+sGtJhtGqOJs4tLjkz7nwzW+wpEqDCnOwi4dEdwVtFUAvBafYXRe9hGK7gC7a6uzNbujzuHoQTnFA0J4S1kQ-xAwyN5H5CsvX3Rpm3UGfFKL7yCH7PHByxdWsHVsB9fmF8Nb9u1auQdIrUGirFCOY0KZcXSoWW2UklT0xuCoRow9lCSCyvKK8zYGYuGbA-DyT9movwwG-Q0H9IZf0hj-Zef8wAANUsA2u3UG59VDs3JkkD25AimvmQslwPRaEaAzBwlUiqsykuYHQKcyplnuOPAhx1i4kLIVAChVCaFkzoQwy66YN7QK7lKO4WUNCNFuC8WC6caz2QwZGeoB5ZKClQjoRR7tn74Ffu-T+39f7-zRiIWAvBlYPhwCrF8kMAAUjAACUpB6puyIdqDxpCvGUJ8bQvxBid6DwwfcD0skQz1HuKtE4cgpLCh2vCWQtxXGJJUakjRvj6H+MCcEuQoTwlRNifEwuc9lHJNUeo9JWjMniA7gZPhu0ZS5Q9GtE4pYGgShaHhGUFYrCaGkaGXa99gYkS1BAQgsA3EqV0ddLMW8Jnrm+oweQzxAwqHHjyPQkJdrwWVPI6wMyHCBkUQco5RDSDLFWFaLJ+ZcFZTWrnZOGhx6+nlC6IMLw4G7SsL8w5xzSCgrjpGCFQYnFSBhSzc4DNZRVVbE2SyOVdC1L6d5BeZcl5kzRhjHsON8aEy9uLX29Axk8Njtxa8vJXSliKY4b0voqqyg9MqfckYgw8ncO0NAnAIBwGED0vwfLKYCqWRIOwtM8IqHpvNawNLEyDi1TAkoSh6y3FgjoceKhXrSBeU4BOJxEEaFQk7Wq6o9mPz6YOOQ1DeCQxQBanMvCqbBjEpoQiqFUJ2F9FuewvEvS4SqgiM1z4g2jnHFAS1hiECaAvtIypLx8ouprAqf0GhJJ1CdioaqLjdkKUIbSiAhad5qEhJJZQfJIz3FwhcDQJZs3CzOmALtfCpCrUqmU688jHi2AuOO4u9KJa+2nXHVsfIuayG5sqNaGF4RzQcEKAU2gnhKDXe4zx5DvHUKaQA7dOryiktQonFQ9h+QlIwS8MU2UlSyFgvtP1ba5B-OOa+9K8J6z3C2XoRw8rxHnB2hYI1JYk4yFDIo5V-gMC6xgzNJs8EbEHgWpuRwpxrKmLsoiQpOUZCVUUSrMcAVO2Rv5elMxZHmwUbqFR+yJ6TwnG+mK7KlZZKKtcEAA */
   createMachine(
     {
       schema: {
@@ -333,10 +334,17 @@ export const createSyncMachine = () =>
               invoke: {
                 id: "processQueues",
                 src: "processQueues",
-                onDone: {
-                  actions: ["removeOldestItemFromQueueAndUpdateContext"],
-                  target: "checkingForMoreQueueItems",
-                },
+                onDone: [
+                  {
+                    actions: ["removeOldestItemFromQueueAndUpdateContext"],
+                    target: "checkingForMoreQueueItems",
+                    cond: "lessThan5SnapshotSavedFailed",
+                  },
+                  {
+                    actions: ["removeOldestItemFromQueueAndUpdateContext"],
+                    target: "#syncMachine.disconnected",
+                  },
+                ],
                 onError: {
                   actions: ["storeErrorInSnapshotAndUpdateErrors"],
                   target: "#syncMachine.failed",
@@ -1310,10 +1318,20 @@ export const createSyncMachine = () =>
                     );
                   }
 
+                  // put changes from the failed snapshot back in the queue
+                  pendingChangesQueue = (
+                    snapshotInFlight?.changes || []
+                  ).concat(pendingChangesQueue);
+                  snapshotInFlight = null;
+
                   if (context.logging === "debug") {
                     console.log("retry send snapshot");
                   }
-                  await createAndSendSnapshot();
+
+                  // skip another try if there is a snapshot in flight
+                  if (snapshotSaveFailedCounter < 5) {
+                    await createAndSendSnapshot();
+                  }
                   break;
 
                 case "update":
@@ -1583,6 +1601,9 @@ export const createSyncMachine = () =>
         },
         shouldReconnect: (context, event) => {
           return context._websocketShouldReconnect;
+        },
+        lessThan5SnapshotSavedFailed: (context) => {
+          return context._snapshotSaveFailedCounter < 5;
         },
       },
     }

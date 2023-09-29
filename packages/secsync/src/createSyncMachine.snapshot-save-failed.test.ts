@@ -661,7 +661,7 @@ test("should apply update from snapshot-save-failed if it was created by the cur
   syncService.start();
 });
 
-test("should increase context._snapshotSaveFailedCounter on every snapshot-save-failed", (done) => {
+test("should increase context._snapshotSaveFailedCounter on every snapshot-save-failed and put back the changes into the pendingChangesQueue so it can be used for the retry", (done) => {
   const websocketServiceMock =
     (context: SyncMachineConfig) => (send: any, onReceive: any) => {
       onReceive((event: any) => {});
@@ -725,6 +725,10 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
 
     setTimeout(() => {
       syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
+      });
+      syncService.send({
         type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
         data: {
           type: "snapshot-save-failed",
@@ -747,6 +751,7 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
 
     if (state.context._snapshotSaveFailedCounter === 2) {
       expect(state.context._snapshotSaveFailedCounter).toBe(2);
+      expect(state.context._snapshotInFlight?.changes.length).toBe(2);
       done();
     }
   });
@@ -966,4 +971,113 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
       });
     }, 1);
   }, 1);
+});
+
+test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
+  const websocketServiceMock =
+    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
+      onReceive((event: any) => {});
+
+      send({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    };
+
+  let docValue = "";
+  let transitionCount = 0;
+
+  const syncMachine = createSyncMachine();
+  const syncService = interpret(
+    syncMachine
+      .withContext({
+        ...syncMachine.context,
+        documentId: docId,
+        websocketHost: url,
+        websocketSessionKey: "sessionKey",
+        isValidClient: (signingPublicKey) =>
+          clientAPublicKey === signingPublicKey ||
+          clientBPublicKey === signingPublicKey,
+        getSnapshotKey: () => key,
+        getNewSnapshotData: async ({ id }) => {
+          return {
+            data: "New Snapshot Data",
+            key,
+            publicData: {},
+          };
+        },
+        applySnapshot: (snapshot) => {
+          docValue = sodium.to_string(snapshot);
+        },
+        sodium: sodium,
+        signatureKeyPair: clientBKeyPair,
+      })
+      .withConfig({
+        actions: {
+          spawnWebsocketActor: assign((context) => {
+            return {
+              _websocketActor: spawn(
+                websocketServiceMock(context),
+                "websocketActor"
+              ),
+            };
+          }),
+        },
+      })
+  );
+
+  const runEvents = () => {
+    const { snapshot } = createSnapshotTestHelper();
+    syncService.send({
+      type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+      data: {
+        type: "document",
+        snapshot,
+      },
+    });
+
+    setTimeout(() => {
+      syncService.send({
+        type: "ADD_CHANGES",
+        data: ["H", "e"],
+      });
+      for (let i = 0; i < 6; i++) {
+        syncService.send({
+          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+          data: {
+            type: "snapshot-save-failed",
+          },
+        });
+      }
+    }, 1);
+  };
+
+  let connectedCounter = 0;
+  let didReconnectWithPendingChanges = false;
+
+  syncService.onTransition((state, event) => {
+    transitionCount = transitionCount + 1;
+    if (event.type === "WEBSOCKET_CONNECTED") {
+      if (connectedCounter === 0) {
+        runEvents();
+      }
+      connectedCounter++;
+    }
+
+    if (
+      state.matches("connecting.retrying") &&
+      state.context._pendingChangesQueue.length === 0
+    ) {
+      didReconnectWithPendingChanges = true;
+    }
+    if (
+      state.context._pendingChangesQueue.length === 2 &&
+      state.matches("connected.idle")
+    ) {
+      expect(state.context._snapshotSaveFailedCounter).toBe(0);
+      expect(didReconnectWithPendingChanges).toBe(true);
+      done();
+    }
+  });
+
+  syncService.start();
 });
