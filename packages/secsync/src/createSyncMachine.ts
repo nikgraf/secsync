@@ -108,6 +108,7 @@ type UpdateInFlight = {
 
 type SnapshotInFlight = SnapshotInfoWithUpdateClocks & {
   parentSnapshotId: string;
+  changes: any[];
 };
 
 export type DocumentDecryptionState =
@@ -127,6 +128,8 @@ type ProcessQueueData = {
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
   snapshotAndUpdateErrors: Error[];
+  snapshotSaveFailedCounter: number;
+  errorNotCausingDocumentToFail: Error | null;
 };
 
 export type InternalContextReset = {
@@ -137,6 +140,7 @@ export type InternalContextReset = {
   _updatesLocalClock: number;
   _documentDecryptionState: DocumentDecryptionState;
   _ephemeralMessagesSession: EphemeralMessagesSession | null;
+  _snapshotSaveFailedCounter: number;
 };
 
 export type Context = SyncMachineConfig &
@@ -160,10 +164,11 @@ const disconnectionContextReset: InternalContextReset = {
   _updatesLocalClock: -1,
   _documentDecryptionState: "pending",
   _ephemeralMessagesSession: null,
+  _snapshotSaveFailedCounter: 0,
 };
 
 export const createSyncMachine = () =>
-  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGcQE4A7ADpxMgKwA2JQBYlAJnEAOTeoA0IFIgC0i9XPU29M9Vq0rdMlSoC+746ky4CxMgBBWloAfUoABQAJSixKACVAgBlQgFUI2kCAFUomViQQLh5+QWExBEkleUZHGRd1XS1GRhljUwqGqQV9RgBmFXVewd1erU9vdGw8IhJSAHVKACFyAHkAYQBpSizQ2gBJcjWV6mpKNZyGFmEivgEhAvKqtsRR3WslPS0pVQcNdRlxiAfFN-LN9odjqdznlrtxbqUHogniZEFoZPIpCpHEpGFIWiopNJAcC-DMyAAxQJ7JKUMJreKUbJ7agAcXC0ViCWSaQy2VyVwKNxK91A7TMjnEckxvSUMt6jF0IxkUmM5ScVQU4iqvVGdUcvWJk1JATkGEEJAw-DQUHmS1Wm22oSOJzOFxhgrhwrKEjUSgUMj6vT0NXU4i0RhRCH6VhsVRUYZUjBxScNvmmJrNaAtVptwTpUUCrMo5HdHE9d29FXRjClg1cKnlunEQdakYsjWs6N0Sik6lkLT6qZBZNN5rAluIUDkAHccLdrbblustjsGVl4gBNUuFcsI0DlSSjOQB3u9THOD7-Z5R-Tdbu9-7qBtaKpD40kUdZ8e8SCL+0r3Z1lSOJqB2agVh2ckVlSOhtyFCtEQQJomjkM8RikF8pBGf4lGvcRGD7VCMMcKRejqXEXzfdMP0zbNfwWJcHR2GDAlSLIohWeI9gALVpODdxFUQJEJP0tVxVQWj7cQ8LPLRrFkj4tB1ew0So0EwE-OiID-ZdHVoICQJ2BJ4k4-jigQ-dURqSURiqfQDCqPo8IMKUtEVHUviUD4ajUkdaO-SA5EICAABsyAY-9HTzUIshWUJmSOLBmTZABFVJKHSsz4UEtVmjkNRFSURUlJcfpejwpMVGPIYXzUL5D18jMx0tQLgrCnSmNCaLYqdVJyFirBQjichyECFlKFCNKMv5fIy3MvchKQvKCu7YrelKhs8K1OTbNcF91D6LyAS8IEjWojT-JaiAgtCoIQidAsixLAU5uyys3L9FaPixOVvrwpxJUYeMagI5tdEJRqaOan9rvYAAnTgMDgHhrRSgBXMAMdgUgIEEDTiAAN04ABrDT4cR5H0cxuAsq9RD8I1BxvjPeNm2bFVI0PSU-gJGpXFlA0TpJc7NIC2GEaR2AUagKmsdIMA4YRuG5HYEKcF4AAzTg4YAWxViXKYxrHaYsxbpC1BQcW+RN7EJf6cTkKo9GfLzSI8IWzvU0Wrv1impcnWW4A6gDurihKViS1lJvSzKXp3eacsQFR7DkRoNF0BsAybaTObBx3ZH+OoAyTAjIYu6HAvJyXpcD7GIt0nZQ96-qI6G4tRvG6PppNhbygGGt0UTJMyPjIrcM5gi5L7HtmiDeUhndiY0y9y6Yd96uA6NoPorWR7xue2b47e+mwzktEsKTL4CKwlQZKU-KekYcQ1G+IrF9O5e-Ir66CHHYnJ3JNrLA2swCBz2D+HWdc7QNy6vdHq4dI6pRjjNWECdKziEfHIBUQZCSaHWlIXsW0exyHDJoN+4ZnaCyXsOJqX4fa-wwP-a0gC4bALhqAre4CwCQODlFOBcU1h9QGm3EaY0JpTVjofeCvcJA2BrIGGQOgnxYnBhVBsCgmZNiBjIRQKYPaf1oVpU0+A-4AKASAsBEDsY7z3sWHuicKg9isPhNE-xdCHXjK2doGDQz5VIsqcMQZkLqDLt7NeDCmFQBYWwjh1MuE8JELAXg6sNI4A1j+OGAAKRgABKUgwsV7f2MaY5h5j2GWO4bAex6DT7WGKmoRQZEez-QGAob4iiCLiTfqE1egUIlmNYRYzhVjSCJOST+OQaSMnZLyQUr+dDwkmMYQMmJFTIH0HEFIgS6CmiShKjoHUvYn7XkaPIMSTQkzPz7G5UJEBCCwF6dpGxhZ97VMQphEhT4S4HVGLiW+kY6hSmbOGAkkh8JniULc+5jzSDOihFkN5lkEAEisD2SQ-w+jKDUHhVpWd0SEhHm4TQUKHnf1IIixaPYqpXxlIE7QLhdDXh1APAigwbAyBHqMTwJ00CcAgHAYQcyAioOPki-5YonBdGlLKWUColRSB6dDScIq6ZItcL0BQQ9XB9DBd8a8TgWXdhaK4QYOINCKoWZOOQ7DeBwxQMqj0aD6YLxIXiDBCppBGojO0IYbxpCxj7IGoYg59E0Khpa60M45w5hVabco2dNXNG1UGSQerIz9ElNIcMvZ+bKEURarSsaZEIA0NeAkclk5KVDE-XsjgQmhvfOXBZrVbpFocS4raAZXVog5fKbQCp63UMbWEyuBt-aoy3vAR1orFrOHkI0J+7iCINiKv9M8fjwYjEVGGUiVCP5hqbUY-ppTBnlOGZUtt6D+35T1HUdxtac7eINahJ8zZ4xNmCSSx5l7EJDElMqJseoXA-DTe0L4U8qgBnwl8rCoTeWBAwNXH9SLHB5R1EGA6OI3HInaCMKquDMTon6ISHRoSNZzjChAZDi0KF+ixTKU5jQlJrq6ASTd60P2kUhdyoAA */
+  /** @xstate-layout N4IgpgJg5mDOIC5SwJ4DsDGBZAhhgFgJZpgDEAygKIByAIgNoAMAuoqAA4D2shALoZzRsQAD0QBGAEwBOaQDoA7AoBsAFgAc45WoDMa5QBoQKCYwVzJC1VYXrV0nQ4CskgL6ujqTLgLEyAQVpaAH1KAAUACUosSgAlfwAZYJjycn8AcUomViQQLh5+QWExBClxeUkZFw1xdSdGSR0jE1K3DxAvbDwiElIAdUoAIXIAeQBhAGlKABVg2gBJcjGR6mpKMenKBhZhfL4BIVyS5QVmxFVHORdGdR1xPScFKXUFd090Lt9ehaWVtY3srtuPsikdECczgg9PJrnYdE5pOJ7i43h0Pj4emQAGL+eYJLbBMaxSj+abzajpUKRaJxRLJSipDJZHa5PaFQ6gEpI5TqOTqZTiBQ3NQKaSVQzGCQCxhyO6MVQucSMeU3NrvbzdPxyDCCEgYfhoKD9IajSYzQl-dabbY5DjA9nFKU8uSC24Kxj3aTKpyQ+yqPmqZTw1SqQXSfmMJyozoYrU6tB6g1GwIhMYRfwUhmA1n2g6OqHiR4WJw6UO1aROepNSUISziPlinQKSrSHlKyvR9Gakja3VgfXEKByADuOH2huNw3GU1mxOmsQAmtm7QU82DSuJQ7LNBchapJEqm76lIpS3V5V6nFo1J2NV8wL2E-3eJBJ6aZ3NxgBVGLUWbUEZZixEYvzoZc8lzUFOUQSQGh0ORA0DJsTlUBp1Ehe5tBdQN1GkENZAFLRb0+TFH0TV8BinM1ZlA-wv2mCIRlieYAC0tnAtk12g2tlXgxCgxUKw0IwxULERJt1EYHkrCcZRiNjHt43IiA32nc1aG-X9ZjiWImI4yCOVEGC4IQ-RkKEyR0JrTdCzkaRmybQsrzuPD5O7B8lOfSA5EICAABsyEo99zRTYJphGYJyWWLByUpABFL9KES-TVygozayVORlCcdRz0IoV6h9aytHkZRwz0dRJEeFwo3aGN3LIryIB8-zApNNTZlC8LCS-chwqwelGUyYIEqS5lbQg1LDJKA8ZWy3L6nyyNIwwyQ1Ds5tw1uRgdFVV46q7e9Gv1bzfIC0hQrTDNMnIFKQWmmDMvmvKkQKlbrL0GVJGsBQ9ELb6VDkg671IzyTua9gACdOAwOAeENOKAFcwGR2BSAgQQH2IAA3TgAGsHyhmG4aRlG4Duh11yVXCrmynblB2yTvqslpXv9WwrG+pFyiVNU0RBuM+3BuQidh2B4agUnUdIMBIehyGRb8nBeAAM04SGAFsRehsXYCl8mWRXe781g+5TKQwTUMs1bfr5X6FUqhRK0aNyjrBl8IZ1uHB31tGgo64IuoiqKRhiikRsS5LDcm431x5f0tE3UMZCFLRVFW+oEPLHK7l+77XdBoWPe14nxZ95Hpf96jA6CMKIrGXr+sGtJhtGqOJs4tLjkz7nwzW+wpEqDCnOwi4dEdwVtFUAvBafYXRe9hGK7gC7a6uzNbujzuHoQTnFA0J4S1kQ-xAwyN5H5CsvX3Rpm3UGfFKL7yCH7PHByxdWsHVsB9fmF8Nb9u1auQdIrUGirFCOY0KZcXSoWW2UklT0xuCoRow9lCSCyvKK8zYGYuGbA-DyT9movwwG-Q0H9IZf0hj-Zef8wAANUsA2u3UG59VDs3JkkD25AimvmQslwPRaEaAzBwlUiqsykuYHQKcyplnuOPAhx1i4kLIVAChVCaFkzoQwy66YN7QK7lKO4WUNCNFuC8WC6caz2QwZGeoB5ZKClQjoRR7tn74Ffu-T+39f7-zRiIWAvBlYPhwCrF8kMAAUjAACUpB6puyIdqDxpCvGUJ8bQvxBid6DwwfcD0skQz1HuKtE4cgpLCh2vCWQtxXGJJUakjRvj6H+MCcEuQoTwlRNifEwuc9lHJNUeo9JWjMniA7gZPhu0ZS5Q9GtE4pYGgShaHhGUFYrCaGkaGXa99gYkS1BAQgsA3EqV0ddLMW8Jnrm+oweQzxAwqHHjyPQkJdrwWVPI6wMyHCBkUQco5RDSDLFWFaLJ+ZcFZTWrnZOGhx6+nlC6IMLw4G7SsL8w5xzSCgrjpGCFQYnFSBhSzc4DNZRVVbE2SyOVdC1L6d5BeZcl5kzRhjHsON8aEy9uLX29Axk8Njtxa8vJXSliKY4b0voqqyg9MqfckYgw8ncO0NAnAIBwGED0vwfLKYCqWRIOwtM8IqHpvNawNLEyDi1TAkoSh6y3FgjoceKhXrSBeU4BOJxEEaFQk7Wq6o9mPz6YOOQ1DeCQxQBanMvCqbBjEpoQiqFUJ2F9FuewvEvS4SqgiM1z4g2jnHFAS1hiECaAvtIypLx8ouprAqf0GhJJ1CdioaqLjdkKUIbSiAhad5qEhJJZQfJIz3FwhcDQJZs3CzOmALtfCpCrUqmU688jHi2AuOO4u9KJa+2nXHVsfIuayG5sqNaGF4RzQcEKAU2gnhKDXe4zx5DvHUKaQA7dOryiktQonFQ9h+QlIwS8MU2UlSyFgvtP1ba5B-OOa+9K8J6z3C2XoRw8rxHnB2hYI1JYk4yFDIo5V-gMC6xgzNJs8EbEHgWpuRwpxrKmLsoiQpOUZCVUUSrMcAVO2Rv5elMxZHmwUbqFR+yJ6TwnG+mK7KlZZKKtcEAA */
   createMachine(
     {
       schema: {
@@ -234,6 +239,7 @@ export const createSyncMachine = () =>
         _updatesInFlight: [], // is needed to collect all changes from updates that haven't been confirmed in case of a disconnect
         _updatesLocalClock: -1,
         _snapshotAndUpdateErrors: [],
+        _snapshotSaveFailedCounter: 0,
         _ephemeralMessageReceivingErrors: [],
         _ephemeralMessageAuthoringErrors: [],
         _ephemeralMessagesSession: null,
@@ -329,10 +335,17 @@ export const createSyncMachine = () =>
               invoke: {
                 id: "processQueues",
                 src: "processQueues",
-                onDone: {
-                  actions: ["removeOldestItemFromQueueAndUpdateContext"],
-                  target: "checkingForMoreQueueItems",
-                },
+                onDone: [
+                  {
+                    cond: "hasNoErrorTriggeringADisconnect", // Note: guard runs before the actions
+                    actions: ["removeOldestItemFromQueueAndUpdateContext"],
+                    target: "checkingForMoreQueueItems",
+                  },
+                  {
+                    actions: ["removeOldestItemFromQueueAndUpdateContext"],
+                    target: "#syncMachine.disconnected",
+                  },
+                ],
                 onError: {
                   actions: ["storeErrorInSnapshotAndUpdateErrors"],
                   target: "#syncMachine.failed",
@@ -500,6 +513,13 @@ export const createSyncMachine = () =>
           };
         }),
         removeOldestItemFromQueueAndUpdateContext: assign((context, event) => {
+          const snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
+          if (event.data.errorNotCausingDocumentToFail) {
+            snapshotAndUpdateErrors.unshift(
+              event.data.errorNotCausingDocumentToFail
+            );
+          }
+
           if (event.data.handledQueue === "incoming") {
             return {
               _incomingQueue: context._incomingQueue.slice(1),
@@ -513,7 +533,8 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _documentDecryptionState: event.data.documentDecryptionState,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
-              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotAndUpdateErrors: snapshotAndUpdateErrors,
+              _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "customMessage") {
             return {
@@ -528,7 +549,8 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
-              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotAndUpdateErrors: snapshotAndUpdateErrors,
+              _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "pending") {
             return {
@@ -542,7 +564,8 @@ export const createSyncMachine = () =>
                 event.data.ephemeralMessageReceivingErrors,
               _ephemeralMessagesSession: event.data.ephemeralMessagesSession,
               _documentDecryptionState: event.data.documentDecryptionState,
-              _snapshotAndUpdateErrors: event.data.snapshotAndUpdateErrors,
+              _snapshotAndUpdateErrors: snapshotAndUpdateErrors,
+              _snapshotSaveFailedCounter: event.data.snapshotSaveFailedCounter,
             };
           } else if (event.data.handledQueue === "none") {
             return {};
@@ -614,8 +637,9 @@ export const createSyncMachine = () =>
           let pendingChangesQueue = context._pendingChangesQueue;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
-          let snapshotAndUpdateErrors = context._snapshotAndUpdateErrors;
           let errorCausingDocumentToFail: Error | null = null;
+          let errorNotCausingDocumentToFail: Error | null = null;
+          let snapshotSaveFailedCounter = context._snapshotSaveFailedCounter;
 
           let ephemeralMessageReceivingErrors =
             context._ephemeralMessageReceivingErrors;
@@ -690,6 +714,7 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
+                    changes: pendingChangesQueue,
                   };
                   pendingChangesQueue = [];
 
@@ -736,6 +761,7 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
+                    changes: pendingChangesQueue,
                   };
                   pendingChangesQueue = [];
 
@@ -826,8 +852,8 @@ export const createSyncMachine = () =>
                     context.additionalAuthenticationDataValidations?.snapshot
                   );
                 } catch (err) {
-                  snapshotAndUpdateErrors.unshift(
-                    new Error("SECSYNC_ERROR_110")
+                  errorNotCausingDocumentToFail = new Error(
+                    "SECSYNC_ERROR_110"
                   );
                   return;
                 }
@@ -837,8 +863,8 @@ export const createSyncMachine = () =>
                     snapshot.publicData.pubKey
                   );
                   if (!isValidClient) {
-                    snapshotAndUpdateErrors.unshift(
-                      new Error("SECSYNC_ERROR_114")
+                    errorNotCausingDocumentToFail = new Error(
+                      "SECSYNC_ERROR_114"
                     );
                     return;
                   }
@@ -877,8 +903,8 @@ export const createSyncMachine = () =>
                   });
                   parentSnapshotUpdateClock = undefined;
                   if (!isValidAncestor) {
-                    snapshotAndUpdateErrors.unshift(
-                      new Error("SECSYNC_ERROR_115")
+                    errorNotCausingDocumentToFail = new Error(
+                      "SECSYNC_ERROR_115"
                     );
                     return;
                   }
@@ -938,9 +964,8 @@ export const createSyncMachine = () =>
                   ) {
                     errorCausingDocumentToFail = decryptedSnapshotResult.error;
                   } else {
-                    snapshotAndUpdateErrors.unshift(
-                      decryptedSnapshotResult.error
-                    );
+                    errorNotCausingDocumentToFail =
+                      decryptedSnapshotResult.error;
                   }
 
                   return;
@@ -1016,8 +1041,8 @@ export const createSyncMachine = () =>
                       context.additionalAuthenticationDataValidations?.update
                     );
                   } catch (err) {
-                    snapshotAndUpdateErrors.unshift(
-                      new Error("SECSYNC_ERROR_211")
+                    errorNotCausingDocumentToFail = new Error(
+                      "SECSYNC_ERROR_211"
                     );
                     continue;
                   }
@@ -1027,8 +1052,8 @@ export const createSyncMachine = () =>
                       update.publicData.pubKey
                     );
                     if (!isValidClient) {
-                      snapshotAndUpdateErrors.unshift(
-                        new Error("SECSYNC_ERROR_215")
+                      errorNotCausingDocumentToFail = new Error(
+                        "SECSYNC_ERROR_215"
                       );
                       continue;
                     }
@@ -1073,9 +1098,7 @@ export const createSyncMachine = () =>
                         decryptUpdateResult.error.message
                       )
                     ) {
-                      snapshotAndUpdateErrors.unshift(
-                        decryptUpdateResult.error
-                      );
+                      errorNotCausingDocumentToFail = decryptUpdateResult.error;
                       continue;
                     } else {
                       errorCausingDocumentToFail = decryptUpdateResult.error;
@@ -1168,9 +1191,6 @@ export const createSyncMachine = () =>
                     throw new Error("SECSYNC_ERROR_100");
                   }
 
-                  const snapshotAndUpdateErrorsLength =
-                    snapshotAndUpdateErrors.length;
-
                   if (event.snapshot) {
                     await processSnapshot(
                       event.snapshot,
@@ -1179,13 +1199,9 @@ export const createSyncMachine = () =>
                     );
 
                     // if the initial snapshot fails the document can't be loaded
-                    if (
-                      snapshotAndUpdateErrors.length >
-                      snapshotAndUpdateErrorsLength
-                    ) {
-                      errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
-                      // remove the item since it will be added later due errorCausingDocumentToFail being set
-                      snapshotAndUpdateErrors.pop();
+                    if (errorNotCausingDocumentToFail) {
+                      errorCausingDocumentToFail =
+                        errorNotCausingDocumentToFail;
                     }
                   }
 
@@ -1208,13 +1224,9 @@ export const createSyncMachine = () =>
                           : activeSnapshotInfoWithUpdateClocks
                       );
 
-                      if (
-                        snapshotAndUpdateErrors.length >
-                        snapshotAndUpdateErrorsLength
-                      ) {
-                        errorCausingDocumentToFail = snapshotAndUpdateErrors[0];
-                        // remove the item since it will be added later due errorCausingDocumentToFail being set
-                        snapshotAndUpdateErrors.pop();
+                      if (errorNotCausingDocumentToFail) {
+                        errorCausingDocumentToFail =
+                          errorNotCausingDocumentToFail;
                       }
                     }
                   }
@@ -1256,6 +1268,8 @@ export const createSyncMachine = () =>
                       activeSnapshotInfoWithUpdateClocks.snapshotId ===
                         snapshotInFlight.parentSnapshotId)
                   ) {
+                    snapshotSaveFailedCounter = 0; // reset the counter since we got a positive save response
+
                     snapshotInfosWithUpdateClocks.push({
                       ...snapshotInFlight,
                       updateClocks: {},
@@ -1269,6 +1283,7 @@ export const createSyncMachine = () =>
 
                   break;
                 case "snapshot-save-failed":
+                  snapshotSaveFailedCounter += 1;
                   if (context.logging === "debug") {
                     console.log("snapshot saving failed", event);
                   }
@@ -1297,10 +1312,20 @@ export const createSyncMachine = () =>
                     );
                   }
 
+                  // put changes from the failed snapshot back in the queue
+                  pendingChangesQueue = (
+                    snapshotInFlight?.changes || []
+                  ).concat(pendingChangesQueue);
+                  snapshotInFlight = null;
+
                   if (context.logging === "debug") {
                     console.log("retry send snapshot");
                   }
-                  await createAndSendSnapshot();
+
+                  // skip another try if there is a snapshot in flight
+                  if (snapshotSaveFailedCounter < 5) {
+                    await createAndSendSnapshot();
+                  }
                   break;
 
                 case "update":
@@ -1313,6 +1338,7 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.debug("update saved", event);
                   }
+                  snapshotSaveFailedCounter = 0; // reset the counter since we got a positive save response
 
                   // only increases if the event.clock is larger since the server
                   // might have returned them out of order
@@ -1491,6 +1517,8 @@ export const createSyncMachine = () =>
                 // pending changes are ignored until the document is loaded
                 return {
                   handledQueue: "none",
+                  snapshotSaveFailedCounter,
+                  errorNotCausingDocumentToFail,
                 };
               }
 
@@ -1545,7 +1573,8 @@ export const createSyncMachine = () =>
                 ephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
               documentDecryptionState,
               ephemeralMessagesSession,
-              snapshotAndUpdateErrors,
+              snapshotSaveFailedCounter,
+              errorNotCausingDocumentToFail,
             };
           } catch (error) {
             if (context.logging === "debug" || context.logging === "error") {
@@ -1568,6 +1597,20 @@ export const createSyncMachine = () =>
         },
         shouldReconnect: (context, event) => {
           return context._websocketShouldReconnect;
+        },
+        hasNoErrorTriggeringADisconnect: (context, event) => {
+          const { errorNotCausingDocumentToFail, snapshotSaveFailedCounter } =
+            event.data;
+
+          return (
+            snapshotSaveFailedCounter < 5 &&
+            !(
+              errorNotCausingDocumentToFail &&
+              ["SECSYNC_ERROR_112", "SECSYNC_ERROR_115"].includes(
+                errorNotCausingDocumentToFail.message
+              )
+            )
+          );
         },
       },
     }

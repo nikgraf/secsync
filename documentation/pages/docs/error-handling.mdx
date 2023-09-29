@@ -21,10 +21,10 @@ For these cases the error is ignored, logged and the document continues to work.
 
 - `SECSYNC_ERROR_110`: snapshot parse error (e.g. field is missing)
 - `SECSYNC_ERROR_111`: Invalid signature
-- `SECSYNC_ERROR_112`: Invalid parentSnapshot verification (can happend if snapshots come in out of order) -> refetch
+- `SECSYNC_ERROR_112`: Invalid parentSnapshot verification (can happend if snapshots come in out of order). This will trigger a disconnect and reconnet from the Websocket in order to try to recover from the error.
 - `SECSYNC_ERROR_113`: Invalid docId
 - `SECSYNC_ERROR_114`: callback `isValidClient` returns false
-- `SECSYNC_ERROR_115`: Invalid ancestor verification
+- `SECSYNC_ERROR_115`: Invalid ancestor verification. This will trigger a disconnect and reconnet from the Websocket in order to try to recover from the error.
 
 ### Update
 
@@ -66,9 +66,7 @@ Set the document to read only and show an error message to the user that the lat
 
 - `SECSYNC_ERROR_401`: Failed to create a snapshot. Can be due invalid `signatureKeyPair` or functions like `getNewSnapshotData` or encryption throwing an error.
 
-Server:
-
-TODO snapshot-save-failed -> retry and if not set internal state that sync is not possible due a server issue
+If the server responds with `snapshot-save-failed` and it fails 5 times in a row, then the Websocket connection is closed and it tries to reconnect. This idea is to have a clean slate and hoepfully recover from the error.
 
 ### Update
 
@@ -76,7 +74,7 @@ Set the document to read only and show an error message to the user that the lat
 
 - `SECSYNC_ERROR_501`: Failed to create a snapshot. Can be due invalid `signatureKeyPair` or functions like `getSnapshotKey`, `serializeChanges` or encryption throwing an error.
 
-TODO update-save-failed -> retry and if not set internal state that sync is not possible due a server issue
+If the server responds with `update-save-failed` it automatically will be retried.
 
 ### EphemeralMessage
 
