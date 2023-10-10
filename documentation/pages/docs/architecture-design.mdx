@@ -1,3 +1,5 @@
+# Architecture Design
+
 ## Goal
 
 The goal is to develop an architecture and with it a protocol to allow multiple users to collaborate on a CRDT based data structure in an end-to-end encrypted way.
@@ -44,3 +46,48 @@ The architecture should support two main use-cases:
 #### Eventual consistency
 
 All clients receive the same set of content updates (possibly in different orders), and all clients converge to the same view of the document state as they receive the same set of control content updates.
+
+## Design Decisions
+
+### EphemeralMessages
+
+The session ID + session counter are stored in the encrypted data.
+
+The benefit of this design is that the id as well as the counter are not exposed to any MITM (man-in-the-middle) attacker nor the server.
+
+To make this design work it's important that the sessionId is stored per client and not in one denormalized store per sessionId. Otherwise one client could increase the counter of another making their session basically invalid.
+
+#### Process
+
+- initialize -> proof and ask for proof
+- validate proof -> respond with a proof
+- validate proof
+- message
+
+### Handling of missing messages and retry strategies
+
+The snapshots are stored in order - old snapshots can be cleaned out (or at least the updates)
+
+#### Usecases
+
+- missing a update (e.g. update comes in not in order)
+  -> the solution: have an incoming queue
+  -> challenge: when to abort it
+- getting a snapshot that doesn't apply to a known one
+  -> precondition: what if it is an old snapshot?
+  -> the solution: reconnect and ask the server for a new version of the document
+
+#### Incoming queue
+
+```tsx
+{
+  [snaphotId]: {
+    lastUpdatesPerAuthor: {
+      [authorId]: {
+        lastUpdate,
+        updatesReceived
+      }
+    },
+  }
+}
+```
