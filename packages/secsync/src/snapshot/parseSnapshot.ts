@@ -6,13 +6,16 @@ export const parseSnapshot = (
   AdditionalValidation?: SomeZodObject
 ) => {
   const rawSnapshot = Snapshot.parse(snapshot);
-  if (AdditionalValidation === undefined) return rawSnapshot;
-  const additionalData = AdditionalValidation.parse(snapshot.publicData);
+  if (AdditionalValidation === undefined) return { snapshot: rawSnapshot };
+  const additionalPublicData = AdditionalValidation.parse(snapshot.publicData);
   return {
-    ...rawSnapshot,
-    publicData: {
-      ...additionalData,
-      ...rawSnapshot.publicData,
+    snapshot: {
+      ...rawSnapshot,
+      publicData: {
+        ...additionalPublicData,
+        ...rawSnapshot.publicData,
+      },
     },
+    additionalPublicData,
   };
 };

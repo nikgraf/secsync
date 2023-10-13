@@ -18,7 +18,7 @@ import {
   HasAccessParams,
   HasBroadcastAccessParams,
   Snapshot,
-  SnapshotProofInfo,
+  SnapshotProofChainEntry,
   SnapshotUpdateClocks,
   Update,
 } from "../types";
@@ -29,7 +29,7 @@ import { addConnection, broadcastMessage, removeConnection } from "./store";
 
 type GetDocumentResult = {
   snapshot?: Snapshot;
-  snapshotProofChain?: SnapshotProofInfo[];
+  snapshotProofChain?: SnapshotProofChainEntry[];
   updates: Update[];
 };
 

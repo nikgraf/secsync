@@ -24,6 +24,7 @@ import {
   OnDocumentUpdatedEventType,
   Snapshot,
   SnapshotInfoWithUpdateClocks,
+  SnapshotProofChainEntry,
   SnapshotProofInfo,
   SnapshotPublicData,
   SyncMachineConfig,
@@ -123,7 +124,8 @@ type ProcessQueueData = {
   snapshotInfosWithUpdateClocks: SnapshotInfoWithUpdateClocks[];
   updatesLocalClock: number;
   updatesInFlight: UpdateInFlight[];
-  pendingChangesQueue: any[];
+  pendingChangesToRemoveCount: number;
+  pendingChangesToPrepend: any[];
   ephemeralMessageReceivingErrors: Error[];
   documentDecryptionState: DocumentDecryptionState;
   ephemeralMessagesSession: EphemeralMessagesSession | null;
@@ -458,6 +460,9 @@ export const createSyncMachine = () =>
           };
         }),
         resetContext: assign((context, event) => {
+          if (context.logging === "debug") {
+            console.log("resetContext");
+          }
           let unconfirmedChanges = context._updatesInFlight.reduce(
             (accumulator, updateInFlight) => {
               return [...accumulator, ...updateInFlight.changes];
@@ -523,7 +528,15 @@ export const createSyncMachine = () =>
           if (event.data.handledQueue === "incoming") {
             return {
               _incomingQueue: context._incomingQueue.slice(1),
-              _pendingChangesQueue: event.data.pendingChangesQueue,
+              // because changes might have been add while processing the queue ans creating a
+              // snapshot or update we can't just overwrite the _pendingChangesQueue
+              // instead we need to track how many to remove from the beginning of the list
+              // and of some should be restored also add them to the list
+              _pendingChangesQueue: event.data.pendingChangesToPrepend.concat(
+                context._pendingChangesQueue.slice(
+                  event.data.pendingChangesToRemoveCount
+                )
+              ),
               _snapshotInfosWithUpdateClocks:
                 event.data.snapshotInfosWithUpdateClocks,
               _snapshotInFlight: event.data.snapshotInFlight,
@@ -539,7 +552,15 @@ export const createSyncMachine = () =>
           } else if (event.data.handledQueue === "customMessage") {
             return {
               _customMessageQueue: context._customMessageQueue.slice(1),
-              _pendingChangesQueue: event.data.pendingChangesQueue,
+              // because changes might have been add while processing the queue ans creating a
+              // snapshot or update we can't just overwrite the _pendingChangesQueue
+              // instead we need to track how many to remove from the beginning of the list
+              // and of some should be restored also add them to the list
+              _pendingChangesQueue: event.data.pendingChangesToPrepend.concat(
+                context._pendingChangesQueue.slice(
+                  event.data.pendingChangesToRemoveCount
+                )
+              ),
               _snapshotInfosWithUpdateClocks:
                 event.data.snapshotInfosWithUpdateClocks,
               _snapshotInFlight: event.data.snapshotInFlight,
@@ -554,7 +575,15 @@ export const createSyncMachine = () =>
             };
           } else if (event.data.handledQueue === "pending") {
             return {
-              _pendingChangesQueue: event.data.pendingChangesQueue,
+              // because changes might have been add while processing the queue ans creating a
+              // snapshot or update we can't just overwrite the _pendingChangesQueue
+              // instead we need to track how many to remove from the beginning of the list
+              // and of some should be restored also add them to the list
+              _pendingChangesQueue: event.data.pendingChangesToPrepend.concat(
+                context._pendingChangesQueue.slice(
+                  event.data.pendingChangesToRemoveCount
+                )
+              ),
               _snapshotInfosWithUpdateClocks:
                 event.data.snapshotInfosWithUpdateClocks,
               _snapshotInFlight: event.data.snapshotInFlight,
@@ -634,12 +663,13 @@ export const createSyncMachine = () =>
           let snapshotInFlight = context._snapshotInFlight;
           let updatesLocalClock = context._updatesLocalClock;
           let updatesInFlight = context._updatesInFlight;
-          let pendingChangesQueue = context._pendingChangesQueue;
           let documentDecryptionState = context._documentDecryptionState;
           let ephemeralMessagesSession = context._ephemeralMessagesSession;
           let errorCausingDocumentToFail: Error | null = null;
           let errorNotCausingDocumentToFail: Error | null = null;
           let snapshotSaveFailedCounter = context._snapshotSaveFailedCounter;
+          let pendingChangesToRemoveCount = 0;
+          let pendingChangesToPrepend: any[] = [];
 
           let ephemeralMessageReceivingErrors =
             context._ephemeralMessageReceivingErrors;
@@ -664,6 +694,8 @@ export const createSyncMachine = () =>
                       snapshotInfosWithUpdateClocksEntry.snapshotCiphertextHash,
                     updateClocks:
                       snapshotInfosWithUpdateClocksEntry.updateClocks,
+                    additionalPublicData:
+                      snapshotInfosWithUpdateClocksEntry.additionalPublicData,
                   },
                 });
               }
@@ -683,6 +715,12 @@ export const createSyncMachine = () =>
                 if (context.logging === "debug") {
                   console.log("createAndSendSnapshot", snapshotData);
                 }
+                // only if there is an entry we provide the object, and empty object is not
+                // desired as it would be inconsistent
+                const additionalPublicData =
+                  Object.keys(snapshotData.publicData).length === 0
+                    ? undefined
+                    : snapshotData.publicData;
 
                 // no snapshot exists so far
                 if (activeSnapshotInfoWithUpdateClocks === null) {
@@ -704,6 +742,8 @@ export const createSyncMachine = () =>
                     context.sodium
                   );
 
+                  pendingChangesToRemoveCount =
+                    context._pendingChangesQueue.length;
                   snapshotInFlight = {
                     updateClocks: {},
                     snapshotId: snapshot.publicData.snapshotId,
@@ -714,9 +754,9 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
-                    changes: pendingChangesQueue,
+                    changes: context._pendingChangesQueue,
+                    additionalPublicData,
                   };
-                  pendingChangesQueue = [];
 
                   send({
                     type: "SEND",
@@ -751,6 +791,8 @@ export const createSyncMachine = () =>
                     context.sodium
                   );
 
+                  pendingChangesToRemoveCount =
+                    context._pendingChangesQueue.length;
                   snapshotInFlight = {
                     updateClocks: {},
                     snapshotId: snapshot.publicData.snapshotId,
@@ -761,9 +803,9 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
-                    changes: pendingChangesQueue,
+                    changes: context._pendingChangesQueue,
+                    additionalPublicData,
                   };
-                  pendingChangesQueue = [];
 
                   send({
                     type: "SEND",
@@ -838,7 +880,7 @@ export const createSyncMachine = () =>
 
             const processSnapshot = async (
               rawSnapshot: Snapshot,
-              snapshotProofChain: SnapshotProofInfo[],
+              snapshotProofChain: SnapshotProofChainEntry[],
               knownSnapshotInfo?: SnapshotInfoWithUpdateClocks
             ) => {
               try {
@@ -846,11 +888,15 @@ export const createSyncMachine = () =>
                   console.debug("processSnapshot", rawSnapshot);
                 }
                 let snapshot: Snapshot;
+                let additionalPublicData: unknown;
                 try {
-                  snapshot = parseSnapshot(
+                  const parseSnapshotResult = parseSnapshot(
                     rawSnapshot,
                     context.additionalAuthenticationDataValidations?.snapshot
                   );
+                  snapshot = parseSnapshotResult.snapshot;
+                  additionalPublicData =
+                    parseSnapshotResult.additionalPublicData;
                 } catch (err) {
                   errorNotCausingDocumentToFail = new Error(
                     "SECSYNC_ERROR_110"
@@ -930,6 +976,7 @@ export const createSyncMachine = () =>
                       snapshot.ciphertext,
                       context.sodium
                     ),
+                    additionalPublicData,
                   });
                 } catch (err) {
                   if (
@@ -992,6 +1039,7 @@ export const createSyncMachine = () =>
                     context.sodium
                   ),
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                  additionalPublicData,
                 });
 
                 // cleanup old snapshotInfosWithUpdateClocks entries and only keep the last 3 for debugging purposes
@@ -1001,6 +1049,8 @@ export const createSyncMachine = () =>
                 updatesLocalClock = -1;
 
                 invokeOnDocumentUpdated("snapshot-received");
+
+                return additionalPublicData;
               } catch (err) {
                 if (
                   context.logging === "debug" ||
@@ -1191,12 +1241,15 @@ export const createSyncMachine = () =>
                     throw new Error("SECSYNC_ERROR_100");
                   }
 
+                  let snapshotAdditionalPublicDataOnDocumentLoad: any =
+                    undefined;
                   if (event.snapshot) {
-                    await processSnapshot(
-                      event.snapshot,
-                      event.snapshotProofChain || [],
-                      context.loadDocumentParams?.knownSnapshotInfo
-                    );
+                    snapshotAdditionalPublicDataOnDocumentLoad =
+                      await processSnapshot(
+                        event.snapshot,
+                        event.snapshotProofChain || [],
+                        context.loadDocumentParams?.knownSnapshotInfo
+                      );
 
                     // if the initial snapshot fails the document can't be loaded
                     if (errorNotCausingDocumentToFail) {
@@ -1220,6 +1273,8 @@ export const createSyncMachine = () =>
                                 event.snapshot.ciphertext,
                                 context.sodium
                               ),
+                              additionalPublicData:
+                                snapshotAdditionalPublicDataOnDocumentLoad,
                             }
                           : activeSnapshotInfoWithUpdateClocks
                       );
@@ -1287,8 +1342,10 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.log("snapshot saving failed", event);
                   }
+                  let snapshotAdditionalPublicData: any = undefined;
+
                   if (event.snapshot) {
-                    await processSnapshot(
+                    snapshotAdditionalPublicData = await processSnapshot(
                       event.snapshot,
                       event.snapshotProofChain || [],
                       activeSnapshotInfoWithUpdateClocks
@@ -1307,15 +1364,14 @@ export const createSyncMachine = () =>
                               event.snapshot.ciphertext,
                               context.sodium
                             ),
+                            additionalPublicData: snapshotAdditionalPublicData,
                           }
                         : activeSnapshotInfoWithUpdateClocks
                     );
                   }
 
                   // put changes from the failed snapshot back in the queue
-                  pendingChangesQueue = (
-                    snapshotInFlight?.changes || []
-                  ).concat(pendingChangesQueue);
+                  pendingChangesToPrepend = snapshotInFlight?.changes || [];
                   snapshotInFlight = null;
 
                   if (context.logging === "debug") {
@@ -1378,10 +1434,11 @@ export const createSyncMachine = () =>
                     const changes = updatesInFlight.reduce(
                       (acc, updateInFlight) =>
                         acc.concat(updateInFlight.changes),
-                      [] as unknown[]
+                      [] as any[]
                     );
                     updatesInFlight = [];
-                    pendingChangesQueue = changes.concat(pendingChangesQueue);
+                    // put the changes from the failed updated and after back to the queue
+                    pendingChangesToPrepend = changes;
 
                     const currentClientPublicKey = context.sodium.to_base64(
                       context.signatureKeyPair.publicKey
@@ -1548,10 +1605,11 @@ export const createSyncMachine = () =>
                 if (context.logging === "debug") {
                   console.debug("send update");
                 }
-                const rawChanges = context._pendingChangesQueue;
-                pendingChangesQueue = [];
+                pendingChangesToRemoveCount =
+                  context._pendingChangesQueue.length;
+
                 await createAndSendUpdate(
-                  rawChanges,
+                  context._pendingChangesQueue,
                   activeSnapshotInfoWithUpdateClocks,
                   updatesLocalClock
                 );
@@ -1568,7 +1626,8 @@ export const createSyncMachine = () =>
               snapshotInFlight,
               updatesLocalClock,
               updatesInFlight,
-              pendingChangesQueue,
+              pendingChangesToPrepend,
+              pendingChangesToRemoveCount,
               ephemeralMessageReceivingErrors:
                 ephemeralMessageReceivingErrors.slice(0, 20), // avoid a memory leak by storing max 20 errors
               documentDecryptionState,
