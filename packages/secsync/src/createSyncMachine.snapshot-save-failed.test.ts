@@ -673,6 +673,7 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
 
   let docValue = "";
   let transitionCount = 0;
+  let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
 
   const syncMachine = createSyncMachine();
   const syncService = interpret(
@@ -734,12 +735,24 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
           type: "snapshot-save-failed",
         },
       });
-      syncService.send({
-        type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
-        data: {
-          type: "snapshot-save-failed",
-        },
-      });
+
+      setTimeout(() => {
+        syncService.send({
+          type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+          data: {
+            type: "snapshot-save-failed",
+          },
+        });
+        setTimeout(() => {
+          syncService.send({
+            type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
+            data: {
+              type: "snapshot-saved",
+              snapshotId: snapshotInFlight?.snapshotId,
+            },
+          });
+        }, 1);
+      }, 1);
     }, 1);
   };
 
@@ -749,9 +762,18 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
       runEvents();
     }
 
+    if (state.context._snapshotInFlight) {
+      snapshotInFlight = state.context._snapshotInFlight;
+    }
+
     if (state.context._snapshotSaveFailedCounter === 2) {
       expect(state.context._snapshotSaveFailedCounter).toBe(2);
-      expect(state.context._snapshotInFlight?.changes.length).toBe(2);
+      expect(state.context._snapshotInFlight?.changes.length).toBe(0);
+      expect(state.context._pendingChangesQueue.length).toBe(2);
+    } else if (transitionCount === 21 && state.matches("connected.idle")) {
+      expect(state.context._snapshotSaveFailedCounter).toBe(0);
+      expect(state.context._snapshotInFlight).toBe(null);
+      expect(state.context._pendingChangesQueue.length).toBe(0);
       done();
     }
   });
