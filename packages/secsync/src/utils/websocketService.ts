@@ -1,7 +1,9 @@
+import { hash } from "../crypto/hash";
 import {
   createEphemeralMessage,
   messageTypes,
 } from "../ephemeralMessage/createEphemeralMessage";
+import { parseSnapshot } from "../snapshot/parseSnapshot";
 import {
   EphemeralMessagesSession,
   SnapshotUpdateClocks,
@@ -100,20 +102,34 @@ export const websocketService =
           // the document, so we can start sending ephemeral messages.
           // An empty ephemeralMessage right away to initiate the session signing.
           // NOTE: There is no break and send with WEBSOCKET_ADD_TO_INCOMING_QUEUE is still invoked
-          const key = await context.getSnapshotKey(data.snapshot);
-          prepareAndSendEphemeralMessage(
-            new Uint8Array(),
-            "initialize",
-            key
-          ).catch((reason) => {
-            if (context.logging === "debug" || context.logging === "error") {
-              console.error(reason);
-            }
-            send({
-              type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
-              error: new Error("SECSYNC_ERROR_601"),
+          try {
+            const parseSnapshotResult = parseSnapshot(
+              data.snapshot,
+              context.additionalAuthenticationDataValidations?.snapshot
+            );
+            const snapshot = parseSnapshotResult.snapshot;
+            const key = await context.getSnapshotKey({
+              snapshotId: snapshot.publicData.snapshotId,
+              parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+              snapshotCiphertextHash: hash(snapshot.ciphertext, context.sodium),
+              additionalPublicData: parseSnapshotResult.additionalPublicData,
             });
-          });
+            prepareAndSendEphemeralMessage(
+              new Uint8Array(),
+              "initialize",
+              key
+            ).catch((reason) => {
+              if (context.logging === "debug" || context.logging === "error") {
+                console.error(reason);
+              }
+              send({
+                type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
+                error: new Error("SECSYNC_ERROR_601"),
+              });
+            });
+          } catch (err) {
+            // can be ignored since a session will just be established later
+          }
         case "snapshot":
         case "snapshot-saved":
         case "snapshot-save-failed":

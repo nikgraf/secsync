@@ -1,15 +1,15 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { generateId } from "../crypto/generateId";
 import { hash } from "../crypto/hash";
-import { SnapshotProofInfo, SnapshotPublicData } from "../types";
+import { SnapshotProofChainEntry, SnapshotPublicData } from "../types";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
 import { createSnapshot } from "./createSnapshot";
 import { isValidAncestorSnapshot } from "./isValidAncestorSnapshot";
 
-let snapshot1ProofEntry: SnapshotProofInfo;
-let snapshot2ProofEntry: SnapshotProofInfo;
-let snapshot3ProofEntry: SnapshotProofInfo;
-let snapshot4ProofEntry: SnapshotProofInfo;
+let snapshot1ProofEntry: SnapshotProofChainEntry;
+let snapshot2ProofEntry: SnapshotProofChainEntry;
+let snapshot3ProofEntry: SnapshotProofChainEntry;
+let snapshot4ProofEntry: SnapshotProofChainEntry;
 
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
 let signatureKeyPairA: KeyPair;
@@ -302,7 +302,7 @@ test("returns false if an entry is missing using an initial snapshot", () => {
 });
 
 test("returns true for an empty chain and identical snapshots", () => {
-  const snapshotProofChain: SnapshotProofInfo[] = [];
+  const snapshotProofChain: SnapshotProofChainEntry[] = [];
 
   const snapshotId = generateId(sodium);
   const publicData: SnapshotPublicData = {
@@ -337,7 +337,7 @@ test("returns true for an empty chain and identical snapshots", () => {
 });
 
 test("returns false for an empty chain and different snapshots", () => {
-  const snapshotProofChain: SnapshotProofInfo[] = [];
+  const snapshotProofChain: SnapshotProofChainEntry[] = [];
   const isValid = isValidAncestorSnapshot({
     knownSnapshotProofEntry: snapshot2ProofEntry,
     snapshotProofChain,

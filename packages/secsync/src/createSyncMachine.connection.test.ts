@@ -79,6 +79,7 @@ test("should connect and use knownSnapshotId as query param", (done) => {
           parentSnapshotProof: "myParentSnapshotProof",
           snapshotCiphertextHash: "mySnapshotCiphertextHash",
           updateClocks: {},
+          additionalPublicData: undefined,
         },
       },
     })
@@ -117,6 +118,7 @@ test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as quer
           parentSnapshotProof: "myParentSnapshotProof",
           snapshotCiphertextHash: "mySnapshotCiphertextHash",
           updateClocks,
+          additionalPublicData: undefined,
         },
       },
     })

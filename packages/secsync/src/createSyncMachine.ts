@@ -24,6 +24,7 @@ import {
   OnDocumentUpdatedEventType,
   Snapshot,
   SnapshotInfoWithUpdateClocks,
+  SnapshotProofChainEntry,
   SnapshotProofInfo,
   SnapshotPublicData,
   SyncMachineConfig,
@@ -664,6 +665,8 @@ export const createSyncMachine = () =>
                       snapshotInfosWithUpdateClocksEntry.snapshotCiphertextHash,
                     updateClocks:
                       snapshotInfosWithUpdateClocksEntry.updateClocks,
+                    additionalPublicData:
+                      snapshotInfosWithUpdateClocksEntry.additionalPublicData,
                   },
                 });
               }
@@ -683,6 +686,12 @@ export const createSyncMachine = () =>
                 if (context.logging === "debug") {
                   console.log("createAndSendSnapshot", snapshotData);
                 }
+                // only if there is an entry we provide the object, and empty object is not
+                // desired as it would be inconsistent
+                const additionalPublicData =
+                  Object.keys(snapshotData.publicData).length === 0
+                    ? undefined
+                    : snapshotData.publicData;
 
                 // no snapshot exists so far
                 if (activeSnapshotInfoWithUpdateClocks === null) {
@@ -714,7 +723,8 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
-                    changes: pendingChangesQueue,
+                    changes: context._pendingChangesQueue,
+                    additionalPublicData,
                   };
                   pendingChangesQueue = [];
 
@@ -761,7 +771,8 @@ export const createSyncMachine = () =>
                     parentSnapshotProof:
                       snapshot.publicData.parentSnapshotProof,
                     parentSnapshotId: snapshot.publicData.parentSnapshotId,
-                    changes: pendingChangesQueue,
+                    changes: context._pendingChangesQueue,
+                    additionalPublicData,
                   };
                   pendingChangesQueue = [];
 
@@ -838,7 +849,7 @@ export const createSyncMachine = () =>
 
             const processSnapshot = async (
               rawSnapshot: Snapshot,
-              snapshotProofChain: SnapshotProofInfo[],
+              snapshotProofChain: SnapshotProofChainEntry[],
               knownSnapshotInfo?: SnapshotInfoWithUpdateClocks
             ) => {
               try {
@@ -846,11 +857,15 @@ export const createSyncMachine = () =>
                   console.debug("processSnapshot", rawSnapshot);
                 }
                 let snapshot: Snapshot;
+                let additionalPublicData: unknown;
                 try {
-                  snapshot = parseSnapshot(
+                  const parseSnapshotResult = parseSnapshot(
                     rawSnapshot,
                     context.additionalAuthenticationDataValidations?.snapshot
                   );
+                  snapshot = parseSnapshotResult.snapshot;
+                  additionalPublicData =
+                    parseSnapshotResult.additionalPublicData;
                 } catch (err) {
                   errorNotCausingDocumentToFail = new Error(
                     "SECSYNC_ERROR_110"
@@ -930,6 +945,7 @@ export const createSyncMachine = () =>
                       snapshot.ciphertext,
                       context.sodium
                     ),
+                    additionalPublicData,
                   });
                 } catch (err) {
                   if (
@@ -992,6 +1008,7 @@ export const createSyncMachine = () =>
                     context.sodium
                   ),
                   parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+                  additionalPublicData,
                 });
 
                 // cleanup old snapshotInfosWithUpdateClocks entries and only keep the last 3 for debugging purposes
@@ -1001,6 +1018,8 @@ export const createSyncMachine = () =>
                 updatesLocalClock = -1;
 
                 invokeOnDocumentUpdated("snapshot-received");
+
+                return additionalPublicData;
               } catch (err) {
                 if (
                   context.logging === "debug" ||
@@ -1191,12 +1210,15 @@ export const createSyncMachine = () =>
                     throw new Error("SECSYNC_ERROR_100");
                   }
 
+                  let snapshotAdditionalPublicDataOnDocumentLoad: any =
+                    undefined;
                   if (event.snapshot) {
-                    await processSnapshot(
-                      event.snapshot,
-                      event.snapshotProofChain || [],
-                      context.loadDocumentParams?.knownSnapshotInfo
-                    );
+                    snapshotAdditionalPublicDataOnDocumentLoad =
+                      await processSnapshot(
+                        event.snapshot,
+                        event.snapshotProofChain || [],
+                        context.loadDocumentParams?.knownSnapshotInfo
+                      );
 
                     // if the initial snapshot fails the document can't be loaded
                     if (errorNotCausingDocumentToFail) {
@@ -1220,6 +1242,8 @@ export const createSyncMachine = () =>
                                 event.snapshot.ciphertext,
                                 context.sodium
                               ),
+                              additionalPublicData:
+                                snapshotAdditionalPublicDataOnDocumentLoad,
                             }
                           : activeSnapshotInfoWithUpdateClocks
                       );
@@ -1287,8 +1311,10 @@ export const createSyncMachine = () =>
                   if (context.logging === "debug") {
                     console.log("snapshot saving failed", event);
                   }
+                  let snapshotAdditionalPublicData: any = undefined;
+
                   if (event.snapshot) {
-                    await processSnapshot(
+                    snapshotAdditionalPublicData = await processSnapshot(
                       event.snapshot,
                       event.snapshotProofChain || [],
                       activeSnapshotInfoWithUpdateClocks
@@ -1307,6 +1333,7 @@ export const createSyncMachine = () =>
                               event.snapshot.ciphertext,
                               context.sodium
                             ),
+                            additionalPublicData: snapshotAdditionalPublicData,
                           }
                         : activeSnapshotInfoWithUpdateClocks
                     );

@@ -1322,6 +1322,7 @@ test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (d
             snapshotId: snapshot.publicData.snapshotId,
             snapshotCiphertextHash: hash(snapshot.ciphertext, sodium),
             updateClocks: {},
+            additionalPublicData: undefined,
           },
           mode: "complete",
         },

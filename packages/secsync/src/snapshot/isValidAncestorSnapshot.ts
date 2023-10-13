@@ -1,10 +1,10 @@
 import { hash } from "../crypto/hash";
-import { Snapshot, SnapshotProofInfo } from "../types";
+import { Snapshot, SnapshotProofChainEntry } from "../types";
 import { createParentSnapshotProof } from "./createParentSnapshotProof";
 
 type IsValidAncestorSnapshotParams = {
-  knownSnapshotProofEntry: SnapshotProofInfo;
-  snapshotProofChain: SnapshotProofInfo[];
+  knownSnapshotProofEntry: SnapshotProofChainEntry;
+  snapshotProofChain: SnapshotProofChainEntry[];
   currentSnapshot: Snapshot;
   sodium: typeof import("libsodium-wrappers");
 };
