@@ -161,17 +161,32 @@ export function useYjsSecSyncStore({
 
   useEffect(() => {
     setStoreWithStatus({ status: "loading" });
-
     handleSync();
+  }, [store]);
 
-    setTimeout(() => {
+  const prevStateValueRef = useRef<any>(state.value);
+  useEffect(() => {
+    if (
+      !prevStateValueRef.current.hasOwnProperty("connected") &&
+      state.matches("connected")
+    ) {
       setStoreWithStatus({
         status: "synced-remote",
         connectionStatus: "online",
         store,
       });
-    }, 1000);
-  }, [store]);
+    } else if (
+      prevStateValueRef.current.hasOwnProperty("connected") &&
+      !state.matches("connected")
+    ) {
+      setStoreWithStatus({
+        status: "synced-remote",
+        connectionStatus: "offline",
+        store,
+      });
+    }
+    prevStateValueRef.current = state.value;
+  }, [state.value]);
 
   return storeWithStatus;
 }
