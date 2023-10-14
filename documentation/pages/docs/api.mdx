@@ -1,0 +1,12 @@
+# API
+
+## Mode
+
+Can be `"complete"` or `"delta"`. The default is `"complete"`
+
+Providing `"complete"` informs the backend that the entire document should be loaded. This means the last known snapshot and all connected updates.
+
+Setting it to `"delta"` means the only the necessary updates should be provided. This means only the necessary data is retrieved e.g.
+
+1. Client is aware of the latest snapshot and three updates and only misses two updates then only two updates are sent.
+2. Client is aware of an older snapshot, then the latest snapshot and all it's updates are sent.
