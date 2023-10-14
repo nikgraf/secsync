@@ -1,5 +1,6 @@
 import { Tldraw } from "@tldraw/tldraw";
 import "@tldraw/tldraw/tldraw.css";
+import { memo } from "react";
 import { useYjsSecSyncStore } from "./useYjsSecSyncStore";
 
 const websocketHost =
@@ -12,11 +13,14 @@ type Props = {
   documentKey: Uint8Array;
 };
 
+// not necessary to re-render it - this reduces stress on the browser
+const MemoedTldraw = memo(Tldraw);
+
 const YjsTldrawExample: React.FC<Props> = ({ documentId, documentKey }) => {
   const store = useYjsSecSyncStore({ documentId, documentKey, websocketHost });
   return (
     <div style={{ height: 500 }}>
-      <Tldraw autoFocus store={store} />
+      <MemoedTldraw store={store} />
     </div>
   );
 };
