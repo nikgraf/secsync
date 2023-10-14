@@ -57,10 +57,10 @@ export function useYjsSecSyncStore({
     logging: "debug",
   });
 
-  const unsubs: (() => void)[] = [];
+  const subscribers: (() => void)[] = [];
 
   function handleSync() {
-    unsubs.push(
+    subscribers.push(
       store.listen(
         function syncStoreChangesToYjsDoc({ changes }) {
           yDocRef.current.transact(() => {
@@ -120,7 +120,7 @@ export function useYjsSecSyncStore({
     };
 
     yStore.on("change", handleChange);
-    unsubs.push(() => yStore.off("change", handleChange));
+    subscribers.push(() => yStore.off("change", handleChange));
 
     // Fill the store with the Yjs doc content or if empty
     // initialize the Yjs Doc with the default store records.
