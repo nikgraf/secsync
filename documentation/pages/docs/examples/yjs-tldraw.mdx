@@ -1,0 +1,21 @@
+# Yjs Tldraw Example
+
+## Warning
+
+This example an early prototype and sometime crashes with a `Maximum call stack size exceeded`.
+
+## Instructions
+
+- Any change that you make will be encrypted and uploaded to the
+  server.
+- You can refresh the page and the current state will be
+  reconstructed.
+- You can share the current URL and collaborate real-time with others.
+
+## Example
+
+{/* need to disable SSR since Tldraw throws an error on Next SSR */}
+import YjsTldrawExample from "../../../components/YjsTldrawExample/Dynamic";
+import SimpleExampleWrapper from "../../../components/SimpleExampleWrapper";
+
+<SimpleExampleWrapper component={YjsTldrawExample} />
