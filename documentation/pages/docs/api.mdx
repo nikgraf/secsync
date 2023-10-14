@@ -1,6 +1,6 @@
 # API
 
-## Mode
+## mode
 
 Can be `"complete"` or `"delta"`. The default is `"complete"`
 
@@ -10,3 +10,17 @@ Setting it to `"delta"` means the only the necessary updates should be provided.
 
 1. Client is aware of the latest snapshot and three updates and only misses two updates then only two updates are sent.
 2. Client is aware of an older snapshot, then the latest snapshot and all it's updates are sent.
+
+## sodium
+
+Needs to be libsodium implementation. In most JavaScript environment it can be imported like:
+
+```ts
+import sodium from "libsodium-wrappers";
+```
+
+For React Native we created bindings to libsodium that can be imported as:
+
+```ts
+import sodium from "react-native-libsodium";
+```
