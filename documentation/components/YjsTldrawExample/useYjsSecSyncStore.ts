@@ -1,8 +1,15 @@
 import {
+  InstancePresenceRecordType,
+  TLInstancePresence,
   TLRecord,
   TLStoreWithStatus,
+  computed,
+  createPresenceStateDerivation,
   createTLStore,
   defaultShapeUtils,
+  defaultUserPreferences,
+  getUserPreferences,
+  react,
   transact,
 } from "@tldraw/tldraw";
 import sodium, { KeyPair } from "libsodium-wrappers";
@@ -121,6 +128,82 @@ export function useYjsSecSyncStore({
 
     yStore.on("change", handleChange);
     subscribers.push(() => yStore.off("change", handleChange));
+
+    // awareness setup
+    const userPreferences = computed<{
+      id: string;
+      color: string;
+      name: string;
+    }>("userPreferences", () => {
+      const user = getUserPreferences();
+      return {
+        id: user.id,
+        color: user.color ?? defaultUserPreferences.color,
+        name: user.name ?? defaultUserPreferences.name,
+      };
+    });
+
+    // Create the instance presence derivation
+    const yClientId = yAwareness.clientID.toString();
+    const presenceId = InstancePresenceRecordType.createId(yClientId);
+    const presenceDerivation =
+      createPresenceStateDerivation(userPreferences)(store);
+
+    // Set the client's initial presence from the derivation's current value
+    yAwareness.setLocalStateField("presence", presenceDerivation.value);
+
+    // When the derivation change, sync presence to to yjs awareness
+    subscribers.push(
+      react("when presence changes", () => {
+        const presence = presenceDerivation.value;
+        requestAnimationFrame(() => {
+          yAwareness.setLocalStateField("presence", presence);
+        });
+      })
+    );
+
+    // Sync yjs awareness changes to the store
+    const handleUpdate = (update: {
+      added: number[];
+      updated: number[];
+      removed: number[];
+    }) => {
+      const states = yAwareness.getStates() as Map<
+        number,
+        { presence: TLInstancePresence }
+      >;
+
+      const toRemove: TLInstancePresence["id"][] = [];
+      const toPut: TLInstancePresence[] = [];
+
+      // Connect records to put / remove
+      for (const clientId of update.added) {
+        const state = states.get(clientId);
+        if (state?.presence && state.presence.id !== presenceId) {
+          toPut.push(state.presence);
+        }
+      }
+
+      for (const clientId of update.updated) {
+        const state = states.get(clientId);
+        if (state?.presence && state.presence.id !== presenceId) {
+          toPut.push(state.presence);
+        }
+      }
+
+      for (const clientId of update.removed) {
+        toRemove.push(InstancePresenceRecordType.createId(clientId.toString()));
+      }
+
+      // put / remove the records in the store
+      store.mergeRemoteChanges(() => {
+        if (toRemove.length) store.remove(toRemove);
+        if (toPut.length) store.put(toPut);
+      });
+    };
+
+    yAwareness.on("update", handleUpdate);
+    subscribers.push(() => yAwareness.off("update", handleUpdate));
 
     // Fill the store with the Yjs doc content or if empty
     // initialize the Yjs Doc with the default store records.
