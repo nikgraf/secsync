@@ -15,7 +15,7 @@ type Props = {
 const YjsTldrawExample: React.FC<Props> = ({ documentId, documentKey }) => {
   const store = useYjsSecSyncStore({ documentId, documentKey, websocketHost });
   return (
-    <div style={{ height: 600 }}>
+    <div style={{ height: 500 }}>
       <Tldraw autoFocus store={store} />
     </div>
   );
