@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Instead of only allowing specific Yjs change origins now only change explicitly added by secsync are ignored
+
 ## [0.2.0] - 2023-09-29
 
 ### Added

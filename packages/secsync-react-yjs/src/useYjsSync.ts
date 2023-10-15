@@ -102,7 +102,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
   useEffect(() => {
     // always listen to updates from the document itself
     const onUpdate = (update: any, origin: any) => {
-      if (origin?.key === "y-sync$" || origin === "mobile-webview") {
+      if (origin !== "secsync-origin") {
         send({ type: "ADD_CHANGES", data: [update] });
       }
     };
