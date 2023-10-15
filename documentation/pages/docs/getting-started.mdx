@@ -207,11 +207,37 @@ A more advanced implementation should take into account if the full document or 
 
 #### hasAccess
 
-TODO
+A callback to verify if the client has read or write access to the requested document. Should return `true` if the client has access and `false` in case not.
+
+The callback is invoked with the following argument:
+
+```tsx
+type HasAccessParams =
+  | {
+      action: "read";
+      documentId: string;
+      websocketSessionKey: string | undefined;
+    }
+  | {
+      action: "write-snapshot" | "write-update" | "send-ephemeral-message";
+      documentId: string;
+      publicKey: string;
+      websocketSessionKey: string | undefined;
+    };
+```
 
 #### hasBroadcastAccess
 
-TODO
+A callback to verify if clients are allowed to receive a new message. Should an array of `true` or `false` values matching the index of the `websocketSessionKeys` to indicate which client has access.
+
+The callback is invoked with the following argument:
+
+```ts
+export type HasBroadcastAccessParams = {
+  documentId: string;
+  websocketSessionKeys: string[];
+};
+```
 
 ### Documentation Example Backend
 
