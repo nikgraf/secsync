@@ -8,9 +8,13 @@ type Props = {
     documentId: string;
     documentKey: Uint8Array;
   }>;
+  generateDocumentKey: boolean;
 };
 
-const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
+const SimpleExampleWrapper: React.FC<Props> = ({
+  component,
+  generateDocumentKey,
+}) => {
   const [isReady, setIsReady] = useState(false);
   const documentKeyRef = useRef<Uint8Array>(null);
   const documentIdRef = useRef<string>(null);
@@ -21,7 +25,7 @@ const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
     if (documentIdRef.current) {
       searchParams.set("id", documentIdRef.current);
     }
-    if (documentKeyRef.current) {
+    if (generateDocumentKey !== false && documentKeyRef.current) {
       searchParams.set("key", sodium.to_base64(documentKeyRef.current));
     }
     window.location.hash = searchParams.toString();
@@ -40,7 +44,7 @@ const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
       documentKey = sodium.from_base64(keyString);
     } catch (err) {
     } finally {
-      if (!documentKey) {
+      if (generateDocumentKey !== false && !documentKey) {
         documentKey = sodium.randombytes_buf(
           sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES
         );
@@ -84,7 +88,7 @@ const SimpleExampleWrapper: React.FC<Props> = ({ component }) => {
   if (documentIdRef.current) {
     searchParams.set("id", documentIdRef.current);
   }
-  if (documentKeyRef.current) {
+  if (generateDocumentKey !== false && documentKeyRef.current) {
     searchParams.set("key", sodium.to_base64(documentKeyRef.current));
   }
   const shareUrl = `${window.location.origin}${

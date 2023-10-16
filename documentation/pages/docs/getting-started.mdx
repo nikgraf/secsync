@@ -1,11 +1,244 @@
 # Getting started
 
+## Technologies
+
+Secsync is defining a contract between a central backend service and clients. There are helpers to setup secsync using the following technologies:
+
+- Client/server communication: Websocket
+- CRDT: Yjs or Automerge
+- Backend language: JavaScript
+- Client rendering: React
+
+Secsync is not bound to these technologies and all utitlies are exposed to implement different technologies. If you are looking for a different combination please reach out.
+
 ## Installation
 
 ```sh
 npm install secsync
 ```
 
-## Usage
+## Tutorial
 
-TODO
+Let's build an end-to-end encrypted to-do list.
+
+We start from a Yjs To-Dos application that currently only manages a To-Do list locally in a Yjs document. The whole application is built in one component.
+
+```tsx
+import React, { useRef } from "react";
+import * as Yjs from "yjs";
+import { useYArray } from "../../hooks/useYArray";
+
+export const YjsUnsyncedTodosExample: React.FC = () => {
+  // initialize Yjs document
+  const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
+  // get/define the array in the Yjs document
+  const yTodos: Yjs.Array<string> = yDocRef.current.getArray("todos");
+  // the useYArray hook ensures React re-renders once
+  // the array changes and returns the array
+  const todos = useYArray(yTodos);
+
+  return (
+    <>
+      <div>
+        <button
+          onClick={() => {
+            const todoOptions = [
+              "piano lesson",
+              "spring cleaning",
+              "pay taxes",
+              "call mum",
+            ];
+            const content =
+              todoOptions[Math.floor(Math.random() * todoOptions.length)];
+            yTodos.push([content]);
+          }}
+        >
+          Add generated To-Do
+        </button>
+
+        {todos.map((entry, index) => {
+          return (
+            <div key={`${index}-${entry}`}>
+              {entry}{" "}
+              <button
+                onClick={() => {
+                  yTodos.delete(index, 1);
+                }}
+              >
+                x
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+};
+```
+
+You can try it out here:
+
+import { YjsUnsyncedTodosExample } from "../../components/YjsUnsyncedTodosExample/YjsUnsyncedTodosExample";
+
+<YjsUnsyncedTodosExample />
+
+### Setup useYjsSync
+
+Now let's setup the end-to-end encrypted data sync. For now we will use the backend service used by the documentation.
+
+```ts
+const websocketHost = "wss://secsync.fly.dev";
+```
+
+Next we want to setup the keys. While in Secsync every Snapshot (and related Updates and EphemeralMessages) can each have their own encryption keys we use a stable `documentKey`. In addition we create signing keys for the client. In this tutorial we won't validate them and therefor we can generate some.
+
+```tsx
+import sodium, { KeyPair } from "libsodium-wrappers";
+
+export const YjsUnsyncedTodosExample: React.FC = () => {
+  // Can be created using sodium.randombytes_buf(sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES)
+  // Sodium is only used inside the component since sodium can only be used after sodium.ready
+  // resolved which is recommended to be checked before even mounting this component.
+  const documentKey = sodium.from_base64(
+    "MTcyipWZ6Kiibd5fATw55i9wyEU7KbdDoTE_MRgDR98"
+  );
+
+  const [authorKeyPair] = useState<KeyPair>(() => {
+    return sodium.crypto_sign_keypair();
+  });
+  …
+};
+```
+
+Next up we adding the `useYjsSync` hook. Each parameter is explained by it's code comment.
+
+```tsx
+const [state, send] = useYjsSync({
+  // The Yjs document
+  yDoc: yDocRef.current,
+  // A unique ID identifying the document
+  documentId,
+  // The current client's signing keyPair
+  signatureKeyPair: authorKeyPair,
+  // The backend service to connect to
+  websocketHost,
+  // Used to authenticate the client with the server (not checked by the documentation backend)
+  websocketSessionKey: "your-secret-session-key",
+  // Callback to return the key for the Snapshot. In this case we are going to use
+  // one documentKey for all Snapshots.
+  getSnapshotKey: async (snapshotInfo) => {
+    return documentKey;
+  },
+  // Callback invoked to return the necessary values to create a Snapshot.
+  getNewSnapshotData: async ({ id }) => {
+    return {
+      // A Snapshot of the CRDT data
+      data: Yjs.encodeStateAsUpdateV2(yDocRef.current),
+      // Encryption key for the snapshot
+      key: documentKey,
+      // Custom data that will not be encrypted, but cryptographically attached
+      // to the Snapshot as public data. In crpytography also referred to as
+      // additional authenticated data (AAD).
+      publicData: {},
+    };
+  },
+  // Callback invoked for ever snapshot, update, ephemeralMessage to validate if
+  // it was signed by a valid client for this document. While the encryption key
+  // is securing confidentiality this can be used to verify the author and possibly
+  // reject changes from clients that are not valid anymore e.g. a removed member.
+  isValidClient: async (signingPublicKey: string) => {
+    return true;
+  },
+  // The libsodium-wrappers API implementation. Injected to replace it with
+  // e.g. react-native-libsodium for ReactNative
+  sodium,
+});
+```
+
+You can try it out here by adding To-Dos and you they will load if you refresh the page since the `documentId` is part of the URL. Once you refresh the last snapshot with all related updates will be downloaded.
+
+import SimpleExampleWrapper from "../../components/SimpleExampleWrapper";
+import { YjsTodosExample } from "../../components/YjsTodosExample/YjsTodosExample";
+
+<SimpleExampleWrapper component={YjsTodosExample} generateDocumentKey={false} />
+
+## Setup your own backend
+
+Secsync ships with a backend utility that handles a Websocket connection. It requires 5 callbacks to be defined:
+
+- getDocument
+- createSnaphot
+- createUpdate
+- hasAccess
+- hasBroadcastAccess
+
+```tsx
+import { createWebSocketConnection } from "secsync";
+import { WebSocketServer } from "ws";
+
+const webSocketServer = new WebSocketServer();
+webSocketServer.on(
+  "connection",
+  createWebSocketConnection({
+    createSnapshot,
+    createUpdate,
+    getDocument,
+    hasAccess,
+    hasBroadcastAccess,
+  })
+);
+```
+
+### Callbacks
+
+#### createSnapshot
+
+A callback that receives an object containing the `snapshot` structure sent by clients. The Snapshot should be persistet to a database. In case persisting fails an error should be thrown.
+
+#### createUpdate
+
+A callback that receives an object containing the `update` structure sent by clients. The Update should be persistet to a database. In case persisting fails an error should be thrown.
+
+#### getDocument
+
+A callback that should return the necessary document information. The simples implementation would just return the latest snapshot, the proofs for snapshot ancestor chain and all related updates.
+
+A more advanced implementation should take into account if the full document or just a delta was requested and idenitfy if and if so which updates are necessary to send and only return those.
+
+#### hasAccess
+
+A callback to verify if the client has read or write access to the requested document. Should return `true` if the client has access and `false` in case not.
+
+The callback is invoked with the following argument:
+
+```tsx
+type HasAccessParams =
+  | {
+      action: "read";
+      documentId: string;
+      websocketSessionKey: string | undefined;
+    }
+  | {
+      action: "write-snapshot" | "write-update" | "send-ephemeral-message";
+      documentId: string;
+      publicKey: string;
+      websocketSessionKey: string | undefined;
+    };
+```
+
+#### hasBroadcastAccess
+
+A callback to verify if clients are allowed to receive a new message. Should an array of `true` or `false` values matching the index of the `websocketSessionKeys` to indicate which client has access.
+
+The callback is invoked with the following argument:
+
+```ts
+export type HasBroadcastAccessParams = {
+  documentId: string;
+  websocketSessionKeys: string[];
+};
+```
+
+### Documentation Example Backend
+
+A fully functional backend can be found here [https://github.com/serenity-kit/secsync/tree/main/examples/backend](https://github.com/serenity-kit/secsync/tree/main/examples/backend). Keep in mind that it accepts any client and does not verify the Websocket session key/token.

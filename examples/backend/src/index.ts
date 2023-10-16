@@ -9,10 +9,11 @@ import { createUpdate as createUpdateDb } from "./database/createUpdate";
 import { getOrCreateDocument as getOrCreateDocumentDb } from "./database/getOrCreateDocument";
 
 async function main() {
-  const allowedOrigin =
-    process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
-      ? "http://localhost:3000"
-      : "https://www.secsync.com";
+  // const allowedOrigin =
+  //   process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test"
+  //     ? "http://localhost:3000"
+  //     : "https://www.secsync.com";
+  const allowedOrigin = "*";
   const corsOptions = { credentials: true, origin: allowedOrigin };
 
   const app = express();
