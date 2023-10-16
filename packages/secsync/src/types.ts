@@ -142,7 +142,7 @@ export type SyncMachineConfig = {
   }) => boolean;
   isValidClient: (signingPublicKey: string) => boolean | Promise<boolean>;
   serializeChanges: (changes: any[]) => string;
-  deserializeChanges: (serializeChanges: string) => any[];
+  deserializeChanges: (serializeChanges: string) => any;
   sodium: any;
   onDocumentUpdated?: (params: {
     type: OnDocumentUpdatedEventType;
