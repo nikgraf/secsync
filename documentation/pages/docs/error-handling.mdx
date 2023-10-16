@@ -4,6 +4,30 @@ The goal is to have a secure and reliable system. This means errors that are not
 
 Errors that are caused by a participant can't be recovered from and the document ends up in an error state.
 
+## Accessing errors
+
+Depending on the application errors might need to be handled very differently. The errors can accessed through `state.context` e.g. `state.context._documentDecryptionState`.
+
+Here the full list of relevant attributes:
+
+```ts
+_documentDecryptionState: "pending" | "failed" | "partial" | "complete"
+// includes error codes: SECSYNC_ERROR_1xx, SECSYNC_ERROR_2xx, SECSYNC_ERROR_4xx, SECSYNC_ERROR_5xx
+_snapshotAndUpdateErrors: Error[]
+// includes error codes: SECSYNC_ERROR_3xx
+_ephemeralMessageReceivingErrors: Error[]
+// includes error codes: SECSYNC_ERROR_6xx
+_ephemeralMessageAuthoringErrors: Error[]
+// counter for _websocketRetries in case the client is offline
+_websocketRetries: number
+```
+
+The errors in the arrays of errors have as message always the error code and can be accessed like:
+
+```ts
+_snapshotAndUpdateErrors[0].message;
+```
+
 ## Receiving Data
 
 ### Snapshot

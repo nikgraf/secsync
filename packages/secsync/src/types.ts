@@ -110,6 +110,13 @@ export type AdditionalAuthenticationDataValidations = {
   ephemeralMessage?: z.SomeZodObject;
 };
 
+export type NewSnapshotData = {
+  readonly data: Uint8Array | string;
+  readonly key: Uint8Array;
+  readonly publicData: any;
+  readonly additionalServerData?: any;
+};
+
 export type SyncMachineConfig = {
   documentId: string;
   signatureKeyPair: KeyPair;
@@ -119,20 +126,12 @@ export type SyncMachineConfig = {
   getSnapshotKey: (
     snapshotInfo: SnapshotProofInfo | null
   ) => Promise<Uint8Array> | Uint8Array;
-  getNewSnapshotData: ({ id }: { id: string }) =>
-    | Promise<{
-        readonly data: Uint8Array | string;
-        readonly key: Uint8Array;
-        readonly publicData: any;
-        readonly additionalServerData?: any;
-      }>
-    | {
-        readonly data: Uint8Array | string;
-        readonly key: Uint8Array;
-        readonly publicData: any;
-        readonly additionalServerData?: any;
-      };
-  applyChanges: (updates: any[]) => void;
+  getNewSnapshotData: ({
+    id,
+  }: {
+    id: string;
+  }) => Promise<NewSnapshotData> | NewSnapshotData;
+  applyChanges: (changes: any[]) => void;
   applyEphemeralMessage: (
     ephemeralMessages: any,
     authorPublicKey: string
