@@ -1,3 +1,82 @@
 # Server API
 
+#### createSnapshot
+
+A callback that receives an object containing the `snapshot` structure sent by clients. The Snapshot should be persistet to a database. In case persisting fails an error should be thrown.
+
+```ts
+export type CreateSnapshotParams = {
+  snapshot: SnapshotWithClientData;
+};
+```
+
+#### createUpdate
+
+A callback that receives an object containing the `update` structure sent by clients. The Update should be persistet to a database. In case persisting fails an error should be thrown.
+
+```ts
+export type CreateUpdateParams = {
+  update: Update;
+};
+```
+
+#### getDocument
+
+A callback that should return the necessary document information. The simples implementation would just return the latest snapshot, the proofs for snapshot ancestor chain and all related updates.
+
+A more advanced implementation should take into account if the full document or just a delta was requested and idenitfy if and if so which updates are necessary to send and only return those.
+
+```ts
+export type GetDocumentMode = "complete" | "delta";
+
+export type GetDocumentParams = {
+  documentId: string;
+  knownSnapshotId?: string;
+  knownSnapshotUpdateClocks?: SnapshotUpdateClocks;
+  mode: GetDocumentMode;
+};
+```
+
+Note: Depending on the application the `getDocument` can be a `getOrCreateDocument` and it creates a document if the ID has not seen before.
+
+#### hasAccess
+
+A callback to verify if the client has read or write access to the requested document. Should return `true` if the client has access and `false` in case not.
+
+The callback is invoked with the following argument:
+
+```tsx
+type HasAccessParams =
+  | {
+      action: "read";
+      documentId: string;
+      websocketSessionKey: string | undefined;
+    }
+  | {
+      action: "write-snapshot" | "write-update" | "send-ephemeral-message";
+      documentId: string;
+      publicKey: string;
+      websocketSessionKey: string | undefined;
+    };
+```
+
+#### hasBroadcastAccess
+
+A callback to verify if clients are allowed to receive a new message. Should an array of `true` or `false` values matching the index of the `websocketSessionKeys` to indicate which client has access.
+
+The callback is invoked with the following argument:
+
+```ts
+export type HasBroadcastAccessParams = {
+  documentId: string;
+  websocketSessionKeys: string[];
+};
+```
+
 ## additionalAuthenticationDataValidations
+
+Must be identical to the supported `additionalAuthenticationDataValidations` on the client for data parsing to function correctly.
+
+### Documentation Example Backend
+
+A fully functional backend can be found here [https://github.com/serenity-kit/secsync/tree/main/examples/backend](https://github.com/serenity-kit/secsync/tree/main/examples/backend). Keep in mind that it accepts any client and does not verify the Websocket session key/token.

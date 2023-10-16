@@ -8,15 +8,81 @@ There are currently three ways on how to use Secsync on the client:
 
 The two hooks abstract away the logic how to map between the CRDT data-structures and Secsync's one.
 
-## API for useYjsSync, useAutomergeSync & createSyncMachine
+## Usage
 
-### documentId
+The client implementation is built using [xState](https://stately.ai/docs/xstate). The hooks instantiate the machine right away.
+
+### Instantiate
+
+#### useYjsSync
+
+```ts
+const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
+const [state, send] = useYjsSync({
+  yDoc: yDocRef.current,
+  ...moreRequiredArguments,
+});
+```
+
+#### useAutomergeSync
+
+```ts
+const [initialDoc] = useState<Doc<YouDataStructure>>(() => Automerge.init());
+const [currentDoc, syncDoc, state, send] = useAutomergeSync<Todos>({
+  initialDoc,
+  ...moreRequiredArguments,
+});
+```
+
+#### createSyncMachine
+
+```ts
+const syncMachine = createMachine();
+const syncActor = interpret(
+  syncMachine.withContext({
+    ...syncMachine.context,
+    documentId: docId,
+    ...moreRequiredArguments,
+  })
+);
+
+syncActor.subscribe((state) => {
+  console.log(state.value, state.context);
+});
+```
+
+### State
+
+They all expose a state object representing the current state. The state contains the value which indicates the current state of state machine.
+
+Most relevant to the user are if the client is connected or not and if the document synchronisation failed. It should not fail unless an error was caused the protocol can not recover from.
+
+Examples of
+
+### Sending events
+
+In addition you can hook into the state machine and trigger events. most of them are irrelevant from a developer perspective.
+
+The most relevant ones are
+
+```ts
+send({ type: "DISCONNECT" }); // disconnect from the backend service
+send({ type: "CONNECT" }); // connect to the backend service (when disconnected)
+```
+
+The full list can be found in the [code here](https://github.com/serenity-kit/secsync/blob/main/packages/secsync/src/createSyncMachine.ts#L177).
+
+## Parameters
+
+### useYjsSync, useAutomergeSync & createSyncMachine
+
+#### documentId
 
 Required: `true`
 
 A unique ID as string to identifying the document.
 
-### signatureKeyPair
+#### signatureKeyPair
 
 Required: `true`
 
@@ -30,7 +96,7 @@ interface KeyPair {
 }
 ```
 
-### websocketHost
+#### websocketHost
 
 Required: `true`
 
@@ -43,13 +109,13 @@ const websocketHost =
     : "wss://secsync.fly.dev";
 ```
 
-### websocketSessionKey
+#### websocketSessionKey
 
 Required: `true`
 
 Used to authenticate the client with the server. Can be any string.
 
-### getSnapshotKey
+#### getSnapshotKey
 
 Required: `true`
 
@@ -66,7 +132,7 @@ type SnapshotProofInfo = {
 
 Expects the key to be returned as `Promise<Uint8Array> | Uint8Array`.
 
-### getNewSnapshotData
+#### getNewSnapshotData
 
 Required: `true`
 
@@ -95,7 +161,7 @@ type NewSnapshotData = {
 };
 ```
 
-### isValidClient
+#### isValidClient
 
 Required: `true`
 
@@ -108,7 +174,7 @@ One argument is passed to the callback `signingPublicKey: string`.
 
 The return type must be a boolean. `true` if it's a valid client and `false` if not.
 
-### sodium
+#### sodium
 
 Required: `true`
 
@@ -124,7 +190,7 @@ For React Native we created bindings to libsodium that can be imported as:
 import sodium from "react-native-libsodium";
 ```
 
-### onDocumentUpdated
+#### onDocumentUpdated
 
 A callback that is invoked every time the document has been updated. It contains an object with the type of update which can be `"snapshot-saved" | "snapshot-received" | "update-saved" | "update-received"` and the related `knownSnapshotInfo` of type `SnapshotInfoWithUpdateClocks`.
 
@@ -147,7 +213,7 @@ The `knownSnapshotInfo` can be stored locally in order to provide it to `loadDoc
 }) => void | Promise<void>
 ```
 
-### loadDocumentParams
+#### loadDocumentParams
 
 Required: `false`
 
@@ -164,11 +230,11 @@ type LoadDocumentParams = {
 };
 ```
 
-#### knownSnapshotInfo
+##### knownSnapshotInfo
 
 This should be the same object as provided by the last `onDocumentUpdated`-callback.
 
-#### mode
+##### mode
 
 Can be `"complete"` or `"delta"`. The default is `"complete"`
 
@@ -181,7 +247,7 @@ Setting it to `"delta"` means the only the necessary updates should be provided.
 
 `delta`-mode only makes sense if the client locally stores the document and the `loadDocumentParams` are passed in. Otherwise it basically will work as `complete`-mode.
 
-### onCustomMessage
+#### onCustomMessage
 
 Required: `false`
 
@@ -191,23 +257,31 @@ Secsync allows to pass down custom messages. With this callback they can be hand
 (message: any) => Promise<void> | void;
 ```
 
-### additionalAuthenticationDataValidations
+#### additionalAuthenticationDataValidations
 
 Required: `false`
 
+If you plan to attach additional public data to a Snapshot, Update or EphemeralMessage this must be hard-coded using the `additionalAuthenticationDataValidations` argument.
+
+Each of them is optional, but if not provided the additional public data will be rejected by other clients. Internally we are using [Zod](https://zod.dev/) and therefor the types have been declared like that. You could provide just an object as long as it has a `parse` function that accepts the full public data and returns the valid additional public data.
+
 ```ts
-AdditionalAuthenticationDataValidations;
+type AdditionalAuthenticationDataValidations = {
+  snapshot?: z.SomeZodObject;
+  update?: z.SomeZodObject;
+  ephemeralMessage?: z.SomeZodObject;
+};
 ```
 
-### logging
+#### logging
 
 Required: `false`
 
 Logging is off by default, but can be set to `"errors"` to log out errors to the console for debugging. For a more in-depth debugging logging can be set to `"debug"`.
 
-## Additional API for createSyncMachine
+### createSyncMachine (only)
 
-### applyChanges
+#### applyChanges
 
 Required: `true`
 
@@ -217,7 +291,7 @@ A callback receiving an array of changes that should be applied to the CRDT data
 (changes: any[]) => void;
 ```
 
-### applyEphemeralMessage
+#### applyEphemeralMessage
 
 Required: `true`
 
@@ -227,7 +301,7 @@ A callback receiving the ephemeralMessage and the author's public key.
 (ephemeralMessages: any, authorPublicKey: string) => void;
 ```
 
-### serializeChanges
+#### serializeChanges
 
 Required: `true`
 
@@ -237,7 +311,7 @@ A callback receiving an array of changes, which should be serialized to a string
 (changes: any[]) => string;
 ```
 
-### deserializeChanges
+#### deserializeChanges
 
 Required: `true`
 
