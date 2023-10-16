@@ -1,17 +1,116 @@
 # Client API
 
-## mode
+There are currently three ways on how to use Secsync on the client:
 
-Can be `"complete"` or `"delta"`. The default is `"complete"`
+- useYjsSync - works with Yjs & React
+- useAutomergeSync - works with Automerge & React
+- createSyncMachine - agnostic to the CRDT implementation and rendering engine
 
-Providing `"complete"` informs the backend that the entire document should be loaded. This means the last known snapshot and all connected updates.
+The two hooks abstract away the logic how to map between the CRDT data-structures and Secsync's one.
 
-Setting it to `"delta"` means the only the necessary updates should be provided. This means only the necessary data is retrieved e.g.
+## API for useYjsSync, useAutomergeSync & createSyncMachine
 
-1. Client is aware of the latest snapshot and three updates and only misses two updates then only two updates are sent.
-2. Client is aware of an older snapshot, then the latest snapshot and all it's updates are sent.
+### documentId
 
-## sodium
+Required: `true`
+
+A unique ID as string to identifying the document.
+
+### signatureKeyPair
+
+Required: `true`
+
+The current client's signing keyPair matching the libsodium `KeyPair`, but with the type `ed25519`. Depending on the application this can be the keypair of a user or just the device of a user.
+
+```ts
+interface KeyPair {
+  keyType: "ed25519";
+  privateKey: Uint8Array;
+  publicKey: Uint8Array;
+}
+```
+
+### websocketHost
+
+Required: `true`
+
+The backend service to connect to as a string. Example:
+
+```ts
+const websocketHost =
+  process.env.NODE_ENV === "development"
+    ? "ws://localhost:4000"
+    : "wss://secsync.fly.dev";
+```
+
+### websocketSessionKey
+
+Required: `true`
+
+Used to authenticate the client with the server. Can be any string.
+
+### getSnapshotKey
+
+Required: `true`
+
+Callback to return the key for the Snapshot. One argument is passed to the callback of the type:
+
+```ts
+type SnapshotProofInfo = {
+  snapshotId: string;
+  snapshotCiphertextHash: string;
+  parentSnapshotProof: string;
+  additionalPublicData: any; // additionalPublicData that was attached to the workshop
+};
+```
+
+Expects the key to be returned as `Promise<Uint8Array> | Uint8Array`.
+
+### getNewSnapshotData
+
+Required: `true`
+
+Callback invoked to return the necessary values to create a Snapshot.
+
+One argument is passed to the callback `{ id: string }`. This is generated ID used for the snapshot.
+
+The return type must be:
+
+```ts
+type NewSnapshotData = {
+  // A Snapshot of the CRDT data. Can be a compressed and/or garbage collected version.
+  readonly data: Uint8Array | string;
+  // Encryption key for the snapshot
+  readonly key: Uint8Array;
+  // Custom data that will not be encrypted, but cryptographically attached
+  // to the Snapshot as public data. In cryptography also referred to as
+  // additional authenticated data (AAD).
+  // If additional data is provided, also `additionalAuthenticationDataValidations`
+  // must be setup correctly for parsing incoming messages to work.
+  // In mose cases this will simply be an empty objects `{}`.
+  readonly publicData: any;
+  // Additional data that should be sent along to the server with the new snapshot
+  // but is not part of the public data.
+  readonly additionalServerData?: any;
+};
+```
+
+### isValidClient
+
+Required: `true`
+
+Callback invoked for ever snapshot, update, ephemeralMessage to validate if
+it was signed by a valid client for this document. While the encryption key
+is securing confidentiality this can be used to verify the author and possibly
+reject changes from clients that are not valid anymore e.g. a removed member.
+
+One argument is passed to the callback `signingPublicKey: string`.
+
+The return type must be a boolean. `true` if it's a valid client and `false` if not.
+
+### sodium
+
+Required: `true`
 
 Needs to be libsodium implementation. In most JavaScript environment it can be imported like:
 
@@ -23,4 +122,127 @@ For React Native we created bindings to libsodium that can be imported as:
 
 ```ts
 import sodium from "react-native-libsodium";
+```
+
+### onDocumentUpdated
+
+A callback that is invoked every time the document has been updated. It contains an object with the type of update which can be `"snapshot-saved" | "snapshot-received" | "update-saved" | "update-received"` and the related `knownSnapshotInfo` of type `SnapshotInfoWithUpdateClocks`.
+
+```ts
+type SnapshotInfoWithUpdateClocks = {
+  snapshotId: string;
+  snapshotCiphertextHash: string;
+  parentSnapshotProof: string;
+  additionalPublicData: any;
+  updateClocks: SnapshotUpdateClocks;
+};
+```
+
+The `knownSnapshotInfo` can be stored locally in order to provide it to `loadDocumentParams` when being disconnected. It will allow Secsync to perform various validations and checks to verify the correctness of the document.
+
+```ts
+(params: {
+  type: OnDocumentUpdatedEventType;
+  knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
+}) => void | Promise<void>
+```
+
+### loadDocumentParams
+
+Required: `false`
+
+`loadDocumentParams` are only relevant for the initial document loading. They allow secsync to do certain verifications and if activated also
+
+While `loadDocumentParams` are not required, especially providing the `knownSnapshotInfo` is an important element to protect against server compromise. Then Secsync can verify if the known Snapshot is an ancestor of the newly received one.
+
+```ts
+type GetDocumentMode = "complete" | "delta";
+
+type LoadDocumentParams = {
+  knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
+  mode: GetDocumentMode;
+};
+```
+
+#### knownSnapshotInfo
+
+This should be the same object as provided by the last `onDocumentUpdated`-callback.
+
+#### mode
+
+Can be `"complete"` or `"delta"`. The default is `"complete"`
+
+Providing `"complete"` informs the backend that the entire document should be loaded. This means the last known snapshot and all connected updates.
+
+Setting it to `"delta"` means the only the necessary updates should be provided. This means only the necessary data is retrieved e.g.
+
+1. Client is aware of the latest snapshot and three updates and only misses two updates then only two updates are sent.
+2. Client is aware of an older snapshot, then the latest snapshot and all it's updates are sent.
+
+`delta`-mode only makes sense if the client locally stores the document and the `loadDocumentParams` are passed in. Otherwise it basically will work as `complete`-mode.
+
+### onCustomMessage
+
+Required: `false`
+
+Secsync allows to pass down custom messages. With this callback they can be handled.
+
+```ts
+(message: any) => Promise<void> | void;
+```
+
+### additionalAuthenticationDataValidations
+
+Required: `false`
+
+```ts
+AdditionalAuthenticationDataValidations;
+```
+
+### logging
+
+Required: `false`
+
+Logging is off by default, but can be set to `"errors"` to log out errors to the console for debugging. For a more in-depth debugging logging can be set to `"debug"`.
+
+## Additional API for createSyncMachine
+
+### applyChanges
+
+Required: `true`
+
+A callback receiving an array of changes that should be applied to the CRDT datastructure.
+
+```ts
+(changes: any[]) => void;
+```
+
+### applyEphemeralMessage
+
+Required: `true`
+
+A callback receiving the ephemeralMessage and the author's public key.
+
+```ts
+(ephemeralMessages: any, authorPublicKey: string) => void;
+```
+
+### serializeChanges
+
+Required: `true`
+
+A callback receiving an array of changes, which should be serialized to a string. This is the content that will be encrypted in an update.
+
+```ts
+(changes: any[]) => string;
+```
+
+### deserializeChanges
+
+Required: `true`
+
+A callback receiving a string of serialized changes. These should be de-serialized to an array of changes.
+
+```ts
+(serializeChanges: string) => any[];
 ```

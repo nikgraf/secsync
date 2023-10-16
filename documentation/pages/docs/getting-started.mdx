@@ -137,7 +137,7 @@ const [state, send] = useYjsSync({
       // Encryption key for the snapshot
       key: documentKey,
       // Custom data that will not be encrypted, but cryptographically attached
-      // to the Snapshot as public data. In crpytography also referred to as
+      // to the Snapshot as public data. In cryptography also referred to as
       // additional authenticated data (AAD).
       publicData: {},
     };
@@ -149,8 +149,8 @@ const [state, send] = useYjsSync({
   isValidClient: async (signingPublicKey: string) => {
     return true;
   },
-  // The libsodium-wrappers API implementation. Injected to replace it with
-  // e.g. react-native-libsodium for ReactNative
+  // The libsodium-wrappers API implementation. This design was chosen to allow to pass in
+  // other implementations e.g. react-native-libsodium for ReactNative
   sodium,
 });
 ```
@@ -164,7 +164,7 @@ import { YjsTodosExample } from "../../components/YjsTodosExample/YjsTodosExampl
 
 ## Setup your own backend
 
-Secsync ships with a backend utility that handles a Websocket connection. It requires 5 callbacks to be defined:
+Secsync ships with a backend utility that handles a Websocket connection including validations and handling expected error cases e.g. trying to send snapshot without having synced first. It requires 5 callbacks to be defined:
 
 - getDocument
 - createSnaphot
