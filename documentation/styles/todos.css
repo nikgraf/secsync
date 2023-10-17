@@ -1,0 +1,124 @@
+.todoapp {
+  background: #fff;
+  position: relative;
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 25px 50px 0 rgba(0, 0, 0, 0.1);
+}
+
+.todoapp input::-webkit-input-placeholder {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.todoapp input::-moz-placeholder {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.todoapp input::input-placeholder {
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(0, 0, 0, 0.4);
+}
+
+.new-todo,
+.edit {
+  width: 100%;
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.4em;
+  color: inherit;
+  box-sizing: border-box;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 16px 80px 16px 64px;
+  height: 64px;
+  background: rgba(0, 0, 0, 0.003);
+}
+
+.new-todo {
+  border-bottom: 1px solid #ededed;
+}
+
+.add {
+  position: absolute;
+  right: 0;
+  height: 64px;
+  width: 64px;
+  border-left: 1px solid #ededed;
+}
+
+.todo-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.todo-list li {
+  position: relative;
+  font-size: 24px;
+  display: block;
+  padding-left: 0px;
+  display: flex;
+  border-bottom: 1px solid #ededed;
+}
+
+.todo-list li:last-child {
+  border-bottom: none;
+}
+
+.todo-list li .toggle {
+  position: absolute;
+  text-align: center;
+  top: 0;
+  left: 0;
+  width: 64px;
+  height: 64px;
+  border: none; /* Mobile Safari */
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.todo-list li .toggle {
+  /*
+		Firefox requires `#` to be escaped - https://bugzilla.mozilla.org/show_bug.cgi?id=922433
+		IE and Edge requires *everything* to be escaped to render, so we do that instead of just the `#` - https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/7157459/
+	*/
+  background-image: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%22-10%20-18%20100%20135%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22none%22%20stroke%3D%22%23949494%22%20stroke-width%3D%223%22/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center center;
+}
+
+.todo-list li .toggle:checked {
+  background-image: url("data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%22-10%20-18%20100%20135%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22none%22%20stroke%3D%22%2359A193%22%20stroke-width%3D%223%22%2F%3E%3Cpath%20fill%3D%22%233EA390%22%20d%3D%22M72%2025L42%2071%2027%2056l-4%204%2020%2020%2034-52z%22%2F%3E%3C%2Fsvg%3E");
+}
+
+.todo-list li .destroy {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 64px;
+  height: 64px;
+  margin: auto 0;
+  font-size: 32px;
+  color: #949494;
+  transition: color 0.2s ease-out;
+  padding-top: 12px;
+}
+
+.todo-list li .destroy:hover,
+.todo-list li .destroy:focus {
+  color: #c18585;
+}
+
+.todo-list li .destroy:after {
+  content: "×";
+  display: block;
+  height: 100%;
+  line-height: 1.1;
+}
+
+.todo-list li:hover .destroy {
+  display: block;
+}

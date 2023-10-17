@@ -90,85 +90,89 @@ const AutomergeTodosExample: React.FC<Props> = ({
 
       <br />
 
-      <form
-        onSubmit={(event) => {
-          event.preventDefault();
+      <div className="todoapp">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
 
-          const newDoc: Doc<Todos> = Automerge.change(currentDoc, (doc) => {
-            if (!doc.todos) doc.todos = {};
-            const id = uuidv4();
-            doc.todos[id] = {
-              value: newTodo,
-              completed: false,
-              createdAt: new Date().getTime(),
-            };
-          });
-          syncDoc(newDoc);
-          setNewTodo("");
-        }}
-      >
-        <input
-          placeholder="What needs to be done?"
-          onChange={(event) => setNewTodo(event.target.value)}
-          value={newTodo}
-        />
-        <button>Add</button>
-      </form>
-      <ul>
-        {currentDoc.todos &&
-          Object.keys(currentDoc.todos)
-            .map((id) => {
-              return {
-                ...currentDoc.todos[id],
-                id,
+            const newDoc: Doc<Todos> = Automerge.change(currentDoc, (doc) => {
+              if (!doc.todos) doc.todos = {};
+              const id = uuidv4();
+              doc.todos[id] = {
+                value: newTodo,
+                completed: false,
+                createdAt: new Date().getTime(),
               };
-            })
-            .sort((a, b) => b.createdAt - a.createdAt)
-            .map((todo) => (
-              <li key={todo.id}>
-                <input
-                  onChange={(event) => {
-                    const newDoc: Doc<Todos> = Automerge.change(
-                      currentDoc,
-                      (doc) => {
-                        doc.todos[todo.id].value = event.target.value;
-                      }
-                    );
-                    syncDoc(newDoc);
-                  }}
-                  value={todo.value}
-                />
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={(event) => {
-                    const newDoc: Doc<Todos> = Automerge.change(
-                      currentDoc,
-                      (doc) => {
-                        doc.todos[todo.id].completed = event.target.checked;
-                      }
-                    );
-                    syncDoc(newDoc);
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    const newDoc: Doc<Todos> = Automerge.change(
-                      currentDoc,
-                      (doc) => {
-                        delete doc.todos[todo.id];
-                      }
-                    );
-                    syncDoc(newDoc);
-                  }}
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-      </ul>
+            });
+            syncDoc(newDoc);
+            setNewTodo("");
+          }}
+        >
+          <input
+            placeholder="What needs to be done?"
+            onChange={(event) => setNewTodo(event.target.value)}
+            value={newTodo}
+            className="new-todo"
+          />
+          <button className="add">Add</button>
+        </form>
+        <ul className="todo-list">
+          {currentDoc.todos &&
+            Object.keys(currentDoc.todos)
+              .map((id) => {
+                return {
+                  ...currentDoc.todos[id],
+                  id,
+                };
+              })
+              .sort((a, b) => b.createdAt - a.createdAt)
+              .map((todo) => (
+                <li key={todo.id}>
+                  <input
+                    className="edit"
+                    onChange={(event) => {
+                      const newDoc: Doc<Todos> = Automerge.change(
+                        currentDoc,
+                        (doc) => {
+                          doc.todos[todo.id].value = event.target.value;
+                        }
+                      );
+                      syncDoc(newDoc);
+                    }}
+                    value={todo.value}
+                  />
+                  <input
+                    className="toggle"
+                    type="checkbox"
+                    checked={todo.completed}
+                    onChange={(event) => {
+                      const newDoc: Doc<Todos> = Automerge.change(
+                        currentDoc,
+                        (doc) => {
+                          doc.todos[todo.id].completed = event.target.checked;
+                        }
+                      );
+                      syncDoc(newDoc);
+                    }}
+                  />
+                  <button
+                    className="destroy"
+                    type="button"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      const newDoc: Doc<Todos> = Automerge.change(
+                        currentDoc,
+                        (doc) => {
+                          delete doc.todos[todo.id];
+                        }
+                      );
+                      syncDoc(newDoc);
+                    }}
+                  ></button>
+                </li>
+              ))}
+        </ul>
+      </div>
     </>
   );
 };
