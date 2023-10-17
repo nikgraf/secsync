@@ -98,15 +98,29 @@ const SimpleExampleWrapper: React.FC<Props> = ({
   const Component = component;
 
   return (
-    <>
-      <div className="pb-4">
-        Share URL: <Link href={shareUrl}>{shareUrl}</Link>
+    <div className="pt-8">
+      <div className="mb-8 p-4 bg-primary-100 bg-opacity-40 border border-gray-200 rounded">
+        <div className="text text-gray-900 mb-2">Share link</div>
+        <p className="text-sm mb-4">
+          Open the link in another tab or device to experience how the content
+          gets synced via secsync.
+        </p>
+
+        <Link
+          href={shareUrl}
+          className="text-sm"
+          style={{ wordBreak: "break-all" }}
+        >
+          {shareUrl}
+        </Link>
       </div>
-      <Component
-        documentId={documentIdRef.current}
-        documentKey={documentKeyRef.current}
-      />
-    </>
+      <div>
+        <Component
+          documentId={documentIdRef.current}
+          documentKey={documentKeyRef.current}
+        />
+      </div>
+    </div>
   );
 };
 

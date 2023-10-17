@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import * as Yjs from "yjs";
 import { useYArray } from "../../hooks/useYArray";
 
@@ -10,40 +10,43 @@ export const YjsUnsyncedTodosExample: React.FC = () => {
   // the useYArray hook ensures React re-renders once
   // the array changes and returns the array
   const todos = useYArray(yTodos);
+  // local state for the text of a new to-do
+  const [newTodoText, setNewTodoText] = useState("");
 
   return (
     <>
-      <div>
-        <button
-          onClick={() => {
-            const todoOptions = [
-              "piano lesson",
-              "spring cleaning",
-              "pay taxes",
-              "call mum",
-            ];
-            const content =
-              todoOptions[Math.floor(Math.random() * todoOptions.length)];
-            yTodos.push([content]);
+      <div className="todoapp">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            yTodos.push([newTodoText]);
+            setNewTodoText("");
           }}
         >
-          Add generated To-Do
-        </button>
+          <input
+            placeholder="What needs to be done?"
+            onChange={(event) => setNewTodoText(event.target.value)}
+            value={newTodoText}
+            className="new-todo"
+          />
+          <button className="add">Add</button>
+        </form>
 
-        {todos.map((entry, index) => {
-          return (
-            <div key={`${index}-${entry}`}>
-              {entry}{" "}
-              <button
-                onClick={() => {
-                  yTodos.delete(index, 1);
-                }}
-              >
-                x
-              </button>
-            </div>
-          );
-        })}
+        <ul className="todo-list">
+          {todos.map((entry, index) => {
+            return (
+              <li key={`${index}-${entry}`}>
+                <div className="edit">{entry}</div>
+                <button
+                  className="destroy"
+                  onClick={() => {
+                    yTodos.delete(index, 1);
+                  }}
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </>
   );

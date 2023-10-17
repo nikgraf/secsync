@@ -5,6 +5,7 @@ import { schema } from "prosemirror-schema-basic";
 import { EditorState } from "prosemirror-state";
 import { EditorView } from "prosemirror-view";
 import React, { useEffect, useRef, useState } from "react";
+import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import {
   redo,
@@ -118,32 +119,9 @@ const YjsProsemirrorExample: React.FC<Props> = ({
 
   return (
     <>
-      <div>
-        {state.matches("connected") && "Connected"}
-        {state.matches("connecting") && "Connecting …"}
-        {state.matches("disconnected") && "Disconnected"}
-        {state.matches("failed") && "Error in loading or sending data"}
-
-        <button
-          disabled={!state.matches("connected")}
-          onClick={() => {
-            send({ type: "DISCONNECT" });
-          }}
-        >
-          Disconnect WebSocket
-        </button>
-        <button
-          disabled={!state.matches("disconnected")}
-          onClick={() => {
-            send({ type: "CONNECT" });
-          }}
-        >
-          Connect WebSocket
-        </button>
-      </div>
-      <div ref={editorRef} className="border border-primary-200 p-2 rounded">
-        Loading
-      </div>
+      <div ref={editorRef}>Loading</div>
+      <div className="mt-8" />
+      <DevTool state={state} send={send} />
     </>
   );
 };

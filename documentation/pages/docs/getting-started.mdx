@@ -24,7 +24,7 @@ Let's build an end-to-end encrypted to-do list.
 We start from a Yjs To-Dos application that currently only manages a To-Do list locally in a Yjs document. The whole application is built in one component.
 
 ```tsx
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import * as Yjs from "yjs";
 import { useYArray } from "../../hooks/useYArray";
 
@@ -36,40 +36,43 @@ export const YjsUnsyncedTodosExample: React.FC = () => {
   // the useYArray hook ensures React re-renders once
   // the array changes and returns the array
   const todos = useYArray(yTodos);
+  // local state for the text of a new to-do
+  const [newTodoText, setNewTodoText] = useState("");
 
   return (
     <>
-      <div>
-        <button
-          onClick={() => {
-            const todoOptions = [
-              "piano lesson",
-              "spring cleaning",
-              "pay taxes",
-              "call mum",
-            ];
-            const content =
-              todoOptions[Math.floor(Math.random() * todoOptions.length)];
-            yTodos.push([content]);
+      <div className="todoapp">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            yTodos.push([newTodoText]);
+            setNewTodoText("");
           }}
         >
-          Add generated To-Do
-        </button>
+          <input
+            placeholder="What needs to be done?"
+            onChange={(event) => setNewTodoText(event.target.value)}
+            value={newTodoText}
+            className="new-todo"
+          />
+          <button className="add">Add</button>
+        </form>
 
-        {todos.map((entry, index) => {
-          return (
-            <div key={`${index}-${entry}`}>
-              {entry}{" "}
-              <button
-                onClick={() => {
-                  yTodos.delete(index, 1);
-                }}
-              >
-                x
-              </button>
-            </div>
-          );
-        })}
+        <ul className="todo-list">
+          {todos.map((entry, index) => {
+            return (
+              <li key={`${index}-${entry}`}>
+                <div className="edit">{entry}</div>
+                <button
+                  className="destroy"
+                  onClick={() => {
+                    yTodos.delete(index, 1);
+                  }}
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </>
   );
@@ -78,11 +81,15 @@ export const YjsUnsyncedTodosExample: React.FC = () => {
 
 You can try it out here:
 
+## Example App
+
 import { YjsUnsyncedTodosExample } from "../../components/YjsUnsyncedTodosExample/YjsUnsyncedTodosExample";
 
-<YjsUnsyncedTodosExample />
+<div className="mt-12 mb-16">
+  <YjsUnsyncedTodosExample />
+</div>
 
-### Setup useYjsSync
+## Setup useYjsSync
 
 Now let's setup the end-to-end encrypted data sync. For now we will use the backend service used by the documentation.
 
@@ -95,7 +102,7 @@ Next we want to setup the keys. While in Secsync every Snapshot (and related Upd
 ```tsx
 import sodium, { KeyPair } from "libsodium-wrappers";
 
-export const YjsUnsyncedTodosExample: React.FC = () => {
+export const YjsTodosExample: React.FC = () => {
   // Can be created using sodium.randombytes_buf(sodium.crypto_aead_chacha20poly1305_IETF_KEYBYTES)
   // Sodium is only used inside the component since sodium can only be used after sodium.ready
   // resolved which is recommended to be checked before even mounting this component.
@@ -156,6 +163,21 @@ const [state, send] = useYjsSync({
 ```
 
 You can try it out here by adding To-Dos and you they will load if you refresh the page since the `documentId` is part of the URL. Once you refresh the last snapshot with all related updates will be downloaded.
+
+## Add Secsync DevTools
+
+In order to make development more transparent we created a `DevTool` component visualizing relevant information from the document.
+
+```tsx
+import { DevTool } from "secsync-react-devtool";
+```
+
+```tsx
+// `state` and `send` from the useYjsSync hook
+<DevTool state={state} send={send} />
+```
+
+## Example App
 
 import SimpleExampleWrapper from "../../components/SimpleExampleWrapper";
 import { YjsTodosExample } from "../../components/YjsTodosExample/YjsTodosExample";

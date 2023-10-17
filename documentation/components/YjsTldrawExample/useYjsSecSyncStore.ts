@@ -19,6 +19,15 @@ import { YKeyValue } from "y-utility/y-keyvalue";
 import * as Yjs from "yjs";
 import { DEFAULT_STORE } from "./default_store";
 
+type PrependToTuple<T extends any[], U> = [U, ...T];
+
+function prependTLStoreWithStatus<T extends any[]>(
+  tuple: T,
+  store: TLStoreWithStatus
+): PrependToTuple<T, TLStoreWithStatus> {
+  return [store, ...tuple];
+}
+
 type Params = {
   documentId: string;
   documentKey: Uint8Array;
@@ -40,7 +49,7 @@ export function useYjsSecSyncStore({
   );
   const yStore = new YKeyValue(yArr);
 
-  const [state, send, , yAwareness] = useYjsSync({
+  const syncResult = useYjsSync({
     yDoc: yDocRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
@@ -63,6 +72,7 @@ export function useYjsSecSyncStore({
     sodium,
     logging: "debug",
   });
+  const [state, send, , yAwareness] = syncResult;
 
   const subscribers: (() => void)[] = [];
 
@@ -271,5 +281,5 @@ export function useYjsSecSyncStore({
     prevStateValueRef.current = state.value;
   }, [state.value]);
 
-  return storeWithStatus;
+  return prependTLStoreWithStatus(syncResult, storeWithStatus);
 }

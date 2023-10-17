@@ -1,5 +1,6 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import React, { useRef, useState } from "react";
+import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import * as Yjs from "yjs";
 import { useYArray } from "../../hooks/useYArray";
@@ -11,9 +12,13 @@ const websocketHost =
 
 type Props = {
   documentId: string;
+  showDevTool: boolean;
 };
 
-export const YjsTodosExample: React.FC<Props> = ({ documentId }) => {
+export const YjsTodosExample: React.FC<Props> = ({
+  documentId,
+  showDevTool,
+}) => {
   const documentKey = sodium.from_base64(
     "MTcyipWZ6Kiibd5fATw55i9wyEU7KbdDoTE_MRgDR98"
   );
@@ -25,6 +30,7 @@ export const YjsTodosExample: React.FC<Props> = ({ documentId }) => {
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   const yTodos: Yjs.Array<string> = yDocRef.current.getArray("todos");
   const todos = useYArray(yTodos);
+  const [newTodoText, setNewTodoText] = useState("");
 
   const [state, send] = useYjsSync({
     yDoc: yDocRef.current,
@@ -55,38 +61,42 @@ export const YjsTodosExample: React.FC<Props> = ({ documentId }) => {
 
   return (
     <>
-      <div>
-        <button
-          onClick={() => {
-            const todoOptions = [
-              "piano lesson",
-              "spring cleaning",
-              "pay taxes",
-              "call mum",
-            ];
-            const content =
-              todoOptions[Math.floor(Math.random() * todoOptions.length)];
-            yTodos.push([content]);
+      <div className="todoapp">
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            yTodos.push([newTodoText]);
+            setNewTodoText("");
           }}
         >
-          Add generated To-Do
-        </button>
+          <input
+            placeholder="What needs to be done?"
+            onChange={(event) => setNewTodoText(event.target.value)}
+            value={newTodoText}
+            className="new-todo"
+          />
+          <button className="add">Add</button>
+        </form>
 
-        {todos.map((entry, index) => {
-          return (
-            <div key={`${index}-${entry}`}>
-              {entry}{" "}
-              <button
-                onClick={() => {
-                  yTodos.delete(index, 1);
-                }}
-              >
-                x
-              </button>
-            </div>
-          );
-        })}
+        <ul className="todo-list">
+          {todos.map((entry, index) => {
+            return (
+              <li key={`${index}-${entry}`}>
+                <div className="edit">{entry}</div>
+                <button
+                  className="destroy"
+                  onClick={() => {
+                    yTodos.delete(index, 1);
+                  }}
+                />
+              </li>
+            );
+          })}
+        </ul>
       </div>
+
+      <div className="mt-8" />
+      <DevTool state={state} send={send} />
     </>
   );
 };
