@@ -81,11 +81,15 @@ export const YjsUnsyncedTodosExample: React.FC = () => {
 
 You can try it out here:
 
+## Example App
+
 import { YjsUnsyncedTodosExample } from "../../components/YjsUnsyncedTodosExample/YjsUnsyncedTodosExample";
 
-<YjsUnsyncedTodosExample />
+<div className="mt-12 mb-16">
+  <YjsUnsyncedTodosExample />
+</div>
 
-### Setup useYjsSync
+## Setup useYjsSync
 
 Now let's setup the end-to-end encrypted data sync. For now we will use the backend service used by the documentation.
 
@@ -159,6 +163,8 @@ const [state, send] = useYjsSync({
 ```
 
 You can try it out here by adding To-Dos and you they will load if you refresh the page since the `documentId` is part of the URL. Once you refresh the last snapshot with all related updates will be downloaded.
+
+## Example App
 
 import SimpleExampleWrapper from "../../components/SimpleExampleWrapper";
 import { YjsTodosExample } from "../../components/YjsTodosExample/YjsTodosExample";

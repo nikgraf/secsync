@@ -3,6 +3,7 @@
 import { Inter } from "next/font/google";
 import "nextra-theme-docs/style.css";
 import "../styles/global.css";
+import "../styles/prosemirror-custom.css";
 import "../styles/prosemirror-example-setup.css";
 import "../styles/prosemirror-menu.css";
 import "../styles/tiptap-extension-y-awareness.css";

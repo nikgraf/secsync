@@ -231,10 +231,7 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
         </Button>
       </div>
 
-      <EditorContent
-        editor={editor}
-        className="border border-primary-200 p-2 rounded"
-      />
+      <EditorContent editor={editor} />
     </>
   );
 };
