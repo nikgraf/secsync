@@ -1,6 +1,7 @@
 import { Tldraw } from "@tldraw/tldraw";
 import "@tldraw/tldraw/tldraw.css";
 import { memo } from "react";
+import { DevTool } from "secsync-react-devtool";
 import { useYjsSecSyncStore } from "./useYjsSecSyncStore";
 
 const websocketHost =
@@ -17,11 +18,19 @@ type Props = {
 const MemoedTldraw = memo(Tldraw);
 
 const YjsTldrawExample: React.FC<Props> = ({ documentId, documentKey }) => {
-  const store = useYjsSecSyncStore({ documentId, documentKey, websocketHost });
+  const [store, state, send] = useYjsSecSyncStore({
+    documentId,
+    documentKey,
+    websocketHost,
+  });
   return (
-    <div style={{ height: 500 }}>
-      <MemoedTldraw store={store} />
-    </div>
+    <>
+      <div style={{ height: 500 }}>
+        <MemoedTldraw store={store} />
+      </div>
+      <div className="mt-8" />
+      <DevTool state={state} send={send} />
+    </>
   );
 };
 

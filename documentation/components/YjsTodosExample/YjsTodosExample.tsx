@@ -1,5 +1,6 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import React, { useRef, useState } from "react";
+import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import * as Yjs from "yjs";
 import { useYArray } from "../../hooks/useYArray";
@@ -11,9 +12,13 @@ const websocketHost =
 
 type Props = {
   documentId: string;
+  showDevTool: boolean;
 };
 
-export const YjsTodosExample: React.FC<Props> = ({ documentId }) => {
+export const YjsTodosExample: React.FC<Props> = ({
+  documentId,
+  showDevTool,
+}) => {
   const documentKey = sodium.from_base64(
     "MTcyipWZ6Kiibd5fATw55i9wyEU7KbdDoTE_MRgDR98"
   );
@@ -89,6 +94,9 @@ export const YjsTodosExample: React.FC<Props> = ({ documentId }) => {
           })}
         </ul>
       </div>
+
+      <div className="mt-8" />
+      <DevTool state={state} send={send} />
     </>
   );
 };

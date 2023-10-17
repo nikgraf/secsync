@@ -3,6 +3,7 @@ import * as Automerge from "@automerge/automerge";
 import { KeyPair, default as sodium } from "libsodium-wrappers";
 import React, { useState } from "react";
 import { useAutomergeSync } from "secsync-react-automerge";
+import { DevTool } from "secsync-react-devtool";
 import { v4 as uuidv4 } from "uuid";
 
 type TodoType = {
@@ -64,32 +65,6 @@ const AutomergeTodosExample: React.FC<Props> = ({
 
   return (
     <>
-      <div>
-        {state.matches("connected") && "Connected"}
-        {state.matches("connecting") && "Connecting …"}
-        {state.matches("disconnected") && "Disconnected"}
-        {state.matches("failed") && "Error in loading or sending data"}
-
-        <button
-          disabled={!state.matches("connected")}
-          onClick={() => {
-            send({ type: "DISCONNECT" });
-          }}
-        >
-          Disconnect WebSocket
-        </button>
-        <button
-          disabled={!state.matches("disconnected")}
-          onClick={() => {
-            send({ type: "CONNECT" });
-          }}
-        >
-          Connect WebSocket
-        </button>
-      </div>
-
-      <br />
-
       <div className="todoapp">
         <form
           onSubmit={(event) => {
@@ -173,6 +148,9 @@ const AutomergeTodosExample: React.FC<Props> = ({
               ))}
         </ul>
       </div>
+
+      <div className="mt-8" />
+      <DevTool state={state} send={send} />
     </>
   );
 };

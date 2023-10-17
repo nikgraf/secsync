@@ -164,6 +164,19 @@ const [state, send] = useYjsSync({
 
 You can try it out here by adding To-Dos and you they will load if you refresh the page since the `documentId` is part of the URL. Once you refresh the last snapshot with all related updates will be downloaded.
 
+## Add Secsync DevTools
+
+In order to make development more transparent we created a `DevTool` component visualizing relevant information from the document.
+
+```tsx
+import { DevTool } from "secsync-react-devtool";
+```
+
+```tsx
+// `state` and `send` from the useYjsSync hook
+<DevTool state={state} send={send} />
+```
+
 ## Example App
 
 import SimpleExampleWrapper from "../../components/SimpleExampleWrapper";

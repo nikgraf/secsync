@@ -3,6 +3,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
 import { useRef, useState } from "react";
+import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import { YAwarenessExtension } from "tiptap-extension-y-awareness";
 import * as Yjs from "yjs";
@@ -90,30 +91,6 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
 
   return (
     <>
-      <div>
-        {state.matches("connected") && "Connected"}
-        {state.matches("connecting") && "Connecting …"}
-        {state.matches("disconnected") && "Disconnected"}
-        {state.matches("failed") && "Error in loading or sending data"}
-
-        <Button
-          disabled={!state.matches("connected")}
-          onClick={() => {
-            send({ type: "DISCONNECT" });
-          }}
-        >
-          Disconnect WebSocket
-        </Button>
-        <Button
-          disabled={!state.matches("disconnected")}
-          onClick={() => {
-            send({ type: "CONNECT" });
-          }}
-        >
-          Connect WebSocket
-        </Button>
-      </div>
-
       <div className="tiptap-toolbar">
         <Button
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -232,6 +209,9 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
       </div>
 
       <EditorContent editor={editor} />
+
+      <div className="mt-8" />
+      <DevTool state={state} send={send} />
     </>
   );
 };
