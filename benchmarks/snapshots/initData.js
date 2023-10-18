@@ -1,6 +1,6 @@
 const fs = require("fs");
 const zlib = require("zlib");
-const automerge = require("automerge");
+const automerge = require("@automerge/automerge");
 const y = require("yjs");
 
 async function main() {
