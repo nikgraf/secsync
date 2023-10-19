@@ -1,5 +1,5 @@
 const fs = require("fs");
-const automerge = require("automerge");
+const automerge = require("@automerge/automerge");
 const { Buffer } = require("buffer");
 
 async function snapshot() {

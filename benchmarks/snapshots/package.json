@@ -11,7 +11,7 @@
     "lint": "echo \"No linting setup\""
   },
   "dependencies": {
-    "automerge": "^1.0.1-preview.7",
+    "@automerge/automerge": "^2.0.3",
     "yjs": "^13.6.7"
   }
 }
