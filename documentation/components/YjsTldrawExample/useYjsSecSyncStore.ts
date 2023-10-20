@@ -65,8 +65,8 @@ export function useYjsSecSyncStore({
     },
     getSnapshotKey: async (snapshot) => documentKey,
     shouldSendSnapshot: ({ snapshotUpdatesCount }) => {
-      // create a new snapshot if the active snapshot has more than 10 updates
-      return snapshotUpdatesCount > 10;
+      // create a new snapshot if the active snapshot has more than 100 updates
+      return snapshotUpdatesCount > 100;
     },
     isValidClient: async (signingPublicKey: string) => true,
     sodium,
