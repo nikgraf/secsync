@@ -49,8 +49,8 @@ const Document: React.FC<{ docId: string }> = ({ docId }) => {
       return documentKey;
     },
     shouldSendSnapshot: ({ snapshotUpdatesCount }) => {
-      // create a new snapshot if the active snapshot has more than 10 updates
-      return snapshotUpdatesCount > 10;
+      // create a new snapshot if the active snapshot has more than 100 updates
+      return snapshotUpdatesCount > 100;
     },
     isValidClient: (signingPublicKey) => {
       return true;

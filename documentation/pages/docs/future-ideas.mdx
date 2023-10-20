@@ -1,3 +1,11 @@
+## Throttling updates
+
+Currently updates are created and sent as soon as possible after adding one or multiple changes. This can lead to a lot of updates being sent in a short period of time and especially when a user is not collaborating in real-time with someone else this is not necessary. In fact bundling more changes together makes it even more efficient as you need download and process less updates.
+
+Ideally in the future there would be a mode where updates are bundled together based on a timeout if no other active collaborator is present (can be checked with the ephemeralMessage sessions).
+
+To keep a good real-time experience sending every change as soon as possible is still a good practice. To even improve the experience it might make sense to apply changes one by one instead all at once when multiple active collaborators are present. (can be checked with the ephemeralMessage sessions).
+
 ## Visualize which user made which change
 
 - In Automerge the user or device public should be used as an ID.

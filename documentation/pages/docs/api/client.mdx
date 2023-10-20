@@ -190,7 +190,24 @@ For React Native we created bindings to libsodium that can be imported as:
 import sodium from "react-native-libsodium";
 ```
 
+#### shouldSendSnapshot
+
+Required: `false`
+
+Callback which is invoked while processing the sending queue to determine if a snapshot or an update should be created next. By default only updates are sent.
+
+```tsx
+shouldSendSnapshot: ({ activeSnapshotId, snapshotUpdatesCount }) => {
+  // create a new snapshot if the active snapshot has more than 300 updates
+  return snapshotUpdatesCount > 300;
+},
+```
+
+Note: The backend can force a client to create a new snapshot by throwing a `SecsyncNewSnapshotRequiredError` error which results in `requiresNewSnapshot` set to true on the server to client message of type `"update-save-failed"`.
+
 #### onDocumentUpdated
+
+Required: `false`
 
 A callback that is invoked every time the document has been updated. It contains an object with the type of update which can be `"snapshot-saved" | "snapshot-received" | "update-saved" | "update-received"` and the related `knownSnapshotInfo` of type `SnapshotInfoWithUpdateClocks`.
 
