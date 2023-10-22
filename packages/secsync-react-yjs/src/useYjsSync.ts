@@ -127,8 +127,12 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
     yAwarenessRef.current.on("update", onAwarenessUpdate);
 
     // remove awareness state when closing the browser tab
-    if (global.window) {
-      global.window.addEventListener("beforeunload", () => {
+
+    if (
+      typeof window !== "undefined" &&
+      typeof window.addEventListener === "function"
+    ) {
+      window.addEventListener("beforeunload", () => {
         removeAwarenessStates(
           yAwarenessRef.current,
           [yDoc.clientID],
