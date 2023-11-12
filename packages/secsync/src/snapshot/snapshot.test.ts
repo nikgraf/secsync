@@ -82,7 +82,7 @@ test("createSnapshot & verifyAndDecryptSnapshot break due changed signature", ()
   const result = verifyAndDecryptSnapshot(
     {
       ...snapshot,
-      signature: snapshot.signature.replace(/^./, "a"),
+      signature: snapshot.signature.replace(/^.{5}/, "aaaaa"),
     },
     key,
     docId,
