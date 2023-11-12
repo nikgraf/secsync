@@ -131,7 +131,7 @@ test("createUpdate & verifyAndDecryptUpdate break due changed signature", async 
   const result = verifyAndDecryptUpdate(
     {
       ...update,
-      signature: update.signature.replace(/^./, "a"),
+      signature: update.signature.replace(/^.{5}/, "aaaaa"),
     },
     key,
     publicData.refSnapshotId,
