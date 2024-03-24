@@ -81,7 +81,7 @@ export function useYjsSecSyncStore({
       store.listen(
         function syncStoreChangesToYjsDoc({ changes }) {
           yDocRef.current.transact(() => {
-            Object.values(changes.added).forEach((record) => {
+            Object.values(changes.added).forEach((record: any) => {
               yStore.set(record.id, record);
             });
 
@@ -89,7 +89,7 @@ export function useYjsSecSyncStore({
               yStore.set(record.id, record);
             });
 
-            Object.values(changes.removed).forEach((record) => {
+            Object.values(changes.removed).forEach((record: any) => {
               yStore.delete(record.id);
             });
           }, "mobile-webview");
@@ -119,6 +119,7 @@ export function useYjsSecSyncStore({
           case "add":
           case "update": {
             const record = yStore.get(id)!;
+            // @ts-expect-error
             toPut.push(record);
             break;
           }
@@ -160,11 +161,13 @@ export function useYjsSecSyncStore({
       createPresenceStateDerivation(userPreferences)(store);
 
     // Set the client's initial presence from the derivation's current value
+    // @ts-expect-error
     yAwareness.setLocalStateField("presence", presenceDerivation.value);
 
     // When the derivation change, sync presence to to yjs awareness
     subscribers.push(
       react("when presence changes", () => {
+        // @ts-expect-error
         const presence = presenceDerivation.value;
         requestAnimationFrame(() => {
           yAwareness.setLocalStateField("presence", presence);
