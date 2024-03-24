@@ -350,6 +350,9 @@ importers:
       jest:
         specifier: ^29.6.2
         version: 29.6.2(@types/node@20.4.2)(ts-node@10.9.1)
+      secsync:
+        specifier: workspace:^
+        version: link:../secsync
     publishDirectory: dist
 
   packages/secsync-react-devtool:
@@ -423,6 +426,9 @@ importers:
       libsodium-wrappers:
         specifier: ^0.7.11
         version: 0.7.11
+      secsync:
+        specifier: workspace:^
+        version: link:../secsync
     publishDirectory: dist
 
   packages/tiptap-extension-y-awareness:

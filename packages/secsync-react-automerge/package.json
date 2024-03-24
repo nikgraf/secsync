@@ -16,7 +16,8 @@
   },
   "peerDependencies": {
     "@automerge/automerge": "*",
-    "react": "*"
+    "react": "*",
+    "secsync": "*"
   },
   "devDependencies": {
     "@babel/core": "^7.22.10",
@@ -24,7 +25,8 @@
     "@babel/preset-typescript": "^7.22.5",
     "@types/jest": "^29.5.3",
     "@types/react": "^18.2.20",
-    "jest": "^29.6.2"
+    "jest": "^29.6.2",
+    "secsync": "workspace:^"
   },
   "jest": {
     "setupFilesAfterEnv": [
