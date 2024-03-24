@@ -15,7 +15,7 @@
   "dependencies": {
     "canonicalize": "^2.0.0",
     "libsodium-wrappers": "^0.7.13",
-    "xstate": "^4.38.2",
+    "xstate": "^5.9.1",
     "zod": "^3.22.4"
   },
   "devDependencies": {

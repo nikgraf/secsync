@@ -51,7 +51,7 @@ export const useAutomergeSync = <T>(config: AutomergeSyncConfig<T>) => {
   // related: https://github.com/statelyai/xstate/discussions/1825
   const [syncMachine1] = useState(() => createSyncMachine());
   const machine = useMachine(syncMachine1, {
-    context: {
+    input: {
       ...rest,
       applySnapshot: (decryptedSnapshotData) => {
         let newDoc: Doc<T> = Automerge.load(decryptedSnapshotData);

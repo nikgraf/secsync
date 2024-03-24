@@ -1,3 +1,4 @@
+import { fromCallback } from "xstate";
 import { hash } from "../crypto/hash";
 import {
   createEphemeralMessage,
@@ -10,12 +11,12 @@ import {
   SyncMachineConfig,
 } from "../types";
 
-export const websocketService =
-  (
-    context: SyncMachineConfig,
-    ephemeralMessagesSession: EphemeralMessagesSession
-  ) =>
-  (send: any, onReceive: any) => {
+export const websocketService = (
+  context: SyncMachineConfig,
+  ephemeralMessagesSession: EphemeralMessagesSession
+) =>
+  fromCallback(({ sendBack, receive }: { sendBack: any; receive: any }) => {
+    console.log("CONNECT websocketService");
     let ephemeralSessionCounter = ephemeralMessagesSession.counter;
     const prepareAndSendEphemeralMessage = async (
       data: any,
@@ -40,7 +41,7 @@ export const websocketService =
       if (context.logging === "debug") {
         console.debug("send ephemeralMessage");
       }
-      send({
+      sendBack({
         type: "SEND",
         message: JSON.stringify(ephemeralMessage),
         // Note: send a faulty message to test the error handling
@@ -53,7 +54,7 @@ export const websocketService =
     // timeout the connection try after 5 seconds
     setTimeout(() => {
       if (!connected) {
-        send({ type: "WEBSOCKET_DISCONNECTED" });
+        sendBack({ type: "WEBSOCKET_DISCONNECTED" });
       }
     }, 5000);
 
@@ -89,13 +90,13 @@ export const websocketService =
       const data = JSON.parse(event.data);
       switch (data.type) {
         case "document-not-found":
-          send({ type: "WEBSOCKET_DOCUMENT_NOT_FOUND" });
+          sendBack({ type: "WEBSOCKET_DOCUMENT_NOT_FOUND" });
           break;
         case "unauthorized":
-          send({ type: "WEBSOCKET_UNAUTHORIZED" });
+          sendBack({ type: "WEBSOCKET_UNAUTHORIZED" });
           break;
         case "document-error":
-          send({ type: "WEBSOCKET_DOCUMENT_ERROR" });
+          sendBack({ type: "WEBSOCKET_DOCUMENT_ERROR" });
           break;
         case "document":
           // At this point the server will have added the user to the active session of
@@ -122,7 +123,7 @@ export const websocketService =
               if (context.logging === "debug" || context.logging === "error") {
                 console.error(reason);
               }
-              send({
+              sendBack({
                 type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
                 error: new Error("SECSYNC_ERROR_601"),
               });
@@ -137,10 +138,10 @@ export const websocketService =
         case "update-saved":
         case "update-save-failed":
         case "ephemeral-message":
-          send({ type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE", data });
+          sendBack({ type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE", data });
           break;
         default:
-          send({ type: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE", data });
+          sendBack({ type: "WEBSOCKET_ADD_TO_CUSTOM_MESSAGE_QUEUE", data });
       }
     };
 
@@ -148,24 +149,24 @@ export const websocketService =
 
     websocketConnection.addEventListener("open", (event) => {
       connected = true;
-      send({ type: "WEBSOCKET_CONNECTED", websocket: websocketConnection });
+      sendBack({ type: "WEBSOCKET_CONNECTED", websocket: websocketConnection });
     });
 
     websocketConnection.addEventListener("error", (event) => {
       if (context.logging === "debug") {
         console.debug("websocket error", event);
       }
-      send({ type: "WEBSOCKET_DISCONNECTED" });
+      sendBack({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
     websocketConnection.addEventListener("close", function (event) {
       if (context.logging === "debug") {
         console.debug("websocket closed");
       }
-      send({ type: "WEBSOCKET_DISCONNECTED" });
+      sendBack({ type: "WEBSOCKET_DISCONNECTED" });
     });
 
-    onReceive(async (event: any) => {
+    receive(async (event: any) => {
       if (event.type === "SEND") {
         websocketConnection.send(event.message);
       }
@@ -180,7 +181,7 @@ export const websocketService =
             if (context.logging === "debug" || context.logging === "error") {
               console.error(reason);
             }
-            send({
+            sendBack({
               type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
               error: new Error("SECSYNC_ERROR_601"),
             });
@@ -189,7 +190,7 @@ export const websocketService =
           if (context.logging === "debug" || context.logging === "error") {
             console.error(error);
           }
-          send({
+          sendBack({
             type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
             error: new Error("SECSYNC_ERROR_601"),
           });
@@ -203,4 +204,4 @@ export const websocketService =
       }
       websocketConnection.close();
     };
-  };
+  });

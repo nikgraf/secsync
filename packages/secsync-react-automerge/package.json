@@ -12,7 +12,7 @@
     "lint": "echo \"No linting configured\""
   },
   "dependencies": {
-    "@xstate/react": "^3.2.2"
+    "@xstate/react": "^4.1.0"
   },
   "peerDependencies": {
     "@automerge/automerge": "*",
