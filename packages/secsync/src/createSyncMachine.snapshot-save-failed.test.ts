@@ -1,8 +1,9 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { assign, createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   SnapshotInfoWithUpdateClocks,
@@ -121,23 +122,34 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
 };
 
 test("should apply snapshot from snapshot-save-failed", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -157,19 +169,8 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -210,9 +211,9 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -227,23 +228,34 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
 });
 
 test("should ignore snapshot from snapshot-save-failed if already applied", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -263,19 +275,8 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -323,9 +324,9 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -339,23 +340,34 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
 });
 
 test("should apply update from snapshot-save-failed", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -383,19 +395,8 @@ test("should apply update from snapshot-save-failed", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -421,9 +422,9 @@ test("should apply update from snapshot-save-failed", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -438,23 +439,34 @@ test("should apply update from snapshot-save-failed", (done) => {
 });
 
 test("should ignore update from snapshot-save-failed if already applied", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -482,19 +494,8 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -539,9 +540,9 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -556,23 +557,34 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
 });
 
 test("should apply update from snapshot-save-failed if it was created by the current client", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -600,19 +612,8 @@ test("should apply update from snapshot-save-failed if it was created by the cur
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -645,9 +646,9 @@ test("should apply update from snapshot-save-failed if it was created by the cur
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -662,24 +663,35 @@ test("should apply update from snapshot-save-failed if it was created by the cur
 });
 
 test("should increase context._snapshotSaveFailedCounter on every snapshot-save-failed and put back the changes into the pendingChangesQueue so it can be used for the retry", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -699,19 +711,8 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -756,9 +757,9 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -782,12 +783,12 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
 });
 
 test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-      send({ type: "WEBSOCKET_CONNECTED" });
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
       return () => {};
-    };
+    });
 
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
@@ -795,10 +796,21 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -829,20 +841,11 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
         },
         onDocumentUpdated,
         _snapshotSaveFailedCounter: 2,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotInFlight) {
       snapshotInFlight = state.context._snapshotInFlight;
     }
@@ -893,12 +896,12 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
 });
 
 test("should reset context._snapshotSaveFailedCounter on update-saved event", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-      send({ type: "WEBSOCKET_CONNECTED" });
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
       return () => {};
-    };
+    });
 
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
@@ -906,10 +909,21 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -940,20 +954,11 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
         },
         onDocumentUpdated,
         _snapshotSaveFailedCounter: 2,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotInFlight) {
       snapshotInFlight = state.context._snapshotInFlight;
     }
@@ -996,23 +1001,34 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
 });
 
 test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1032,19 +1048,8 @@ test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -1073,16 +1078,12 @@ test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
     }, 1);
   };
 
-  let connectedCounter = 0;
   let didReconnectWithPendingChanges = false;
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
-      if (connectedCounter === 0) {
-        runEvents();
-      }
-      connectedCounter++;
+    if (transitionCount === 3) {
+      runEvents();
     }
 
     if (

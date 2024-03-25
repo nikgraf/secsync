@@ -1,11 +1,12 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { assign, createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
 import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralMessagePublicData,
@@ -180,36 +181,38 @@ const createEphemeralMessageTestHelper = ({
 };
 
 test("should connect to the websocket", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
         signatureKeyPair: clientAKeyPair,
         sodium,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("connected")) {
       done();
     }
@@ -221,15 +224,30 @@ test("should connect to the websocket", (done) => {
 });
 
 test("should initially have _documentDecryptionState state", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -241,24 +259,11 @@ test("should initially have _documentDecryptionState state", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("connected.idle")) {
       expect(state.context._documentDecryptionState).toEqual("pending");
       expect(docValue).toEqual("");
@@ -272,15 +277,30 @@ test("should initially have _documentDecryptionState state", (done) => {
 });
 
 test("should load a document", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -292,24 +312,11 @@ test("should load a document", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._documentDecryptionState === "complete"
@@ -334,15 +341,30 @@ test("should load a document", (done) => {
 });
 
 test("should load a document with updates", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -362,24 +384,11 @@ test("should load a document with updates", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._documentDecryptionState === "complete"
@@ -408,15 +417,30 @@ test("should load a document with updates", (done) => {
 });
 
 test("should load a document and two additional updates", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -436,24 +460,11 @@ test("should load a document and two additional updates", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (docValue === "Hello Worlduu") {
       expect(state.context._documentDecryptionState).toBe("complete");
       done();
@@ -497,15 +508,30 @@ test("should load a document and two additional updates", (done) => {
 });
 
 test("should load a document and an additional snapshot", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -525,24 +551,11 @@ test("should load a document and an additional snapshot", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (docValue === "Hello World again") {
       done();
     }
@@ -577,15 +590,30 @@ test("should load a document and an additional snapshot", (done) => {
 });
 
 test("should load a document with updates and two additional updates", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -605,24 +633,11 @@ test("should load a document with updates and two additional updates", (done) =>
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (docValue === "Hello Worlduuuu") {
       done();
     }
@@ -665,15 +680,30 @@ test("should load a document with updates and two additional updates", (done) =>
 });
 
 test("should load a document with updates and two additional snapshots", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -693,24 +723,11 @@ test("should load a document with updates and two additional snapshots", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (docValue === "Hello World again and again") {
       done();
     }
@@ -766,16 +783,31 @@ test("should load a document with updates and two additional snapshots", (done) 
 });
 
 test("should load a document and process three additional ephemeral messages", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -801,24 +833,11 @@ test("should load a document and process three additional ephemeral messages", (
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (ephemeralMessagesValue.length === 2) {
       expect(ephemeralMessagesValue[0]).toEqual(22);
       expect(ephemeralMessagesValue[1]).toEqual(22);

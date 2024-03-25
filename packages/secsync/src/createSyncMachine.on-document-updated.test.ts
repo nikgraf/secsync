@@ -1,11 +1,12 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { assign, createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
 import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralMessagePublicData,
@@ -182,7 +183,7 @@ const createEphemeralMessageTestHelper = ({
 };
 
 test("should invoke onDocumentUpdated twice on document load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let shouldSendSnapshot = false;
   let docValue = "";
@@ -190,10 +191,25 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -215,24 +231,11 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
         signatureKeyPair: clientAKeyPair,
         shouldSendSnapshot: () => shouldSendSnapshot,
         onDocumentUpdated,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._documentDecryptionState === "complete"
@@ -281,12 +284,12 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
 });
 
 test("should invoke onDocumentUpdated for confirmed update", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-      send({ type: "WEBSOCKET_CONNECTED" });
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
       return () => {};
-    };
+    });
 
   let shouldSendSnapshot = false;
   let docValue = "";
@@ -294,10 +297,25 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -319,24 +337,11 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
         signatureKeyPair: clientAKeyPair,
         shouldSendSnapshot: () => shouldSendSnapshot,
         onDocumentUpdated,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._snapshotInfosWithUpdateClocks.length === 1 &&
@@ -416,12 +421,12 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
 });
 
 test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
-      send({ type: "WEBSOCKET_CONNECTED" });
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
       return () => {};
-    };
+    });
 
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
@@ -429,10 +434,25 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -462,24 +482,11 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
           };
         },
         onDocumentUpdated,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotInFlight) {
       snapshotInFlight = state.context._snapshotInFlight;
     }

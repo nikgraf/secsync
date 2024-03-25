@@ -1,7 +1,8 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { assign, createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import { SnapshotPublicData, SyncMachineConfig } from "./types";
 
@@ -89,23 +90,33 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
 
 test("send ephemeralMessage", (done) => {
   const onReceiveCallback = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceiveCallback);
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const websocketActor = websocketServiceMock(context);
+          return {
+            _websocketActor: spawn(websocketActor, { id: "websocketActor" }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -126,19 +137,8 @@ test("send ephemeralMessage", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -159,14 +159,14 @@ test("send ephemeralMessage", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe(() => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+
+    if (transitionCount === 3) {
       runEvents();
     }
 
     if (transitionCount === 7) {
-      setTimeout(done, 0);
       expect(onReceiveCallback).toHaveBeenCalledTimes(1);
       expect(onReceiveCallback).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -175,6 +175,7 @@ test("send ephemeralMessage", (done) => {
           type: "SEND_EPHEMERAL_MESSAGE",
         })
       );
+      setTimeout(done, 0);
     }
   });
 

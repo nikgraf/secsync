@@ -1,11 +1,12 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { assign, createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
 import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
 import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   EphemeralMessagePublicData,
@@ -211,15 +212,30 @@ const createEphemeralMessageTestHelper = ({
 };
 
 test("SECSYNC_ERROR_101 snapshot decryption fails on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -238,24 +254,11 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on initial load", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -285,15 +288,30 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on initial load", (done) => {
 });
 
 test("SECSYNC_ERROR_101 snapshot decryption fails on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -312,24 +330,11 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on snapshot event", (done) => 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("complete");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -372,15 +377,30 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on snapshot event", (done) => 
 });
 
 test("SECSYNC_ERROR_102 invalid parentSnapshot verification on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -400,24 +420,11 @@ test("SECSYNC_ERROR_102 invalid parentSnapshot verification on snapshot event", 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.context._snapshotAndUpdateErrors.length === 1 &&
       state.matches("failed")
@@ -469,15 +476,30 @@ test("SECSYNC_ERROR_102 invalid parentSnapshot verification on snapshot event", 
 });
 
 test("SECSYNC_ERROR_103 getSnapshotKey threw an error on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -498,24 +520,11 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on initial load", (done) =
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -541,16 +550,31 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on initial load", (done) =
 });
 
 test("SECSYNC_ERROR_103 getSnapshotKey threw an error on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let snapshotKeyCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -576,24 +600,11 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on snapshot event", (done)
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("complete");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -633,15 +644,30 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on snapshot event", (done)
 });
 
 test("SECSYNC_ERROR_104 isValidClient threw an error on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -662,24 +688,11 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on initial load", (done) =>
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -705,15 +718,30 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on initial load", (done) =>
 });
 
 test("SECSYNC_ERROR_104 isValidClient threw an error on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -737,24 +765,11 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on snapshot event", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("complete");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -795,15 +810,30 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on snapshot event", (done) 
 });
 
 test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -823,24 +853,11 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -866,16 +883,31 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
 });
 
 test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let applySnapshotCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -899,24 +931,11 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("complete");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -956,15 +975,30 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
 });
 
 test("SECSYNC_ERROR_110 snapshot message does not parse on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -983,24 +1017,11 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on initial load", (done)
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -1032,15 +1053,30 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on initial load", (done)
 });
 
 test("SECSYNC_ERROR_110 snapshot message does not parse on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1059,24 +1095,11 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on snapshot event", (don
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.context._snapshotAndUpdateErrors.length === 1 &&
       state.matches("connected.idle")
@@ -1124,15 +1147,30 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on snapshot event", (don
 });
 
 test("SECSYNC_ERROR_111 invalid signature on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1151,24 +1189,11 @@ test("SECSYNC_ERROR_111 invalid signature on initial load", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -1197,15 +1222,30 @@ test("SECSYNC_ERROR_111 invalid signature on initial load", (done) => {
 });
 
 test("SECSYNC_ERROR_111 invalid signature on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1224,24 +1264,11 @@ test("SECSYNC_ERROR_111 invalid signature on snapshot event", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.context._snapshotAndUpdateErrors.length === 1 &&
       state.matches("connected.idle")
@@ -1286,17 +1313,32 @@ test("SECSYNC_ERROR_111 invalid signature on snapshot event", (done) => {
 });
 
 test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1326,24 +1368,11 @@ test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (d
           },
           mode: "complete",
         },
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.context._snapshotAndUpdateErrors.length === 1 &&
       state.matches("failed")
@@ -1378,23 +1407,34 @@ test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (d
 
 test("SECSYNC_ERROR_112 fetch a snapshot, reconnect and receive a snapshot that is not a child of the first one", (done) => {
   const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive(onReceive);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1421,25 +1461,14 @@ test("SECSYNC_ERROR_112 fetch a snapshot, reconnect and receive a snapshot that 
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
   const { update } = createUpdateTestHelper();
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context);
       expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
@@ -1478,23 +1507,34 @@ test("SECSYNC_ERROR_112 fetch a snapshot, reconnect and receive a snapshot that 
 
 test("SECSYNC_ERROR_112 receive a snapshot that is not a child of the first one should result in a Websocket reconnect", (done) => {
   const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive(onReceive);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1521,19 +1561,8 @@ test("SECSYNC_ERROR_112 receive a snapshot that is not a child of the first one 
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
@@ -1541,7 +1570,7 @@ test("SECSYNC_ERROR_112 receive a snapshot that is not a child of the first one 
 
   let connectingRetryCounter = 0;
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (state.matches("connecting.retrying")) {
       connectingRetryCounter++;
     }
@@ -1584,15 +1613,30 @@ test("SECSYNC_ERROR_112 receive a snapshot that is not a child of the first one 
 });
 
 test("SECSYNC_ERROR_113 invalid docId on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1611,24 +1655,11 @@ test("SECSYNC_ERROR_113 invalid docId on initial load", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -1654,15 +1685,30 @@ test("SECSYNC_ERROR_113 invalid docId on initial load", (done) => {
 });
 
 test("SECSYNC_ERROR_113 invalid docId on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1681,24 +1727,11 @@ test("SECSYNC_ERROR_113 invalid docId on snapshot event", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.context._snapshotAndUpdateErrors.length === 1 &&
       state.matches("connected.idle")
@@ -1741,15 +1774,30 @@ test("SECSYNC_ERROR_113 invalid docId on snapshot event", (done) => {
 });
 
 test("SECSYNC_ERROR_114 isValidClient returns false on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1768,24 +1816,11 @@ test("SECSYNC_ERROR_114 isValidClient returns false on initial load", (done) => 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       expect(state.context._snapshotAndUpdateErrors.length).toBe(1);
@@ -1811,15 +1846,30 @@ test("SECSYNC_ERROR_114 isValidClient returns false on initial load", (done) => 
 });
 
 test("SECSYNC_ERROR_114 isValidClient returns false on snapshot event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1840,24 +1890,11 @@ test("SECSYNC_ERROR_114 isValidClient returns false on snapshot event", (done) =
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.context._snapshotAndUpdateErrors.length === 1 &&
       state.matches("connected.idle")
@@ -1901,22 +1938,33 @@ test("SECSYNC_ERROR_114 isValidClient returns false on snapshot event", (done) =
 
 test("SECSYNC_ERROR_115 reconnect receive a messed up chain", (done) => {
   const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive(onReceive);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -1945,19 +1993,8 @@ test("SECSYNC_ERROR_115 reconnect receive a messed up chain", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
@@ -1976,7 +2013,7 @@ test("SECSYNC_ERROR_115 reconnect receive a messed up chain", (done) => {
     content: "Hello World again and again",
   });
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(docValue).toEqual("Hello World");
       expect(state.context._snapshotAndUpdateErrors[0].message).toEqual(
@@ -2038,15 +2075,30 @@ test("SECSYNC_ERROR_115 reconnect receive a messed up chain", (done) => {
 });
 
 test("SECSYNC_ERROR_201 should fail decryption on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2066,24 +2118,11 @@ test("SECSYNC_ERROR_201 should fail decryption on initial load", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -2119,15 +2158,30 @@ test("SECSYNC_ERROR_201 should fail decryption on initial load", (done) => {
 });
 
 test("SECSYNC_ERROR_201 should fail decryption on update event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2147,24 +2201,11 @@ test("SECSYNC_ERROR_201 should fail decryption on update event", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("failed")) {
       expect(docValue).toEqual("Hello World");
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -2205,15 +2246,30 @@ test("SECSYNC_ERROR_201 should fail decryption on update event", (done) => {
 });
 
 test("SECSYNC_ERROR_202 should fail because the update clock increase by more than one on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2233,24 +2289,11 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -2283,15 +2326,30 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
 });
 
 test("SECSYNC_ERROR_202 should fail because the update clock increase by more than one on update event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2311,24 +2369,11 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("failed")) {
       expect(docValue).toEqual("Hello Worldu");
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -2372,15 +2417,30 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
 });
 
 test("SECSYNC_ERROR_203 applyChanges throws an error on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2398,24 +2458,11 @@ test("SECSYNC_ERROR_203 applyChanges throws an error on initial load", (done) =>
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -2448,15 +2495,30 @@ test("SECSYNC_ERROR_203 applyChanges throws an error on initial load", (done) =>
 });
 
 test("SECSYNC_ERROR_203 applyChanges throws an error on update event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2474,24 +2536,11 @@ test("SECSYNC_ERROR_203 applyChanges throws an error on update event", (done) =>
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("failed")) {
       expect(docValue).toEqual("Hello World");
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -2535,15 +2584,30 @@ test("SECSYNC_ERROR_203 applyChanges throws an error on update event", (done) =>
 });
 
 test("SECSYNC_ERROR_204 deserializeChanges throws an error on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2563,24 +2627,11 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error on initial load", (do
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -2610,15 +2661,30 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error on initial load", (do
 });
 
 test("SECSYNC_ERROR_204 deserializeChanges throws an error on update event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2638,24 +2704,11 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error on update event", (do
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("failed")) {
       expect(docValue).toEqual("Hello World");
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -2692,16 +2745,31 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error on update event", (do
 });
 
 test("SECSYNC_ERROR_205 isValidClient throws an errors on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let isValidClientCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2727,24 +2795,11 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors on initial load", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -2774,16 +2829,31 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors on initial load", (done) 
 });
 
 test("SECSYNC_ERROR_205 isValidClient throws an errors on update event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let isValidClientCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2809,24 +2879,11 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors on update event", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("failed")) {
       expect(state.context._documentDecryptionState).toBe("complete");
       expect(docValue).toEqual("Hello World");
@@ -2863,16 +2920,31 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors on update event", (done) 
 });
 
 test("SECSYNC_ERROR_206 getSnapshotKey throws an error on initial load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let getSnapshotKeyCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2899,24 +2971,11 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error on initial load", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -2946,16 +3005,31 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error on initial load", (done) 
 });
 
 test("SECSYNC_ERROR_206 getSnapshotKey throws an error on update event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let getSnapshotKeyCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -2982,24 +3056,11 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error on update event", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("failed")) {
       expect(docValue).toEqual("Hello World");
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -3036,15 +3097,30 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error on update event", (done) 
 });
 
 test("SECSYNC_ERROR_211 failed to parse the error message on initial document load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3064,24 +3140,11 @@ test("SECSYNC_ERROR_211 failed to parse the error message on initial document lo
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -3111,15 +3174,30 @@ test("SECSYNC_ERROR_211 failed to parse the error message on initial document lo
 });
 
 test("SECSYNC_ERROR_211 ignore update to parse the error message as incoming update", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3139,24 +3217,11 @@ test("SECSYNC_ERROR_211 ignore update to parse the error message as incoming upd
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotAndUpdateErrors.length === 1) {
       expect(docValue).toEqual("Hello World");
       expect(state.matches("failed")).toEqual(false);
@@ -3194,15 +3259,30 @@ test("SECSYNC_ERROR_211 ignore update to parse the error message as incoming upd
 });
 
 test("SECSYNC_ERROR_212 invalid signature on initial document load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3222,24 +3302,11 @@ test("SECSYNC_ERROR_212 invalid signature on initial document load", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -3277,15 +3344,30 @@ test("SECSYNC_ERROR_212 invalid signature on initial document load", (done) => {
 });
 
 test("SECSYNC_ERROR_212 ignore update due invalid signature as incoming update", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3305,24 +3387,11 @@ test("SECSYNC_ERROR_212 ignore update due invalid signature as incoming update",
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotAndUpdateErrors.length === 1) {
       expect(docValue).toEqual("Hello World");
       expect(state.matches("failed")).toEqual(false);
@@ -3361,15 +3430,30 @@ test("SECSYNC_ERROR_212 ignore update due invalid signature as incoming update",
 });
 
 test("SECSYNC_ERROR_213 should fail due update referencing another snapshotId on inital document load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3389,24 +3473,11 @@ test("SECSYNC_ERROR_213 should fail due update referencing another snapshotId on
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -3438,15 +3509,30 @@ test("SECSYNC_ERROR_213 should fail due update referencing another snapshotId on
 });
 
 test("SECSYNC_ERROR_213 should ignore the update due update referencing another snapshotId as incoming update", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3466,24 +3552,11 @@ test("SECSYNC_ERROR_213 should ignore the update due update referencing another 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotAndUpdateErrors.length === 1) {
       expect(docValue).toEqual("Hello World");
       expect(state.matches("failed")).toEqual(false);
@@ -3520,15 +3593,30 @@ test("SECSYNC_ERROR_213 should ignore the update due update referencing another 
 });
 
 test("SECSYNC_ERROR_214 should fail because an update with same clock was received on initial document load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3548,24 +3636,11 @@ test("SECSYNC_ERROR_214 should fail because an update with same clock was receiv
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -3598,15 +3673,30 @@ test("SECSYNC_ERROR_214 should fail because an update with same clock was receiv
 });
 
 test("SECSYNC_ERROR_214 should ignore the received update because it had the same clock", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3626,24 +3716,11 @@ test("SECSYNC_ERROR_214 should ignore the received update because it had the sam
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotAndUpdateErrors.length === 1) {
       expect(docValue).toEqual("Hello Worldu");
       expect(state.matches("failed")).toEqual(false);
@@ -3687,16 +3764,31 @@ test("SECSYNC_ERROR_214 should ignore the received update because it had the sam
 });
 
 test("SECSYNC_ERROR_215 isValidClient returns false on initial document load", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let isValidClientCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3722,24 +3814,11 @@ test("SECSYNC_ERROR_215 isValidClient returns false on initial document load", (
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("failed") &&
       state.context._documentDecryptionState === "partial"
@@ -3769,15 +3848,30 @@ test("SECSYNC_ERROR_215 isValidClient returns false on initial document load", (
 });
 
 test("SECSYNC_ERROR_215 isValidClient returns false on a received event", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3797,24 +3891,11 @@ test("SECSYNC_ERROR_215 isValidClient returns false on a received event", (done)
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.context._snapshotAndUpdateErrors.length === 1) {
       expect(docValue).toEqual("Hello Worldu");
       expect(state.matches("failed")).toEqual(false);
@@ -3858,16 +3939,31 @@ test("SECSYNC_ERROR_215 isValidClient returns false on a received event", (done)
 });
 
 test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3893,24 +3989,11 @@ test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -3956,16 +4039,31 @@ test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
 });
 
 test("SECSYNC_ERROR_302 no verified session found", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -3991,24 +4089,11 @@ test("SECSYNC_ERROR_302 no verified session found", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -4049,16 +4134,31 @@ test("SECSYNC_ERROR_302 no verified session found", (done) => {
 });
 
 test("SECSYNC_ERROR_303 ignore an ephemeral message coming from a reply attack", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4084,24 +4184,11 @@ test("SECSYNC_ERROR_303 ignore an ephemeral message coming from a reply attack",
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       ephemeralMessagesValue.length === 2 &&
       state.matches("connected.idle")
@@ -4187,7 +4274,7 @@ test("SECSYNC_ERROR_303 ignore an ephemeral message coming from a reply attack",
 });
 
 test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
@@ -4195,10 +4282,25 @@ test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
   let isValidClientCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4229,24 +4331,11 @@ test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -4289,7 +4378,7 @@ test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
 });
 
 test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
@@ -4297,10 +4386,25 @@ test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
   let isValidClientCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4331,24 +4435,11 @@ test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -4391,16 +4482,31 @@ test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
 });
 
 test("SECSYNC_ERROR_305 invalid messageType", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4425,24 +4531,11 @@ test("SECSYNC_ERROR_305 invalid messageType", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -4485,16 +4578,31 @@ test("SECSYNC_ERROR_305 invalid messageType", (done) => {
 });
 
 test("SECSYNC_ERROR_306 process three additional ephemeral messages where the second is ignored since the docId has been manipulated", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4520,24 +4628,11 @@ test("SECSYNC_ERROR_306 process three additional ephemeral messages where the se
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       ephemeralMessagesValue.length === 1 &&
       state.matches("connected.idle")
@@ -4615,16 +4710,31 @@ test("SECSYNC_ERROR_306 process three additional ephemeral messages where the se
 });
 
 test("SECSYNC_ERROR_307 invalid messageType", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4649,24 +4759,11 @@ test("SECSYNC_ERROR_307 invalid messageType", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -4712,16 +4809,31 @@ test("SECSYNC_ERROR_307 invalid messageType", (done) => {
 });
 
 test("SECSYNC_ERROR_308 invalid signature", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4746,24 +4858,11 @@ test("SECSYNC_ERROR_308 invalid signature", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       state.matches("connected.idle") &&
       state.context._ephemeralMessageReceivingErrors.length === 1
@@ -4807,24 +4906,35 @@ test("SECSYNC_ERROR_308 invalid signature", (done) => {
 });
 
 test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
   let snapshotKeyCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4850,19 +4960,8 @@ test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (don
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -4883,9 +4982,9 @@ test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (don
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -4903,24 +5002,35 @@ test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (don
 });
 
 test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive((event: any) => {});
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
   let snapshotKeyCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -4948,19 +5058,8 @@ test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -4981,9 +5080,9 @@ test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -5003,14 +5102,14 @@ test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done
 
 test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
   const onReceiveCallback = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(async (event: any) => {
+  const websocketServiceMock = (context: SyncMachineConfig) =>
+    fromCallback(({ sendBack, receive }) => {
+      receive(async (event: any) => {
         if (event.type === "SEND_EPHEMERAL_MESSAGE") {
           try {
             await event.getKey();
           } catch (error) {
-            send({
+            sendBack({
               type: "FAILED_CREATING_EPHEMERAL_MESSAGE",
               error: new Error("SECSYNC_ERROR_601"),
             });
@@ -5018,20 +5117,31 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
         }
       });
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    });
 
   let docValue = "";
   let transitionCount = 0;
   let snapshotKeyCounter = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          return {
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5059,19 +5169,8 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -5092,9 +5191,9 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -5111,15 +5210,30 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
 });
 
 test("should ignore an update in case it's a reply attack with the same update", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5139,24 +5253,11 @@ test("should ignore an update in case it's a reply attack with the same update",
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (docValue === "Hello Worlduo") {
       // 'u' was only applied once
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -5213,15 +5314,30 @@ test("should ignore an update in case it's a reply attack with the same update",
 });
 
 test("should ignore an update in case it's a different update, but the same clock", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5241,24 +5357,11 @@ test("should ignore an update in case it's a different update, but the same cloc
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (docValue === "Hello Worldub") {
       // 'a' between 'u' and 'b' was ignored
       expect(state.context._documentDecryptionState).toBe("complete");
@@ -5320,15 +5423,30 @@ test("should ignore an update in case it's a different update, but the same cloc
 });
 
 test("set _documentDecryptionState to failed if not even the snapshot can be loaded", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5350,24 +5468,11 @@ test("set _documentDecryptionState to failed if not even the snapshot can be loa
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("failed");
       done();
@@ -5389,15 +5494,30 @@ test("set _documentDecryptionState to failed if not even the snapshot can be loa
 });
 
 test("set _documentDecryptionState to partial and apply the first update, if document snapshot decrypts but the second update fails", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5417,24 +5537,11 @@ test("set _documentDecryptionState to partial and apply the first update, if doc
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("partial");
       expect(docValue).toEqual("Hello Worldu");
@@ -5461,15 +5568,30 @@ test("set _documentDecryptionState to partial and apply the first update, if doc
 });
 
 test("set _documentDecryptionState to partial, if document snapshot decrypts but the first update fails", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5489,24 +5611,11 @@ test("set _documentDecryptionState to partial, if document snapshot decrypts but
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context._documentDecryptionState).toBe("partial");
       expect(docValue).toEqual("Hello World");
@@ -5530,16 +5639,31 @@ test("set _documentDecryptionState to partial, if document snapshot decrypts but
 });
 
 test("store not more than 20 receiving failed ephemeral message errors", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5565,24 +5689,11 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       ephemeralMessagesValue.length === 1 &&
       state.matches("connected.idle")
@@ -5653,7 +5764,7 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
 });
 
 test("reset the context entries after websocket disconnect", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
@@ -5661,10 +5772,25 @@ test("reset the context entries after websocket disconnect", (done) => {
   const { snapshot } = createSnapshotTestHelper();
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5690,24 +5816,11 @@ test("reset the context entries after websocket disconnect", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (state.matches("connecting.retrying")) {
       expect(state.context._documentDecryptionState).toEqual("pending");
       expect(state.context._incomingQueue).toEqual([]);
@@ -5745,17 +5858,32 @@ test("reset the context entries after websocket disconnect", (done) => {
 });
 
 test("reconnect and reload the document", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
   let reconnected = false;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5781,24 +5909,11 @@ test("reconnect and reload the document", (done) => {
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     if (
       reconnected &&
       state.matches("connected.idle") &&
@@ -5843,17 +5958,32 @@ test("reconnect and reload the document", (done) => {
 });
 
 test("store not more than 20 failed creating ephemeral message errors", (done) => {
-  const websocketServiceMock = (context: any) => () => {};
+  const websocketServiceMock = (context: any) => fromCallback(() => {});
 
   let docValue = "";
   let ephemeralMessagesValue = new Uint8Array();
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actions: {
+        spawnWebsocketActor: assign(({ context, spawn }) => {
+          const ephemeralMessagesSession = createEphemeralSession(
+            context.sodium
+          );
+          return {
+            _ephemeralMessagesSession: ephemeralMessagesSession,
+            _websocketActor: spawn(websocketServiceMock(context), {
+              id: "websocketActor",
+            }),
+          };
+        }),
+      },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -5879,24 +6009,11 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
         },
         sodium: sodium,
         signatureKeyPair: clientAKeyPair,
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            const ephemeralMessagesSession = createEphemeralSession(
-              context.sodium
-            );
-            return {
-              _ephemeralMessagesSession: ephemeralMessagesSession,
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
-  ).onTransition((state) => {
+      },
+    }
+  );
+
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
     if (transitionCount === 27 && state.matches("connected.idle")) {
       expect(state.context._ephemeralMessageAuthoringErrors.length).toEqual(20);

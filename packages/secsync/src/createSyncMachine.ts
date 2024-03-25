@@ -121,21 +121,26 @@ export type DocumentDecryptionState =
   | "partial"
   | "complete";
 
-type ProcessQueueData = {
-  handledQueue: "customMessage" | "incoming" | "pending" | "none";
-  snapshotInFlight: SnapshotInFlight | null;
-  snapshotInfosWithUpdateClocks: SnapshotInfoWithUpdateClocks[];
-  updatesLocalClock: number;
-  updatesInFlight: UpdateInFlight[];
-  pendingChangesToRemoveCount: number;
-  pendingChangesToPrepend: any[];
-  ephemeralMessageReceivingErrors: Error[];
-  documentDecryptionState: DocumentDecryptionState;
-  ephemeralMessagesSession: EphemeralMessagesSession | null;
-  snapshotAndUpdateErrors: Error[];
-  snapshotSaveFailedCounter: number;
-  errorNotCausingDocumentToFail: Error | null;
-};
+type ProcessQueueData =
+  | {
+      handledQueue: "customMessage" | "incoming" | "pending";
+      snapshotInFlight: SnapshotInFlight | null;
+      snapshotInfosWithUpdateClocks: SnapshotInfoWithUpdateClocks[];
+      updatesLocalClock: number;
+      updatesInFlight: UpdateInFlight[];
+      pendingChangesToRemoveCount: number;
+      pendingChangesToPrepend: any[];
+      ephemeralMessageReceivingErrors: Error[];
+      documentDecryptionState: DocumentDecryptionState;
+      ephemeralMessagesSession: EphemeralMessagesSession | null;
+      snapshotSaveFailedCounter: number;
+      errorNotCausingDocumentToFail: Error | null;
+    }
+  | {
+      handledQueue: "none";
+      snapshotSaveFailedCounter: number;
+      errorNotCausingDocumentToFail: Error | null;
+    };
 
 export type InternalContextReset = {
   _incomingQueue: any[];
@@ -1158,7 +1163,7 @@ export const createSyncMachine = () => {
           }
         | { type: "SEND"; message: any };
       context: Context;
-      input: Context;
+      input: SyncMachineConfig;
       children: {
         scheduleRetry: "scheduleRetry";
         processQueues: "processQueues";

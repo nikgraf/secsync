@@ -16,7 +16,6 @@ export const websocketService = (
   ephemeralMessagesSession: EphemeralMessagesSession
 ) =>
   fromCallback(({ sendBack, receive }: { sendBack: any; receive: any }) => {
-    console.log("CONNECT websocketService");
     let ephemeralSessionCounter = ephemeralMessagesSession.counter;
     const prepareAndSendEphemeralMessage = async (
       data: any,
