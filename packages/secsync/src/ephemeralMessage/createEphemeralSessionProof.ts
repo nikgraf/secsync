@@ -15,6 +15,7 @@ export function createEphemeralMessageProof(
       remoteClientSessionId: SessionId.parse(remoteClientSessionId),
       currentClientSessionId: SessionId.parse(currentClientSessionId),
     },
+    "secsync_ephemeral_session_proof",
     currentClientSignatureKeyPair.privateKey,
     sodium
   );

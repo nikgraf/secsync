@@ -140,7 +140,13 @@ export type SyncMachineConfig = {
     activeSnapshotId: string | null;
     snapshotUpdatesCount: number;
   }) => boolean;
-  isValidClient: (signingPublicKey: string) => boolean | Promise<boolean>;
+  isValidClient: (
+    signingPublicKey: string,
+    publicData:
+      | SnapshotPublicData
+      | UpdatePublicData
+      | EphemeralMessagePublicData
+  ) => boolean | Promise<boolean>;
   serializeChanges: (changes: any[]) => string;
   deserializeChanges: (serializeChanges: string) => any;
   sodium: any;

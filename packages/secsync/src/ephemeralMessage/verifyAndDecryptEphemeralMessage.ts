@@ -36,6 +36,7 @@ export function verifyAndDecryptEphemeralMessage(
           ciphertext: ephemeralMessage.ciphertext,
           publicData: publicDataAsBase64,
         },
+        "secsync_ephemeral_message",
         ephemeralMessage.signature,
         publicKey,
         sodium

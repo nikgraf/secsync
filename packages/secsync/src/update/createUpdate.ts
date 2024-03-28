@@ -33,6 +33,7 @@ export function createUpdate(
       ciphertext,
       publicData: publicDataAsBase64,
     },
+    "secsync_update",
     signatureKeyPair.privateKey,
     sodium
   );

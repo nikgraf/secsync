@@ -46,6 +46,7 @@ export function createSnapshot<AdditionalSnapshotPublicData>(
       ciphertext,
       publicData: publicDataAsBase64,
     },
+    "secsync_snapshot",
     signatureKeyPair.privateKey,
     sodium
   );

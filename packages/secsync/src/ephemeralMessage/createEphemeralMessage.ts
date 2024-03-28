@@ -54,6 +54,7 @@ export function createEphemeralMessage(
       ciphertext,
       publicData: publicDataAsBase64,
     },
+    "secsync_ephemeral_message",
     authorSignatureKeyPair.privateKey,
     sodium
   );
