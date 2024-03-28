@@ -29,6 +29,7 @@ export function verifyAndDecryptSnapshot(
           ciphertext: snapshot.ciphertext,
           publicData: publicDataAsBase64,
         },
+        "secsync_snapshot",
         snapshot.signature,
         publicKey,
         sodium

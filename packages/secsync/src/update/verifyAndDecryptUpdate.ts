@@ -24,6 +24,7 @@ export function verifyAndDecryptUpdate(
           ciphertext: update.ciphertext,
           publicData: publicDataAsBase64,
         },
+        "secsync_update",
         update.signature,
         publicKey,
         sodium

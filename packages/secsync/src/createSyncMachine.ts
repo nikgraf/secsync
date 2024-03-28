@@ -451,7 +451,8 @@ const processQueues = fromPromise(
 
           try {
             const isValidClient = await context.isValidClient(
-              snapshot.publicData.pubKey
+              snapshot.publicData.pubKey,
+              snapshot.publicData
             );
             if (!isValidClient) {
               errorNotCausingDocumentToFail = new Error("SECSYNC_ERROR_114");
@@ -610,7 +611,8 @@ const processQueues = fromPromise(
 
             try {
               const isValidClient = await context.isValidClient(
-                update.publicData.pubKey
+                update.publicData.pubKey,
+                update.publicData
               );
               if (!isValidClient) {
                 errorNotCausingDocumentToFail = new Error("SECSYNC_ERROR_215");
@@ -964,7 +966,8 @@ const processQueues = fromPromise(
                 let isValidClient: boolean;
                 try {
                   isValidClient = await context.isValidClient(
-                    ephemeralMessage.publicData.pubKey
+                    ephemeralMessage.publicData.pubKey,
+                    ephemeralMessage.publicData
                   );
                 } catch (err) {
                   if (context.logging === "error") {

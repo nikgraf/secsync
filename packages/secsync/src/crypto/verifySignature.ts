@@ -2,6 +2,7 @@ import canonicalize from "canonicalize";
 
 export function verifySignature(
   content: { [key in string]: string },
+  signatureDomainContext: string,
   signature: string,
   publicKey: Uint8Array,
   sodium: typeof import("libsodium-wrappers")
@@ -12,7 +13,7 @@ export function verifySignature(
   }
   return sodium.crypto_sign_verify_detached(
     sodium.from_base64(signature),
-    message,
+    signatureDomainContext + message,
     publicKey
   );
 }

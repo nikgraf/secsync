@@ -180,6 +180,7 @@ export const createWebSocketConnection =
                 ciphertext: snapshotMessage.ciphertext,
                 publicData: snapshotPublicDataAsBase64,
               },
+              "secsync_snapshot",
               snapshotMessage.signature,
               snapshotPublicKey,
               sodium
@@ -327,6 +328,7 @@ export const createWebSocketConnection =
                   sodium
                 ),
               },
+              "secsync_update",
               updateMessage.signature,
               sodium.from_base64(updateMessage.publicData.pubKey),
               sodium
@@ -408,6 +410,7 @@ export const createWebSocketConnection =
                   sodium
                 ),
               },
+              "secsync_ephemeral_message",
               ephemeralMessageMessage.signature,
               sodium.from_base64(ephemeralMessageMessage.publicData.pubKey),
               sodium
