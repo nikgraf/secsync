@@ -1,8 +1,9 @@
 import sodium from "libsodium-wrappers";
 import { Server } from "mock-socket";
 import { parse as parseUrl } from "url";
-import { interpret } from "xstate";
+import { createActor } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
+import { defaultTestMachineInput } from "./mocks";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -21,15 +22,17 @@ afterEach((done) => {
 
 test("should start with connecting", (done) => {
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine.withContext({
-      ...syncMachine.context,
+  const syncService = createActor(syncMachine, {
+    input: {
+      ...defaultTestMachineInput,
       documentId: docId,
       websocketHost: url,
       websocketSessionKey: "sessionKey",
       sodium,
-    })
-  ).onTransition((state) => {
+    },
+  });
+
+  syncService.subscribe((state) => {
     if (state.matches("connecting")) {
       syncService.stop();
       done();
@@ -43,15 +46,17 @@ test("should connect", (done) => {
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine.withContext({
-      ...syncMachine.context,
+  const syncService = createActor(syncMachine, {
+    input: {
+      ...defaultTestMachineInput,
       documentId: docId,
       websocketHost: url,
       websocketSessionKey: "sessionKey",
       sodium,
-    })
-  ).onTransition((state) => {
+    },
+  });
+
+  syncService.subscribe((state) => {
     if (state.matches("connected")) {
       syncService.stop();
       done();
@@ -65,9 +70,9 @@ test("should connect and use knownSnapshotId as query param", (done) => {
   const url = "wss://www.example.com";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine.withContext({
-      ...syncMachine.context,
+  const syncService = createActor(syncMachine, {
+    input: {
+      ...defaultTestMachineInput,
       documentId: docId,
       websocketHost: url,
       websocketSessionKey: "mySessionKey",
@@ -82,8 +87,8 @@ test("should connect and use knownSnapshotId as query param", (done) => {
           additionalPublicData: undefined,
         },
       },
-    })
-  );
+    },
+  });
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(
@@ -104,9 +109,9 @@ test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as quer
     publicKeyA: 2,
     publicKeyB: 9999,
   };
-  const syncService = interpret(
-    syncMachine.withContext({
-      ...syncMachine.context,
+  const syncService = createActor(syncMachine, {
+    input: {
+      ...defaultTestMachineInput,
       documentId: docId,
       websocketHost: url,
       websocketSessionKey: "mySessionKey",
@@ -121,8 +126,8 @@ test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as quer
           additionalPublicData: undefined,
         },
       },
-    })
-  );
+    },
+  });
 
   mockServer.on("connection", (socket) => {
     expect(socket.url).toBe(

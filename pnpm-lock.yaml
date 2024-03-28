@@ -58,7 +58,7 @@ importers:
         specifier: ^3.33.0
         version: 3.36.1
       libsodium-wrappers:
-        specifier: ^0.7.11
+        specifier: ^0.7.13
         version: 0.7.13
       next:
         specifier: ^14.1.4
@@ -128,7 +128,7 @@ importers:
         specifier: ^8.1.0
         version: 8.1.0
       '@types/libsodium-wrappers':
-        specifier: ^0.7.10
+        specifier: ^0.7.13
         version: 0.7.13
       '@types/node':
         specifier: 20.11.30
@@ -289,8 +289,8 @@ importers:
         specifier: ^0.7.13
         version: 0.7.13
       xstate:
-        specifier: ^4.38.2
-        version: 4.38.2
+        specifier: ^5.9.1
+        version: 5.9.1
       zod:
         specifier: ^3.22.4
         version: 3.22.4
@@ -330,8 +330,8 @@ importers:
         specifier: ^2.1.13
         version: 2.1.13
       '@xstate/react':
-        specifier: ^3.2.2
-        version: 3.2.2(@types/react@18.2.69)(react@18.2.0)
+        specifier: ^4.1.0
+        version: 4.1.0(@types/react@18.2.69)(react@18.2.0)
       react:
         specifier: '*'
         version: 18.2.0
@@ -394,8 +394,8 @@ importers:
   packages/secsync-react-yjs:
     dependencies:
       '@xstate/react':
-        specifier: ^3.2.2
-        version: 3.2.2(@types/react@18.2.69)(react@18.2.0)
+        specifier: ^4.1.0
+        version: 4.1.0(@types/react@18.2.69)(react@18.2.0)
       lib0:
         specifier: ^0.2.93
         version: 0.2.93
@@ -4980,15 +4980,12 @@ packages:
       - supports-color
     dev: true
 
-  /@xstate/react@3.2.2(@types/react@18.2.69)(react@18.2.0):
-    resolution: {integrity: sha512-feghXWLedyq8JeL13yda3XnHPZKwYDN5HPBLykpLeuNpr9178tQd2/3d0NrH6gSd0sG5mLuLeuD+ck830fgzLQ==}
+  /@xstate/react@4.1.0(@types/react@18.2.69)(react@18.2.0):
+    resolution: {integrity: sha512-Fh89luCwuMXIVXIua67d8pNuVgdGpqke2jHfIIL+ZjkfNh6YFtPDSwNSZZDhdNUsOW1zZYSbtUzbC8MIUyTSHQ==}
     peerDependencies:
-      '@xstate/fsm': ^2.0.0
       react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      xstate: ^4.37.2
+      xstate: ^5.6.2
     peerDependenciesMeta:
-      '@xstate/fsm':
-        optional: true
       xstate:
         optional: true
     dependencies:
@@ -13160,6 +13157,11 @@ packages:
 
   /xstate@4.38.2:
     resolution: {integrity: sha512-Fba/DwEPDLneHT3tbJ9F3zafbQXszOlyCJyQqqdzmtlY/cwE2th462KK48yaANf98jHlP6lJvxfNtN0LFKXPQg==}
+    dev: true
+
+  /xstate@5.9.1:
+    resolution: {integrity: sha512-85edx7iMqRJSRlEPevDwc98EWDYUlT5zEQ54AXuRVR+G76gFbcVTAUdtAeqOVxy8zYnUr9FBB5114iK6enljjw==}
+    dev: false
 
   /xtend@4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}

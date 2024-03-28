@@ -1,14 +1,12 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
-import {
-  SnapshotPublicData,
-  SyncMachineConfig,
-  UpdatePublicData,
-} from "./types";
+import { SnapshotPublicData, UpdatePublicData } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -46,6 +44,10 @@ beforeEach(async () => {
     keyType: "ed25519",
   };
   clientBPublicKey = sodium.to_base64(clientBKeyPair.publicKey);
+
+  key = sodium.from_hex(
+    "724b092810ec86d7e35c9d067702b31ef90bc43a7b598626749914d6a3e033ed"
+  );
 });
 
 type CreateSnapshotTestHelperParams = {
@@ -119,23 +121,28 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
 };
 
 test("send initial snapshot if received document didn't include one", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -156,23 +163,11 @@ test("send initial snapshot if received document didn't include one", (done) => 
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
-    const { snapshot } = createSnapshotTestHelper();
     syncService.send({
       type: "WEBSOCKET_ADD_TO_INCOMING_QUEUE",
       data: {
@@ -188,14 +183,14 @@ test("send initial snapshot if received document didn't include one", (done) => 
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInFlight !== null
     ) {
       expect(state.context._pendingChangesQueue).toEqual([]);
@@ -208,23 +203,28 @@ test("send initial snapshot if received document didn't include one", (done) => 
 });
 
 test("send initial snapshot if received document didn't include one, but changes added before document was loaded", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -245,19 +245,8 @@ test("send initial snapshot if received document didn't include one, but changes
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -276,14 +265,14 @@ test("send initial snapshot if received document didn't include one, but changes
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInFlight !== null
     ) {
       expect(state.context._pendingChangesQueue).toEqual([]);

@@ -38,12 +38,14 @@ const [currentDoc, syncDoc, state, send] = useAutomergeSync<Todos>({
 
 ```ts
 const syncMachine = createMachine();
-const syncActor = interpret(
-  syncMachine.withContext({
-    ...syncMachine.context,
-    documentId: docId,
-    ...moreRequiredArguments,
-  })
+const syncActor = createActor(
+  syncMachine,
+  {
+    input: {
+      documentId: docId,
+      ...moreRequiredArguments,
+    }
+  }
 );
 
 syncActor.subscribe((state) => {

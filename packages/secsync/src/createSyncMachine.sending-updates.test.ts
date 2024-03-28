@@ -1,14 +1,12 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
-import {
-  SnapshotPublicData,
-  SyncMachineConfig,
-  UpdatePublicData,
-} from "./types";
+import { SnapshotPublicData, UpdatePublicData } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -119,23 +117,28 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
 };
 
 test("put changes in updatesInFlight when sending updates", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -156,19 +159,8 @@ test("put changes in updatesInFlight when sending updates", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
@@ -201,9 +193,9 @@ test("put changes in updatesInFlight when sending updates", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -213,7 +205,7 @@ test("put changes in updatesInFlight when sending updates", (done) => {
       ]);
     } else if (
       state.context._updatesInFlight.length === 2 &&
-      state.matches("connected.idle")
+      state.matches({ connected: "idle" })
     ) {
       expect(state.context._updatesInFlight).toStrictEqual([
         { clock: 0, snapshotId, changes: ["H", "e", "llo"] },
@@ -228,23 +220,28 @@ test("put changes in updatesInFlight when sending updates", (done) => {
 });
 
 test("puts changes from updatesInFlight back to pendingChanges on Websocket disconnect", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -265,19 +262,8 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -307,9 +293,9 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
@@ -324,23 +310,28 @@ test("puts changes from updatesInFlight back to pendingChanges on Websocket disc
 });
 
 test("allows to add changes before the document is loaded", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -361,19 +352,8 @@ test("allows to add changes before the document is loaded", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
@@ -396,15 +376,15 @@ test("allows to add changes before the document is loaded", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 
     if (
       state.context._updatesInFlight.length === 1 &&
-      state.matches("connected.idle")
+      state.matches({ connected: "idle" })
     ) {
       expect(state.context._updatesInFlight).toStrictEqual([
         { clock: 0, snapshotId, changes: ["H", "e"] },
@@ -418,23 +398,28 @@ test("allows to add changes before the document is loaded", (done) => {
 });
 
 test("keeps pending changes upon disconnect", (done) => {
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -455,19 +440,8 @@ test("keeps pending changes upon disconnect", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const runEvents = () => {
@@ -483,9 +457,9 @@ test("keeps pending changes upon disconnect", (done) => {
     }, 1);
   };
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     transitionCount = transitionCount + 1;
-    if (event.type === "WEBSOCKET_CONNECTED") {
+    if (transitionCount === 3) {
       runEvents();
     }
 

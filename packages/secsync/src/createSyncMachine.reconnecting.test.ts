@@ -1,16 +1,17 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, interpret, spawn } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
+import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   SnapshotPublicData,
   SnapshotUpdateClocks,
-  SyncMachineConfig,
   UpdatePublicData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -124,24 +125,28 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
 };
 
 test("reconnect and receive the same snapshot with one more update", (done) => {
-  const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -170,24 +175,13 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (docValue === "Hello Worldu") {
       expect(
         state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
@@ -234,24 +228,28 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
 });
 
 test("fetch a snapshot with an update, reconnect and receive the same snapshot with one more update: snapshot is ignored, update applied", (done) => {
-  const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -278,25 +276,14 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
   const { update } = createUpdateTestHelper();
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (docValue === "ux") {
       expect(state.context.loadDocumentParams?.mode).toEqual("delta");
       expect(
@@ -350,24 +337,28 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
 });
 
 test("fetch a snapshot with an update, reconnect and receive the another snapshot", (done) => {
-  const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -394,25 +385,14 @@ test("fetch a snapshot with an update, reconnect and receive the another snapsho
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
   const { update } = createUpdateTestHelper();
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (state.value === "failed") {
       expect(state.context);
       expect(state.context._snapshotAndUpdateErrors[0].message).toBe(
@@ -466,24 +446,28 @@ test("fetch a snapshot with an update, reconnect and receive the another snapsho
 });
 
 test("fetch a snapshot with an update, reconnect and receive only a new update", (done) => {
-  const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -510,25 +494,14 @@ test("fetch a snapshot with an update, reconnect and receive only a new update",
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
   const { update } = createUpdateTestHelper();
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (docValue === "uu") {
       expect(state.context.loadDocumentParams?.mode).toBe("delta");
       expect(
@@ -578,23 +551,27 @@ test("fetch a snapshot with an update, reconnect and receive only a new update",
 });
 
 test("reconnect and receive a new snapshot", (done) => {
-  const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -623,19 +600,8 @@ test("reconnect and receive a new snapshot", (done) => {
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
@@ -647,7 +613,7 @@ test("reconnect and receive a new snapshot", (done) => {
     content: "Hello World again",
   });
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (docValue === "Hello World again") {
       expect(
         state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
@@ -700,23 +666,27 @@ test("reconnect and receive a new snapshot", (done) => {
 });
 
 test("reconnect and receive a new snapshot where one more was in between", (done) => {
-  const onReceive = jest.fn();
-  const websocketServiceMock =
-    (context: SyncMachineConfig) => (send: any, onReceive: any) => {
-      onReceive(onReceive);
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
-      send({ type: "WEBSOCKET_CONNECTED" });
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    };
+    }
+  );
 
   let docValue = "";
 
   const syncMachine = createSyncMachine();
-  const syncService = interpret(
-    syncMachine
-      .withContext({
-        ...syncMachine.context,
+  const syncService = createActor(
+    syncMachine.provide({
+      actors: { websocketActor: websocketServiceMock },
+    }),
+    {
+      input: {
+        ...defaultTestMachineInput,
         documentId: docId,
         websocketHost: url,
         websocketSessionKey: "sessionKey",
@@ -745,19 +715,8 @@ test("reconnect and receive a new snapshot where one more was in between", (done
         sodium: sodium,
         signatureKeyPair: clientBKeyPair,
         // logging: "error",
-      })
-      .withConfig({
-        actions: {
-          spawnWebsocketActor: assign((context) => {
-            return {
-              _websocketActor: spawn(
-                websocketServiceMock(context),
-                "websocketActor"
-              ),
-            };
-          }),
-        },
-      })
+      },
+    }
   );
 
   const { snapshot } = createSnapshotTestHelper();
@@ -776,7 +735,7 @@ test("reconnect and receive a new snapshot where one more was in between", (done
     content: "Hello World again and again",
   });
 
-  syncService.onTransition((state, event) => {
+  syncService.subscribe((state) => {
     if (docValue === "Hello World again and again") {
       expect(
         state.context.loadDocumentParams?.knownSnapshotInfo.parentSnapshotProof
