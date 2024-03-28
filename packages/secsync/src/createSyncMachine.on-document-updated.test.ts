@@ -1,10 +1,9 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, createActor, fromCallback } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
 import { createEphemeralMessage } from "./ephemeralMessage/createEphemeralMessage";
-import { createEphemeralSession } from "./ephemeralMessage/createEphemeralSession";
 import { createEphemeralMessageProof } from "./ephemeralMessage/createEphemeralSessionProof";
 import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
@@ -13,10 +12,10 @@ import {
   SnapshotInfoWithUpdateClocks,
   SnapshotPublicData,
   SnapshotUpdateClocks,
-  SyncMachineConfig,
   UpdatePublicData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -183,7 +182,16 @@ const createEphemeralMessageTestHelper = ({
 };
 
 test("should invoke onDocumentUpdated twice on document load", (done) => {
-  const websocketServiceMock = (context: any) => fromCallback(() => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
+
+      sendBack({ type: "WEBSOCKET_CONNECTED" });
+
+      return () => {};
+    }
+  );
 
   let shouldSendSnapshot = false;
   let docValue = "";
@@ -193,19 +201,7 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          const ephemeralMessagesSession = createEphemeralSession(
-            context.sodium
-          );
-          return {
-            _ephemeralMessagesSession: ephemeralMessagesSession,
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -237,7 +233,7 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
 
   syncService.subscribe((state) => {
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._documentDecryptionState === "complete"
     ) {
       expect(docValue).toEqual("Hello Worlduu");
@@ -284,12 +280,16 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
 });
 
 test("should invoke onDocumentUpdated for confirmed update", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
+
       sendBack({ type: "WEBSOCKET_CONNECTED" });
+
       return () => {};
-    });
+    }
+  );
 
   let shouldSendSnapshot = false;
   let docValue = "";
@@ -299,19 +299,7 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          const ephemeralMessagesSession = createEphemeralSession(
-            context.sodium
-          );
-          return {
-            _ephemeralMessagesSession: ephemeralMessagesSession,
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -343,7 +331,7 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
 
   syncService.subscribe((state) => {
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInfosWithUpdateClocks.length === 1 &&
       state.context._snapshotInfosWithUpdateClocks[0].updateClocks[
         clientAPublicKey
@@ -421,12 +409,16 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
 });
 
 test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
+
       sendBack({ type: "WEBSOCKET_CONNECTED" });
+
       return () => {};
-    });
+    }
+  );
 
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
@@ -436,19 +428,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          const ephemeralMessagesSession = createEphemeralSession(
-            context.sodium
-          );
-          return {
-            _ephemeralMessagesSession: ephemeralMessagesSession,
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -492,7 +472,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInfosWithUpdateClocks.length === 2 &&
       state.context._snapshotInfosWithUpdateClocks[1].snapshotId ===
         snapshotInFlight?.snapshotId

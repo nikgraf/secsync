@@ -1,10 +1,11 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, createActor, fromCallback } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
-import { SnapshotPublicData, SyncMachineConfig } from "./types";
+import { SnapshotPublicData } from "./types";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -90,14 +91,15 @@ const createSnapshotTestHelper = (params?: CreateSnapshotTestHelperParams) => {
 
 test("send ephemeralMessage", (done) => {
   const onReceiveCallback = jest.fn();
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
       receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -105,14 +107,7 @@ test("send ephemeralMessage", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          const websocketActor = websocketServiceMock(context);
-          return {
-            _websocketActor: spawn(websocketActor, { id: "websocketActor" }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {

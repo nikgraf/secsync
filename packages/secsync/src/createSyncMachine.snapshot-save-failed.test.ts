@@ -1,5 +1,5 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, createActor, fromCallback } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { hash } from "./crypto/hash";
@@ -8,10 +8,10 @@ import { createSnapshot } from "./snapshot/createSnapshot";
 import {
   SnapshotInfoWithUpdateClocks,
   SnapshotPublicData,
-  SyncMachineConfig,
   UpdatePublicData,
 } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -122,14 +122,16 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
 };
 
 test("should apply snapshot from snapshot-save-failed", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -137,15 +139,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -218,7 +212,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
     }
 
     if (transitionCount === 10) {
-      expect(state.matches("connected.idle")).toBe(true);
+      expect(state.matches({ connected: "idle" })).toBe(true);
       expect(docValue).toBe("Hello World1");
       done();
     }
@@ -228,14 +222,16 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
 });
 
 test("should ignore snapshot from snapshot-save-failed if already applied", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -243,15 +239,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -331,7 +319,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
     }
 
     if (transitionCount === 13) {
-      expect(state.matches("connected.idle")).toBe(true);
+      expect(state.matches({ connected: "idle" })).toBe(true);
       done();
     }
   });
@@ -340,14 +328,16 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
 });
 
 test("should apply update from snapshot-save-failed", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -355,15 +345,7 @@ test("should apply update from snapshot-save-failed", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -429,7 +411,7 @@ test("should apply update from snapshot-save-failed", (done) => {
     }
 
     if (transitionCount === 10) {
-      expect(state.matches("connected.idle")).toBe(true);
+      expect(state.matches({ connected: "idle" })).toBe(true);
       expect(docValue).toBe("Hello Worldu");
       done();
     }
@@ -439,14 +421,16 @@ test("should apply update from snapshot-save-failed", (done) => {
 });
 
 test("should ignore update from snapshot-save-failed if already applied", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -454,15 +438,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -547,7 +523,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
     }
 
     if (transitionCount === 16) {
-      expect(state.matches("connected.idle")).toBe(true);
+      expect(state.matches({ connected: "idle" })).toBe(true);
       expect(docValue).toBe("Hello Worlduu");
       done();
     }
@@ -557,14 +533,16 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
 });
 
 test("should apply update from snapshot-save-failed if it was created by the current client", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -572,15 +550,7 @@ test("should apply update from snapshot-save-failed if it was created by the cur
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -653,7 +623,7 @@ test("should apply update from snapshot-save-failed if it was created by the cur
     }
 
     if (transitionCount === 10) {
-      expect(state.matches("connected.idle")).toBe(true);
+      expect(state.matches({ connected: "idle" })).toBe(true);
       expect(docValue).toBe("Hello Worldu");
       done();
     }
@@ -663,14 +633,16 @@ test("should apply update from snapshot-save-failed if it was created by the cur
 });
 
 test("should increase context._snapshotSaveFailedCounter on every snapshot-save-failed and put back the changes into the pendingChangesQueue so it can be used for the retry", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -679,15 +651,7 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -771,7 +735,7 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
       expect(state.context._snapshotSaveFailedCounter).toBe(2);
       expect(state.context._snapshotInFlight?.changes.length).toBe(0);
       expect(state.context._pendingChangesQueue.length).toBe(2);
-    } else if (transitionCount === 21 && state.matches("connected.idle")) {
+    } else if (transitionCount === 21 && state.matches({ connected: "idle" })) {
       expect(state.context._snapshotSaveFailedCounter).toBe(0);
       expect(state.context._snapshotInFlight).toBe(null);
       expect(state.context._pendingChangesQueue.length).toBe(0);
@@ -783,12 +747,16 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
 });
 
 test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
+
       sendBack({ type: "WEBSOCKET_CONNECTED" });
+
       return () => {};
-    });
+    }
+  );
 
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
@@ -798,15 +766,7 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -840,6 +800,7 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
           };
         },
         onDocumentUpdated,
+        // @ts-expect-error overwriting internal context for the test
         _snapshotSaveFailedCounter: 2,
       },
     }
@@ -851,7 +812,7 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInfosWithUpdateClocks.length === 2 &&
       state.context._snapshotInfosWithUpdateClocks[1].snapshotId ===
         snapshotInFlight?.snapshotId
@@ -896,12 +857,16 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
 });
 
 test("should reset context._snapshotSaveFailedCounter on update-saved event", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
+
       sendBack({ type: "WEBSOCKET_CONNECTED" });
+
       return () => {};
-    });
+    }
+  );
 
   let snapshotInFlight: SnapshotInfoWithUpdateClocks | undefined = undefined;
   let docValue = "";
@@ -911,15 +876,7 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -953,6 +910,7 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
           };
         },
         onDocumentUpdated,
+        // @ts-expect-error overwriting internal context for the test
         _snapshotSaveFailedCounter: 2,
       },
     }
@@ -964,7 +922,7 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotSaveFailedCounter === 0
     ) {
       expect(state.context._snapshotSaveFailedCounter).toBe(0);
@@ -1001,14 +959,16 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
 });
 
 test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
-      receive((event: any) => {});
+  const onReceiveCallback = jest.fn();
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
+      receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -1016,15 +976,7 @@ test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -1087,14 +1039,14 @@ test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
     }
 
     if (
-      state.matches("connecting.retrying") &&
+      state.matches({ connecting: "retrying" }) &&
       state.context._pendingChangesQueue.length === 0
     ) {
       didReconnectWithPendingChanges = true;
     }
     if (
       state.context._pendingChangesQueue.length === 2 &&
-      state.matches("connected.idle")
+      state.matches({ connected: "idle" })
     ) {
       expect(state.context._snapshotSaveFailedCounter).toBe(0);
       expect(didReconnectWithPendingChanges).toBe(true);

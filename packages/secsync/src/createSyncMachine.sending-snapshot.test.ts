@@ -1,15 +1,12 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { assign, createActor, fromCallback } from "xstate";
+import { createActor, fromCallback } from "xstate";
 import { createSyncMachine } from "./createSyncMachine";
 import { generateId } from "./crypto/generateId";
 import { defaultTestMachineInput } from "./mocks";
 import { createSnapshot } from "./snapshot/createSnapshot";
-import {
-  SnapshotPublicData,
-  SyncMachineConfig,
-  UpdatePublicData,
-} from "./types";
+import { SnapshotPublicData, UpdatePublicData } from "./types";
 import { createUpdate } from "./update/createUpdate";
+import { WebsocketActorParams } from "./utils/websocketService";
 
 const url = "wss://www.example.com";
 const docId = "6e46c006-5541-11ec-bf63-0242ac130002";
@@ -125,14 +122,15 @@ const createUpdateTestHelper = (params?: CreateUpdateTestHelperParams) => {
 
 test("send initial snapshot if received document didn't include one", (done) => {
   const onReceiveCallback = jest.fn();
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
       receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -140,15 +138,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -200,7 +190,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInFlight !== null
     ) {
       expect(state.context._pendingChangesQueue).toEqual([]);
@@ -214,14 +204,15 @@ test("send initial snapshot if received document didn't include one", (done) => 
 
 test("send initial snapshot if received document didn't include one, but changes added before document was loaded", (done) => {
   const onReceiveCallback = jest.fn();
-  const websocketServiceMock = (context: SyncMachineConfig) =>
-    fromCallback(({ sendBack, receive }) => {
+  const websocketServiceMock = fromCallback(
+    ({ sendBack, receive, input }: WebsocketActorParams) => {
       receive(onReceiveCallback);
 
       sendBack({ type: "WEBSOCKET_CONNECTED" });
 
       return () => {};
-    });
+    }
+  );
 
   let docValue = "";
   let transitionCount = 0;
@@ -229,15 +220,7 @@ test("send initial snapshot if received document didn't include one, but changes
   const syncMachine = createSyncMachine();
   const syncService = createActor(
     syncMachine.provide({
-      actions: {
-        spawnWebsocketActor: assign(({ context, spawn }) => {
-          return {
-            _websocketActor: spawn(websocketServiceMock(context), {
-              id: "websocketActor",
-            }),
-          };
-        }),
-      },
+      actors: { websocketActor: websocketServiceMock },
     }),
     {
       input: {
@@ -289,7 +272,7 @@ test("send initial snapshot if received document didn't include one, but changes
     }
 
     if (
-      state.matches("connected.idle") &&
+      state.matches({ connected: "idle" }) &&
       state.context._snapshotInFlight !== null
     ) {
       expect(state.context._pendingChangesQueue).toEqual([]);

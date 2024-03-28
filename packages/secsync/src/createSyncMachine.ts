@@ -1167,6 +1167,7 @@ export const createSyncMachine = () => {
       children: {
         scheduleRetry: "scheduleRetry";
         processQueues: "processQueues";
+        websocketActor: "websocketActor";
       };
     },
     actions: {
@@ -1193,10 +1194,6 @@ export const createSyncMachine = () => {
         // in any other case the _snapshotInfosWithUpdateClocks is empty and the first snapshot received from the backend
         // is the one that should be applied
         // if loadDocumentParams.knownSnapshotInfo the snapshot ancestor relationship should still be validated
-        const newWebsocketActor = websocketService(
-          context,
-          ephemeralMessagesSession
-        );
 
         return {
           _snapshotInfosWithUpdateClocks:
@@ -1205,7 +1202,13 @@ export const createSyncMachine = () => {
               : [],
           _ephemeralMessagesSession: ephemeralMessagesSession,
           // TODO switch to spawnChild? https://stately.ai/docs/spawn
-          _websocketActor: spawn(newWebsocketActor, { id: "websocketActor" }),
+          _websocketActor: spawn("websocketActor", {
+            id: "websocketActor",
+            input: {
+              context,
+              ephemeralMessagesSession,
+            },
+          }),
         };
       }),
       stopWebsocketActor: assign(({ context }) => {
@@ -1387,6 +1390,7 @@ export const createSyncMachine = () => {
     actors: {
       scheduleRetry,
       processQueues,
+      websocketActor: websocketService,
     },
     guards: {
       hasMoreItemsInQueues: ({ context }) => {

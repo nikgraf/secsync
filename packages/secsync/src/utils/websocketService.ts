@@ -11,11 +11,18 @@ import {
   SyncMachineConfig,
 } from "../types";
 
-export const websocketService = (
-  context: SyncMachineConfig,
-  ephemeralMessagesSession: EphemeralMessagesSession
-) =>
-  fromCallback(({ sendBack, receive }: { sendBack: any; receive: any }) => {
+export type WebsocketActorParams = {
+  sendBack: any;
+  receive: any;
+  input: {
+    context: SyncMachineConfig;
+    ephemeralMessagesSession: EphemeralMessagesSession;
+  };
+};
+
+export const websocketService = fromCallback(
+  ({ sendBack, receive, input }: WebsocketActorParams) => {
+    const { ephemeralMessagesSession, context } = input;
     let ephemeralSessionCounter = ephemeralMessagesSession.counter;
     const prepareAndSendEphemeralMessage = async (
       data: any,
@@ -203,4 +210,5 @@ export const websocketService = (
       }
       websocketConnection.close();
     };
-  });
+  }
+);
