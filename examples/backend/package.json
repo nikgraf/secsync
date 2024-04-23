@@ -8,7 +8,7 @@
     "@types/ws": "^8.5.5",
     "@vercel/ncc": "^0.36.1",
     "prettier": "^2.5.0",
-    "prisma": "^4.16.1",
+    "prisma": "^5.13.0",
     "ts-node": "10.4.0",
     "ts-node-dev": "^1.1.8"
   },
@@ -20,13 +20,13 @@
     "clean": "rm -rf build",
     "build": "pnpm install && pnpm clean && pnpm prisma:prod:generate && pnpm ncc build ./src/index.ts -o build",
     "deploy": "pnpm build && fly launch",
-    "prisma:prod:migrate": "npm install -g prisma@4 && DATABASE_URL=$DATABASE_URL prisma migrate deploy",
+    "prisma:prod:migrate": "npm install -g prisma@5 && DATABASE_URL=$DATABASE_URL prisma migrate deploy",
     "prisma:prod:generate": "DATABASE_URL=$DATABASE_URL prisma generate",
     "prisma:prod:studio": "DATABASE_URL=$DATABASE_URL prisma studio",
     "start:prod": "PORT=$PORT DATABASE_URL=$DATABASE_URL NODE_ENV=production node ./build"
   },
   "dependencies": {
-    "@prisma/client": "^4.16.1",
+    "@prisma/client": "^5.13.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
     "libsodium-wrappers": "^0.7.13",

@@ -15,7 +15,7 @@
   "dependencies": {
     "canonicalize": "^2.0.0",
     "libsodium-wrappers": "^0.7.13",
-    "xstate": "^5.9.1",
+    "xstate": "^5.11.0",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -25,7 +25,7 @@
     "@types/jest": "^29.5.12",
     "@types/libsodium-wrappers": "^0.7.13",
     "@types/ws": "^8.5.10",
-    "@xstate/cli": "^0.5.2",
+    "@xstate/cli": "^0.5.17",
     "jest": "^29.7.0",
     "mock-socket": "^9.3.1"
   },
