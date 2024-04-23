@@ -3,14 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "devDependencies": {
-    "@types/node": "16.11.9",
-    "@types/uuid": "^8.3.3",
-    "@types/ws": "^8.5.5",
-    "@vercel/ncc": "^0.36.1",
-    "prettier": "^2.5.0",
+    "@types/node": "20.12.7",
+    "@types/uuid": "^9.0.8",
+    "@types/ws": "^8.5.10",
+    "@vercel/ncc": "^0.38.1",
+    "prettier": "^3.2.5",
     "prisma": "^5.13.0",
-    "ts-node": "10.4.0",
-    "ts-node-dev": "^1.1.8"
+    "ts-node": "10.9.2",
+    "ts-node-dev": "^2.0.0"
   },
   "scripts": {
     "ts:check": "pnpm tsc --noEmit",
@@ -28,12 +28,12 @@
   "dependencies": {
     "@prisma/client": "^5.13.0",
     "cors": "^2.8.5",
-    "express": "^4.17.1",
+    "express": "^4.19.2",
     "libsodium-wrappers": "^0.7.13",
     "make-promises-safe": "^5.1.0",
     "secsync": "workspace:^",
-    "uuid": "^8.3.2",
-    "ws": "^8.3.0"
+    "uuid": "^9.0.1",
+    "ws": "^8.16.0"
   },
   "engines": {
     "node": ">=12.2.0"
