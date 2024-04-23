@@ -63,15 +63,11 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
     input: {
       ...rest,
       applySnapshot: (decryptedSnapshotData) => {
-        Yjs.applyUpdateV2(
-          config.yDoc,
-          decryptedSnapshotData,
-          "sec-sync-remote"
-        );
+        Yjs.applyUpdateV2(config.yDoc, decryptedSnapshotData, "secsync-remote");
       },
       applyChanges: (decryptedChanges) => {
         decryptedChanges.map((change) => {
-          Yjs.applyUpdateV2(config.yDoc, change, "sec-sync-remote");
+          Yjs.applyUpdateV2(config.yDoc, change, "secsync-remote");
         });
       },
       applyEphemeralMessage: (ephemeralMessage, authorClientPublicKey) => {
@@ -102,7 +98,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
   useEffect(() => {
     // always listen to updates from the document itself
     const onUpdate = (update: any, origin: any) => {
-      if (origin !== "secsync-origin") {
+      if (origin !== "secsync-remote") {
         send({ type: "ADD_CHANGES", data: [update] });
       }
     };
