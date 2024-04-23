@@ -12,7 +12,7 @@
     "lint": "echo \"No linting configured\""
   },
   "dependencies": {
-    "@xstate/react": "^4.1.0"
+    "@xstate/react": "^4.1.1"
   },
   "peerDependencies": {
     "@automerge/automerge": "*",
@@ -20,11 +20,11 @@
     "secsync": "*"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.3",
-    "@babel/preset-env": "^7.24.3",
+    "@babel/core": "^7.24.4",
+    "@babel/preset-env": "^7.24.4",
     "@babel/preset-typescript": "^7.24.1",
     "@types/jest": "^29.5.12",
-    "@types/react": "^18.2.69",
+    "@types/react": "^18.2.79",
     "jest": "^29.7.0",
     "secsync": "workspace:^"
   },

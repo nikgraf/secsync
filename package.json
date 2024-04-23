@@ -9,7 +9,7 @@
   "devDependencies": {
     "ts-node": "^10.9.2",
     "tsup": "^8.0.2",
-    "typescript": "^5.4.3"
+    "typescript": "^5.4.5"
   },
   "scripts": {
     "ts:check": "pnpm install && pnpm -r ts:check",
@@ -19,7 +19,7 @@
   "pnpm": {
     "overrides": {
       "yjs": "^13.6.14",
-      "@automerge/automerge": "^2.1.13"
+      "@automerge/automerge": "^2.2.0"
     }
   }
 }
