@@ -11,18 +11,18 @@
     "test": "echo \"No tests yet\""
   },
   "dependencies": {
-    "@automerge/automerge": "^2.1.13",
-    "@tiptap/extension-collaboration": "^2.2.4",
-    "@tiptap/pm": "^2.2.4",
-    "@tiptap/react": "^2.2.4",
-    "@tiptap/starter-kit": "^2.2.4",
-    "next": "^14.1.4",
+    "@automerge/automerge": "^2.2.0",
+    "@tiptap/extension-collaboration": "^2.3.0",
+    "@tiptap/pm": "^2.3.0",
+    "@tiptap/react": "^2.3.0",
+    "@tiptap/starter-kit": "^2.3.0",
+    "next": "^14.2.2",
     "prosemirror-example-setup": "^1.2.2",
     "prosemirror-keymap": "^1.2.2",
-    "prosemirror-model": "^1.19.4",
+    "prosemirror-model": "^1.20.0",
     "prosemirror-schema-basic": "^1.2.2",
     "prosemirror-state": "^1.4.3",
-    "prosemirror-view": "^1.33.3",
+    "prosemirror-view": "^1.33.5",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "secsync": "workspace:^",
@@ -35,8 +35,8 @@
   },
   "devDependencies": {
     "@netlify/plugin-nextjs": "^4.41.3",
-    "@types/libsodium-wrappers": "^0.7.13",
-    "@types/react": "^18.2.69",
+    "@types/libsodium-wrappers": "^0.7.14",
+    "@types/react": "^18.2.79",
     "eslint": "8.57.0",
     "eslint-config-next": "14.1.4"
   }
