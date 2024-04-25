@@ -5,6 +5,8 @@
 
 app = "secsync"
 primary_region = "ams"
+# necessary for small machines on fly.io to avoid running out of memory
+swap_size_mb = 2048
 
 [deploy]
 release_command = "npm run prisma:prod:migrate"
