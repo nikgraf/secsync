@@ -106,7 +106,9 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
 
     // only connect the awareness after the document loaded
     if (snapshot.context._documentDecryptionState !== "complete") {
-      return;
+      return () => {
+        yDoc.off("updateV2", onUpdate);
+      };
     }
 
     const onAwarenessUpdate = ({ added, updated, removed }: any) => {
@@ -144,7 +146,7 @@ export const useYjsSync = (config: YjsSyncMachineConfig) => {
         "hook unmount"
       );
       yAwarenessRef.current.off("update", onAwarenessUpdate);
-      yDoc.off("update", onUpdate);
+      yDoc.off("updateV2", onUpdate);
     };
     // causes issues if ran multiple times e.g. awareness sharing to not work anymore
   }, [snapshot.context._documentDecryptionState]);
