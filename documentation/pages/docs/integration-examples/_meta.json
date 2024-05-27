@@ -1,6 +1,9 @@
 {
   "yjs-tiptap": "Tiptap Editor (yjs)",
   "yjs-prosemirror": "Prosemirror Editor (yjs)",
-  "yjs-tldraw": "Tldraw Whiteboard (yjs)",
+  "yjs-tldraw": {
+    "title": "Tldraw Whiteboard (yjs)",
+    "display": "hidden"
+  },
   "automerge-todos": "Todo List (automerge)"
 }
