@@ -145,7 +145,7 @@ test("should apply snapshot from snapshot-save-failed", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -245,7 +245,7 @@ test("should ignore snapshot from snapshot-save-failed if already applied", (don
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -351,7 +351,7 @@ test("should apply update from snapshot-save-failed", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -444,7 +444,7 @@ test("should ignore update from snapshot-save-failed if already applied", (done)
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -556,7 +556,7 @@ test("should apply update from snapshot-save-failed if it was created by the cur
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -657,7 +657,7 @@ test("should increase context._snapshotSaveFailedCounter on every snapshot-save-
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -772,7 +772,7 @@ test("should reset context._snapshotSaveFailedCounter on snapshot-saved event", 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -882,7 +882,7 @@ test("should reset context._snapshotSaveFailedCounter on update-saved event", (d
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -982,7 +982,7 @@ test("should disconnect and reconnect after 5 snapshot-save-failed", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||

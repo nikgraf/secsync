@@ -85,7 +85,7 @@ export const websocketService = fromCallback(
     }
 
     const websocketConnection = new WebSocket(
-      `${context.websocketHost}/${context.documentId}?sessionKey=${
+      `${context.websocketEndpoint}/${context.documentId}?sessionKey=${
         context.websocketSessionKey
       }${modeParam}${knownSnapshotIdParam}${
         knownSnapshotUpdateClocks ? `${knownSnapshotUpdateClocks}` : ""

@@ -120,7 +120,7 @@ export type NewSnapshotData = {
 export type SyncMachineConfig = {
   documentId: string;
   signatureKeyPair: KeyPair;
-  websocketHost: string;
+  websocketEndpoint: string;
   websocketSessionKey: string;
   applySnapshot: (decryptedSnapshot: any) => void;
   getSnapshotKey: (

@@ -148,7 +148,7 @@ test("reconnect and receive the same snapshot with one more update", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -251,7 +251,7 @@ test("fetch a snapshot with an update, reconnect and receive the same snapshot w
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -360,7 +360,7 @@ test("fetch a snapshot with an update, reconnect and receive the another snapsho
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -469,7 +469,7 @@ test("fetch a snapshot with an update, reconnect and receive only a new update",
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -573,7 +573,7 @@ test("reconnect and receive a new snapshot", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -688,7 +688,7 @@ test("reconnect and receive a new snapshot where one more was in between", (done
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||

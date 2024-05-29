@@ -16,7 +16,7 @@ import {
 } from "y-prosemirror";
 import * as Yjs from "yjs";
 
-const websocketHost =
+const websocketEndpoint =
   process.env.NODE_ENV === "development"
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
@@ -64,7 +64,7 @@ const YjsProsemirrorExample: React.FC<Props> = ({
     yDoc: yDocRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
-    websocketHost,
+    websocketEndpoint,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
     getNewSnapshotData: async ({ id }) => {

@@ -94,7 +94,7 @@ import { YjsUnsyncedTodosExample } from "../../components/YjsUnsyncedTodosExampl
 Now let's setup the end-to-end encrypted data sync. For now we will use the backend service used by the documentation.
 
 ```ts
-const websocketHost = "wss://secsync.fly.dev";
+const websocketEndpoint = "wss://secsync.fly.dev";
 ```
 
 Next we want to setup the keys. While in Secsync every Snapshot (and related Updates and EphemeralMessages) can each have their own encryption keys we use a stable `documentKey`. In addition we create signing keys for the client. In this tutorial we won't validate them and therefor we can generate some.
@@ -128,7 +128,7 @@ const [state, send] = useYjsSync({
   // The current client's signing keyPair
   signatureKeyPair: authorKeyPair,
   // The backend service to connect to
-  websocketHost,
+  websocketEndpoint,
   // Used to authenticate the client with the server (not checked by the documentation backend)
   websocketSessionKey: "your-secret-session-key",
   // Callback to return the key for the Snapshot. In this case we are going to use

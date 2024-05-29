@@ -31,13 +31,13 @@ function prependTLStoreWithStatus<T extends any[]>(
 type Params = {
   documentId: string;
   documentKey: Uint8Array;
-  websocketHost: string;
+  websocketEndpoint: string;
 };
 
 export function useYjsSecSyncStore({
   documentId,
   documentKey,
-  websocketHost,
+  websocketEndpoint,
 }: Params) {
   const [authorKeyPair] = useState<KeyPair>(() => {
     return sodium.crypto_sign_keypair();
@@ -53,7 +53,7 @@ export function useYjsSecSyncStore({
     yDoc: yDocRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
-    websocketHost,
+    websocketEndpoint,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
     getNewSnapshotData: async ({ id }) => {

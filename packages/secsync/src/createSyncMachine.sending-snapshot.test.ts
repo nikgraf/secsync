@@ -144,7 +144,7 @@ test("send initial snapshot if received document didn't include one", (done) => 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -226,7 +226,7 @@ test("send initial snapshot if received document didn't include one, but changes
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
