@@ -17,7 +17,8 @@
       "footer": false,
       "breadcrumb": false,
       "typesetting": "article"
-    }
+    },
+    "display": "hidden"
   },
   "imprint": {
     "type": "page",
