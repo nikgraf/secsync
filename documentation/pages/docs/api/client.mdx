@@ -38,15 +38,12 @@ const [currentDoc, syncDoc, state, send] = useAutomergeSync<Todos>({
 
 ```ts
 const syncMachine = createMachine();
-const syncActor = createActor(
-  syncMachine,
-  {
-    input: {
-      documentId: docId,
-      ...moreRequiredArguments,
-    }
-  }
-);
+const syncActor = createActor(syncMachine, {
+  input: {
+    documentId: docId,
+    ...moreRequiredArguments,
+  },
+});
 
 syncActor.subscribe((state) => {
   console.log(state.value, state.context);
@@ -98,14 +95,14 @@ interface KeyPair {
 }
 ```
 
-#### websocketHost
+#### websocketEndpoint
 
 Required: `true`
 
 The backend service to connect to as a string. Example:
 
 ```ts
-const websocketHost =
+const websocketEndpoint =
   process.env.NODE_ENV === "development"
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";

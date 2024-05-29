@@ -4,7 +4,7 @@ import { memo } from "react";
 import { DevTool } from "secsync-react-devtool";
 import { useYjsSecSyncStore } from "./useYjsSecSyncStore";
 
-const websocketHost =
+const websocketEndpoint =
   process.env.NODE_ENV === "development"
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
@@ -21,7 +21,7 @@ const YjsTldrawExample: React.FC<Props> = ({ documentId, documentKey }) => {
   const [store, state, send] = useYjsSecSyncStore({
     documentId,
     documentKey,
-    websocketHost,
+    websocketEndpoint,
   });
   return (
     <>

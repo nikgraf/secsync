@@ -192,7 +192,7 @@ test("should connect to the websocket", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         signatureKeyPair: clientAKeyPair,
         sodium,
@@ -225,7 +225,7 @@ test("should initially have _documentDecryptionState state", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -266,7 +266,7 @@ test("should load a document", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -318,7 +318,7 @@ test("should load a document with updates", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -382,7 +382,7 @@ test("should load a document and two additional updates", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -461,7 +461,7 @@ test("should load a document and an additional snapshot", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -531,7 +531,7 @@ test("should load a document with updates and two additional updates", (done) =>
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -609,7 +609,7 @@ test("should load a document with updates and two additional snapshots", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -701,7 +701,7 @@ test("should load a document and process three additional ephemeral messages", (
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,

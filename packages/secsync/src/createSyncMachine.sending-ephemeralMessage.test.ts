@@ -113,7 +113,7 @@ test("send ephemeralMessage", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||

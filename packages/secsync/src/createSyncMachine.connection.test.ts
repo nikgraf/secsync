@@ -26,7 +26,7 @@ test("should start with connecting", (done) => {
     input: {
       ...defaultTestMachineInput,
       documentId: docId,
-      websocketHost: url,
+      websocketEndpoint: url,
       websocketSessionKey: "sessionKey",
       sodium,
     },
@@ -50,7 +50,7 @@ test("should connect", (done) => {
     input: {
       ...defaultTestMachineInput,
       documentId: docId,
-      websocketHost: url,
+      websocketEndpoint: url,
       websocketSessionKey: "sessionKey",
       sodium,
     },
@@ -74,7 +74,7 @@ test("should connect and use knownSnapshotId as query param", (done) => {
     input: {
       ...defaultTestMachineInput,
       documentId: docId,
-      websocketHost: url,
+      websocketEndpoint: url,
       websocketSessionKey: "mySessionKey",
       sodium,
       loadDocumentParams: {
@@ -113,7 +113,7 @@ test("should connect and use knownSnapshotId & knownSnapshotUpdateClocks as quer
     input: {
       ...defaultTestMachineInput,
       documentId: docId,
-      websocketHost: url,
+      websocketEndpoint: url,
       websocketSessionKey: "mySessionKey",
       sodium,
       loadDocumentParams: {

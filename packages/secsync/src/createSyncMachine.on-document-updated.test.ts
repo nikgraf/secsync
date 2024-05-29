@@ -207,7 +207,7 @@ test("should invoke onDocumentUpdated twice on document load", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -305,7 +305,7 @@ test("should invoke onDocumentUpdated for confirmed update", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -434,7 +434,7 @@ test("should invoke onDocumentUpdated for confirmed snapshot", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,

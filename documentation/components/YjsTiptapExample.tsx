@@ -8,7 +8,7 @@ import { useYjsSync } from "secsync-react-yjs";
 import { YAwarenessExtension } from "tiptap-extension-y-awareness";
 import * as Yjs from "yjs";
 
-const websocketHost =
+const websocketEndpoint =
   process.env.NODE_ENV === "development"
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
@@ -49,7 +49,7 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
     yDoc: yDocRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
-    websocketHost,
+    websocketEndpoint,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
     getNewSnapshotData: async ({ id }) => {

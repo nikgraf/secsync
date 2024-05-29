@@ -14,7 +14,7 @@ type TodoType = {
 
 type Todos = { todos: { [key: string]: TodoType } };
 
-const websocketHost =
+const websocketEndpoint =
   process.env.NODE_ENV === "development"
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
@@ -38,7 +38,7 @@ const AutomergeTodosExample: React.FC<Props> = ({
     initialDoc,
     documentId: documentId,
     signatureKeyPair: authorKeyPair,
-    websocketHost,
+    websocketEndpoint,
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
     getNewSnapshotData: async ({ id }) => {

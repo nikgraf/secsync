@@ -1416,7 +1416,7 @@ export const createSyncMachine = () => {
         ...{
           documentId: input.documentId,
           signatureKeyPair: {} as KeyPair,
-          websocketHost: "",
+          websocketEndpoint: "",
           websocketSessionKey: "",
           applySnapshot: () => undefined,
           getSnapshotKey: () => Promise.resolve(new Uint8Array()),

@@ -224,7 +224,7 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on initial load", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -288,7 +288,7 @@ test("SECSYNC_ERROR_101 snapshot decryption fails on snapshot event", (done) => 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -365,7 +365,7 @@ test("SECSYNC_ERROR_102 invalid parentSnapshot verification on snapshot event", 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -452,7 +452,7 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on initial load", (done) =
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => {
@@ -515,7 +515,7 @@ test("SECSYNC_ERROR_103 getSnapshotKey threw an error on snapshot event", (done)
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => {
@@ -596,7 +596,7 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on initial load", (done) =>
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           throw new Error("NO SNAPSHOT KEY");
@@ -658,7 +658,7 @@ test("SECSYNC_ERROR_104 isValidClient threw an error on snapshot event", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           if (signingPublicKey === clientBPublicKey) {
@@ -738,7 +738,7 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -800,7 +800,7 @@ test("SECSYNC_ERROR_105 applySnapshot threw an error", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -879,7 +879,7 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on initial load", (done)
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -945,7 +945,7 @@ test("SECSYNC_ERROR_110 snapshot message does not parse on snapshot event", (don
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -1027,7 +1027,7 @@ test("SECSYNC_ERROR_111 invalid signature on initial load", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -1090,7 +1090,7 @@ test("SECSYNC_ERROR_111 invalid signature on snapshot event", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -1171,7 +1171,7 @@ test("SECSYNC_ERROR_112 invalid parentSnapshot verification on initial load", (d
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -1260,7 +1260,7 @@ test("SECSYNC_ERROR_112 fetch a snapshot, reconnect and receive a snapshot that 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -1353,7 +1353,7 @@ test("SECSYNC_ERROR_112 receive a snapshot that is not a child of the first one 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -1443,7 +1443,7 @@ test("SECSYNC_ERROR_113 invalid docId on initial load", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -1503,7 +1503,7 @@ test("SECSYNC_ERROR_113 invalid docId on snapshot event", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -1580,7 +1580,7 @@ test("SECSYNC_ERROR_114 isValidClient returns false on initial load", (done) => 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => false,
         getSnapshotKey: () => key,
@@ -1640,7 +1640,7 @@ test("SECSYNC_ERROR_114 isValidClient returns false on snapshot event", (done) =
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           return signingPublicKey === clientAPublicKey;
@@ -1728,7 +1728,7 @@ test("SECSYNC_ERROR_115 reconnect receive a messed up chain", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -1850,7 +1850,7 @@ test("SECSYNC_ERROR_201 should fail decryption on initial load", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -1921,7 +1921,7 @@ test("SECSYNC_ERROR_201 should fail decryption on update event", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -1997,7 +1997,7 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2065,7 +2065,7 @@ test("SECSYNC_ERROR_202 should fail because the update clock increase by more th
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2144,7 +2144,7 @@ test("SECSYNC_ERROR_203 applyChanges throws an error on initial load", (done) =>
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2210,7 +2210,7 @@ test("SECSYNC_ERROR_203 applyChanges throws an error on update event", (done) =>
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2287,7 +2287,7 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error on initial load", (do
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2352,7 +2352,7 @@ test("SECSYNC_ERROR_204 deserializeChanges throws an error on update event", (do
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2425,7 +2425,7 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors on initial load", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           if (isValidClientCounter === 0) {
@@ -2497,7 +2497,7 @@ test("SECSYNC_ERROR_205 isValidClient throws an errors on update event", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           if (isValidClientCounter === 0) {
@@ -2576,7 +2576,7 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error on initial load", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2649,7 +2649,7 @@ test("SECSYNC_ERROR_206 getSnapshotKey throws an error on update event", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2728,7 +2728,7 @@ test("SECSYNC_ERROR_211 failed to parse the error message on initial document lo
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2793,7 +2793,7 @@ test("SECSYNC_ERROR_211 ignore update to parse the error message as incoming upd
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2866,7 +2866,7 @@ test("SECSYNC_ERROR_212 invalid signature on initial document load", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -2939,7 +2939,7 @@ test("SECSYNC_ERROR_212 ignore update due invalid signature as incoming update",
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -3013,7 +3013,7 @@ test("SECSYNC_ERROR_213 should fail due update referencing another snapshotId on
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -3080,7 +3080,7 @@ test("SECSYNC_ERROR_213 should ignore the update due update referencing another 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -3152,7 +3152,7 @@ test("SECSYNC_ERROR_214 should fail because an update with same clock was receiv
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -3220,7 +3220,7 @@ test("SECSYNC_ERROR_214 should ignore the received update because it had the sam
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -3300,7 +3300,7 @@ test("SECSYNC_ERROR_215 isValidClient returns false on initial document load", (
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           if (isValidClientCounter === 0) {
@@ -3371,7 +3371,7 @@ test("SECSYNC_ERROR_215 isValidClient returns false on a received event", (done)
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -3451,7 +3451,7 @@ test("SECSYNC_ERROR_301 ephemeral message decryption failed", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -3539,7 +3539,7 @@ test("SECSYNC_ERROR_302 no verified session found", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -3622,7 +3622,7 @@ test("SECSYNC_ERROR_303 ignore an ephemeral message coming from a reply attack",
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -3752,7 +3752,7 @@ test("SECSYNC_ERROR_304 isValidClient throws", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           if (isValidClientCounter === 1) {
@@ -3844,7 +3844,7 @@ test("SECSYNC_ERROR_304 isValidClient returns false", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => {
           if (isValidClientCounter === 1) {
@@ -3934,7 +3934,7 @@ test("SECSYNC_ERROR_305 invalid messageType", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -4018,7 +4018,7 @@ test("SECSYNC_ERROR_306 process three additional ephemeral messages where the se
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -4138,7 +4138,7 @@ test("SECSYNC_ERROR_307 invalid messageType", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -4225,7 +4225,7 @@ test("SECSYNC_ERROR_308 invalid signature", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) => true,
         getSnapshotKey: () => key,
@@ -4320,7 +4320,7 @@ test("SECSYNC_ERROR_401 fails to send a snapshot results in state: failed", (don
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -4410,7 +4410,7 @@ test("SECSYNC_ERROR_501 fails to send an update results in state: failed", (done
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -4513,7 +4513,7 @@ test("SECSYNC_ERROR_601 fails to send ephemeralMessage", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey ||
@@ -4593,7 +4593,7 @@ test("should ignore an update in case it's a reply attack with the same update",
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -4685,7 +4685,7 @@ test("should ignore an update in case it's a different update, but the same cloc
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           sodium.to_base64(clientAKeyPair.publicKey) === signingPublicKey,
@@ -4782,7 +4782,7 @@ test("set _documentDecryptionState to failed if not even the snapshot can be loa
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -4841,7 +4841,7 @@ test("set _documentDecryptionState to partial and apply the first update, if doc
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -4903,7 +4903,7 @@ test("set _documentDecryptionState to partial, if document snapshot decrypts but
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -4963,7 +4963,7 @@ test("store not more than 20 receiving failed ephemeral message errors", (done) 
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -5078,7 +5078,7 @@ test("reset the context entries after websocket disconnect", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -5159,7 +5159,7 @@ test("reconnect and reload the document", (done) => {
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,
@@ -5247,7 +5247,7 @@ test("store not more than 20 failed creating ephemeral message errors", (done) =
       input: {
         ...defaultTestMachineInput,
         documentId: docId,
-        websocketHost: url,
+        websocketEndpoint: url,
         websocketSessionKey: "sessionKey",
         isValidClient: (signingPublicKey) =>
           clientAPublicKey === signingPublicKey,

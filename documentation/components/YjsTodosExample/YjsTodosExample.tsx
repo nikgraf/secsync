@@ -5,7 +5,7 @@ import { useYjsSync } from "secsync-react-yjs";
 import * as Yjs from "yjs";
 import { useYArray } from "../../hooks/useYArray";
 
-const websocketHost =
+const websocketEndpoint =
   process.env.NODE_ENV === "development"
     ? "ws://localhost:4000"
     : "wss://secsync.fly.dev";
@@ -36,7 +36,7 @@ export const YjsTodosExample: React.FC<Props> = ({
     yDoc: yDocRef.current,
     documentId,
     signatureKeyPair: authorKeyPair,
-    websocketHost,
+    websocketEndpoint,
     websocketSessionKey: "your-secret-session-key",
     getNewSnapshotData: async ({ id }) => {
       return {
