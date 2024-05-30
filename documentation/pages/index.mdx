@@ -3,3 +3,96 @@
 Is an architecture to relay end-to-end encrypted CRDTs over a central service.
 
 It was created out of the need to have an end-to-end encrypted protocol to allow data synchronization/fetching incl. real-time updates to support [local-first](https://www.inkandswitch.com/local-first/) apps in combination with a web clients without locally stored data.
+
+**WARNING**: This is beta software.
+
+## Concept
+
+The architecture is built upon 4 building blocks:
+
+1. Document
+2. Snapshot
+3. Update
+4. Ephemeral message
+
+A _Document_ is defined by an **ID** and the **active Snapshot**.
+
+A _Snapshot_ includes the **encrypted CRDT document** at a certain time.
+
+An _Update_ includes one or multiple **encrypted CRDT updates** referencing a snapshot.
+
+An _Ephemeral message_ includes **encrypted data** referencing a document.
+
+If you look at it from a perspective of the current state of one document it looks like this:
+
+<img
+  src="/secsync-document-representation.png"
+  width="323"
+  height="339"
+  alt="State of one document as snapshots and updates."
+/>
+
+If you look at it over time it looks like a tree that that always comes together once a snapshot is created:
+
+<img
+  src="/secsync-time-representation.png"
+  width="309"
+  height="521"
+  alt="State of one document as snapshots and updates."
+/>
+
+When the server service persists an update it stores it with an integer based version number which is returned to every client. This way clients efficiently can ask for only the updates they haven't received.
+
+## Use Cases
+
+### Local-first only app
+
+In this case each client per document has to keep the
+
+- Document ID
+- CRDT document
+- Active Snapshot ID
+- Active Snapshot latest server version integer
+
+By sending the document ID, active Snapshot ID and the active Snapshot version integer the client will receive only the latest changes. This can be:
+
+- Updates
+- New active Snapshot + Updates
+
+If all clients stay relatively up to date all the time new snapshots would be inefficient and not necessary. They might still be relevant e.g. when a collaborator is removed from the document and the encryption key is rotated.
+
+### Cloud based app
+
+In this case the client only needs to know the document ID and can fetch the latest snapshot incl. the referencing snapshots to construct the document. Here it makes sense to regularly create new snapshots to avoid longer loading times.
+
+### Mixed app (local first + cloud)
+
+Since it's the same API both can be supported. Creating snapshots regularly is probably the favorable way to go in this case.
+
+## Encryption
+
+Each Snapshot and Update is encrypted using an AEAD constructions. Specifically [XChaCha20-Poly1305-IETF](https://doc.libsodium.org/secret-key_cryptography/aead#availability-and-interoperability). Exchange incl. rotation of the secret key is not part of this protocol and could be done by using the Signal Protocol or lockboxes based on an existing Public key infrastructure (PKI).
+
+Each Snapshot also includes unencrypted but authenticated data so that the server and other clients can verify that authenticity of the Document & Snapshot ID relation. Unencrypted data:
+
+- Document ID
+- Snapshot ID
+- Public Key of the Client
+
+Each Update also includes unencrypted but authenticated data so that the server and other clients can verify that authenticity of the relationship to a Snapshot and Document.Unencrypted data:
+
+- Document ID
+- Snapshot ID
+- Public Key of the Client
+- Clock
+
+The clock property is an incrementing integer that serves multiple purposes:
+
+- That the central service does not persist an update if the previous one wasn't persisted.
+- Each client to verify that it receives all updates per snapshot per client.
+
+The data (encrypted and unencrypted) of each Snapshot and Update further is signed with the public key of the client using a ED2559 Signature. This ensures the authenticity of the data per client and is relevant to make sure to relate the incrementing clock to client.
+
+The public keys further could be use to verify that only collaborators with the authorization have to make changes to a document actually do so. Serenity will use a [signed hash chain](https://github.com/serenity-kit/Serenity/tree/main/packages/workspace-chain) that's currently in development to ensure the authenticity of all collaborators.
+
+There are use-cases where the public keys and signatures are only used to verify the updates per client e.g. a short term shared document in a video call.

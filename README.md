@@ -152,16 +152,6 @@ It will receive a new snapshot which will be merged into the local data.
 - Automerge: `doc2 = Automerge.merge(doc2, doc1)`
 - Yjs: `Yjs.applyUpdateV2(yDocRef.current, snapshotResult, null);`
 
-### Why not just use the Signal Protocol, MLS or Olm/MegOlm?
-
-All of them certainly have better security properties like Forward Secrecy and some have Post-Compromise Security.
-
-[MLS](https://messaginglayersecurity.rocks/) looks fantastic, but is still under development, but once ready it actually might be suitable candidate to built a variation or next version of Secsync on top of it. In addition it's specification was used as inspiration e.g. security and privacy considerations.
-
-[Signal Protocol](https://en.wikipedia.org/wiki/Signal_Protocol) is fantastic as well. With the Signal protocol though you would need to send each change to every user and requires management of one-time keys and/or established sessions. This is tougher to scale and makes it harder to support use-cases like temporary having an external contributor via a web interface.
-
-[Olm/MegOlm](https://gitlab.matrix.org/matrix-org/olm) is also fantastic. Again the usage of one-time keys and/or established sessions make it tricky retrieve arbitrary documents without retrieving all other message from another client first.
-
 ### When to create a new Snapshot?
 
 This highly depends on the use-case e.g. the amount of data per update and frequency. Apart from the there are
