@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2024-05-29
+
 ### Fixed
 
 - correctly remove changes from pendingChanges queue when sending a snapshot or update
+- correct check for window to avoid a react-native crash
+
+### Changed
+
+- renamed `websocketHost` to `websocketEndpoint`
+- add signature context to harden the protocol
+- add aead robustness as recommend by libsoidum docs
+- upgraded xstate dependency
 
 ### Added
 
