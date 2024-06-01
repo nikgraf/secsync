@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "devDependencies": {
-    "@types/node": "20.12.7",
+    "@types/node": "^20.13.0",
     "@types/uuid": "^9.0.8",
     "@types/ws": "^8.5.10",
     "@vercel/ncc": "^0.38.1",
@@ -32,6 +32,7 @@
     "libsodium-wrappers": "^0.7.13",
     "make-promises-safe": "^5.1.0",
     "secsync": "workspace:^",
+    "secsync-server": "workspace:^",
     "uuid": "^9.0.1",
     "ws": "^8.16.0"
   },

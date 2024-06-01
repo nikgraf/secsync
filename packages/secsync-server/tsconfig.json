@@ -3,7 +3,7 @@
 
   "compilerOptions": {
     "outDir": "./dist",
-    "types": ["jest", "node"]
+    "types": ["jest"]
   },
 
   "include": ["src/**/*"]

@@ -2,7 +2,7 @@ require("make-promises-safe"); // installs an 'unhandledRejection' handler
 import cors from "cors";
 import express from "express";
 import { createServer } from "http";
-import { createWebSocketConnection } from "secsync";
+import { createWebSocketConnection } from "secsync-server";
 import { WebSocketServer } from "ws";
 import { createSnapshot as createSnapshotDb } from "./database/createSnapshot";
 import { createUpdate as createUpdateDb } from "./database/createUpdate";

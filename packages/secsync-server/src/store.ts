@@ -1,5 +1,5 @@
+import { HasBroadcastAccessParams } from "secsync";
 import WebSocket from "ws";
-import { HasBroadcastAccessParams } from "../types";
 
 type ConnectionEntry = { websocketSessionKey: string; websocket: WebSocket };
 
