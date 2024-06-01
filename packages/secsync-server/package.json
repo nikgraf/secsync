@@ -20,9 +20,9 @@
     "secsync": "*"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.4",
-    "@babel/preset-env": "^7.24.4",
-    "@babel/preset-typescript": "^7.24.1",
+    "@babel/core": "^7.24.6",
+    "@babel/preset-env": "^7.24.6",
+    "@babel/preset-typescript": "^7.24.6",
     "@types/jest": "^29.5.12",
     "@types/libsodium-wrappers": "^0.7.14",
     "@types/ws": "^8.5.10",

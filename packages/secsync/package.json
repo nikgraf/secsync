@@ -16,12 +16,12 @@
     "canonicalize": "^2.0.0",
     "libsodium-wrappers": "^0.7.13",
     "xstate": "^5.13.0",
-    "zod": "^3.23.4"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.4",
-    "@babel/preset-env": "^7.24.4",
-    "@babel/preset-typescript": "^7.24.1",
+    "@babel/core": "^7.24.6",
+    "@babel/preset-env": "^7.24.6",
+    "@babel/preset-typescript": "^7.24.6",
     "@types/jest": "^29.5.12",
     "@types/libsodium-wrappers": "^0.7.14",
     "@types/node": "^20.13.0",
