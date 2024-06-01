@@ -4,8 +4,7 @@
   "main": "src/index",
   "types": "src/index",
   "scripts": {
-    "build": "pnpm build:xstate-types && pnpm tsup && pnpm build:package-json",
-    "build:xstate-types": "xstate typegen \"./src/**/*.ts?(x)\"",
+    "build": "pnpm tsup && pnpm build:package-json",
     "build:package-json": "node package-json-build-script.js",
     "prepublishOnly": "pnpm run build",
     "test": "jest",
