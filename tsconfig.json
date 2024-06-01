@@ -14,8 +14,11 @@
     "baseUrl": ".",
     "paths": {
       "secsync": ["packages/secsync"],
+      "secsync-server": ["packages/secsync-server"],
       "secsync-react-yjs": ["packages/secsync-react-yjs"],
-      "secsync-react-automerge": ["secsync-react-automerge"]
+      "secsync-react-automerge": ["secsync-react-automerge"],
+      "secsync-react-devtool": ["secsync-react-devtool"],
+      "tiptap-extension-y-awareness": ["tiptap-extension-y-awareness"]
     },
     "noEmit": true
   },

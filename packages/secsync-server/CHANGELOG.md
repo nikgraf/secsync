@@ -9,18 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2024-06-01
 
-### Changed
-
-- dependency updates
-
-## [0.3.0] - 2024-05-29
-
-### Changed
-
-- Upgrade secsync dependency
-
-## [0.2.0] - 2023-10-17
-
 ### Added
 
 - Initial version

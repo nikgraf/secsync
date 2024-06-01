@@ -247,6 +247,7 @@ export function useYjsSecSyncStore({
     const store = createTLStore({
       shapeUtils: [...defaultShapeUtils],
     });
+    // @ts-expect-error
     store.loadSnapshot(DEFAULT_STORE);
     return store;
   });

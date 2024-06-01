@@ -1,6 +1,6 @@
 {
   "name": "secsync-react-automerge",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "main": "src/index",
   "types": "src/index",
   "scripts": {
@@ -15,16 +15,16 @@
     "@xstate/react": "^4.1.1"
   },
   "peerDependencies": {
-    "@automerge/automerge": "*",
+    "@automerge/automerge": "^2.2.0",
     "react": "*",
     "secsync": "*"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.4",
-    "@babel/preset-env": "^7.24.4",
-    "@babel/preset-typescript": "^7.24.1",
+    "@babel/core": "^7.24.6",
+    "@babel/preset-env": "^7.24.6",
+    "@babel/preset-typescript": "^7.24.6",
     "@types/jest": "^29.5.12",
-    "@types/react": "^18.2.79",
+    "@types/react": "^18.3.3",
     "jest": "^29.7.0",
     "secsync": "workspace:^"
   },

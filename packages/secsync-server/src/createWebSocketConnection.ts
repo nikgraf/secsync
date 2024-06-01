@@ -1,15 +1,5 @@
 import { IncomingMessage } from "http";
 import sodium from "libsodium-wrappers";
-import { parse as parseUrl } from "url";
-import { WebSocket } from "ws";
-import { verifySignature } from "../crypto/verifySignature";
-import { parseEphemeralMessage } from "../ephemeralMessage/parseEphemeralMessage";
-import {
-  SecsyncNewSnapshotRequiredError,
-  SecsyncSnapshotBasedOnOutdatedSnapshotError,
-  SecsyncSnapshotMissesUpdatesError,
-} from "../errors";
-import { parseSnapshotWithClientData } from "../snapshot/parseSnapshotWithClientData";
 import {
   AdditionalAuthenticationDataValidations,
   CreateSnapshotParams,
@@ -17,15 +7,23 @@ import {
   GetDocumentParams,
   HasAccessParams,
   HasBroadcastAccessParams,
+  SecsyncNewSnapshotRequiredError,
+  SecsyncSnapshotBasedOnOutdatedSnapshotError,
+  SecsyncSnapshotMissesUpdatesError,
   Snapshot,
   SnapshotProofChainEntry,
   SnapshotUpdateClocks,
   Update,
-} from "../types";
-import { parseUpdate } from "../update/parseUpdate";
-import { canonicalizeAndToBase64 } from "../utils/canonicalizeAndToBase64";
-import { retryAsyncFunction } from "../utils/retryAsyncFunction";
+  parseEphemeralMessage,
+  parseSnapshotWithClientData,
+  parseUpdate,
+  verifySignature,
+} from "secsync";
+import { parse as parseUrl } from "url";
+import { WebSocket } from "ws";
 import { addConnection, broadcastMessage, removeConnection } from "./store";
+import { canonicalizeAndToBase64 } from "./utils/canonicalizeAndToBase64";
+import { retryAsyncFunction } from "./utils/retryAsyncFunction";
 
 type GetDocumentResult = {
   snapshot?: Snapshot;
