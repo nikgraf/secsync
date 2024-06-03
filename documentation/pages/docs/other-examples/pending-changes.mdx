@@ -1,0 +1,17 @@
+## Pending Changes Example
+
+This example shows how to use the `onPendingChangesUpdated` callback to get the unsynced changes. This is useful to update a local storage to avoid changes getting lost e.g. in a local-first setting.
+
+See the `console.log` output in the browser console to see the pending changes.
+
+import SimpleExampleWrapper from "../../../components/SimpleExampleWrapper";
+import { YjsPendingChangesCallbackExample } from "../../../components/YjsPendingChangesCallbackExample/YjsPendingChangesCallbackExample";
+
+<SimpleExampleWrapper
+  component={YjsPendingChangesCallbackExample}
+  generateDocumentKey={false}
+/>
+
+## Code
+
+The code for this example is located [here](https://github.com/serenity-kit/secsync/blob/main/documentation/components/YjsPendingChangesCallbackExample/YjsPendingChangesCallbackExample.tsx).
