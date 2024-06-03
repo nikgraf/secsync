@@ -1416,6 +1416,9 @@ export const createSyncMachine = () => {
       shouldReconnect: ({ context }) => {
         return context._websocketShouldReconnect;
       },
+      hasActiveWebsocket: ({ context }) => {
+        return Boolean(context._websocketActor);
+      },
     },
   }).createMachine({
     context: ({ input }) => {
@@ -1467,9 +1470,11 @@ export const createSyncMachine = () => {
     initial: "connecting",
     on: {
       SEND: {
+        guard: "hasActiveWebsocket",
         actions: forwardTo("websocketActor"),
       },
       ADD_EPHEMERAL_MESSAGE: {
+        guard: "hasActiveWebsocket",
         actions: sendTo("websocketActor", ({ context, event }) => {
           return {
             type: "SEND_EPHEMERAL_MESSAGE",
