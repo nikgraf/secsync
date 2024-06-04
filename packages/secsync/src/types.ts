@@ -158,6 +158,7 @@ export type SyncMachineConfig = {
   onCustomMessage?: (message: any) => Promise<void> | void;
   loadDocumentParams?: LoadDocumentParams;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
+  pendingChanges?: any[];
   /** default: "off" */
   logging?: "off" | "error" | "debug";
 };

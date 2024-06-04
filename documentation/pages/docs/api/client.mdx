@@ -239,6 +239,13 @@ A callback that is invoked every time the pending changes of a document are upda
 (pendingChanges: any[]) => void | Promise<void>
 ```
 
+#### pendingChanges
+
+Required: `false`
+
+When initializing secsync `pendingChanges` can be passed in. These changes will be synced as soon as a connection is established. The pendingChanges can be
+received via the `onPendingChangesUpdated` callback.
+
 #### loadDocumentParams
 
 Required: `false`

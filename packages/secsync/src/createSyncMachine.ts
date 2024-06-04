@@ -1451,7 +1451,7 @@ export const createSyncMachine = () => {
           _snapshotInFlight: null, // it is needed so the the snapshotInFlight can be applied as the activeSnapshot once the server confirmed that it has been saved
           _incomingQueue: [],
           _customMessageQueue: [],
-          _pendingChangesQueue: [],
+          _pendingChangesQueue: input.pendingChanges || [],
           _snapshotInfosWithUpdateClocks: [],
           _websocketShouldReconnect: false,
           _websocketRetries: 0,
