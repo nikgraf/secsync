@@ -1,0 +1,17 @@
+## Yjs Local-first Example
+
+This example shows how to use secsync in a local-first setup. In this example the full document and the `pendingChanges` are stored in localStorage. In case the API is not available the changes won't be lost. Once re-connected to the API, Secsync will send the pending changes.
+
+This makes use of the `pendingChanges` parameter and `onPendingChangesUpdated` callback parameter.
+
+import SimpleExampleWrapper from "../../../components/SimpleExampleWrapper";
+import { YjsLocalFirstExample } from "../../../components/YjsLocalFirstExample/YjsLocalFirstExample";
+
+<SimpleExampleWrapper
+  component={YjsLocalFirstExample}
+  generateDocumentKey={false}
+/>
+
+## Code
+
+The code for this example is located [here](https://github.com/serenity-kit/secsync/blob/main/documentation/components/YjsLocalFirstExample/YjsLocalFirstExample.tsx).

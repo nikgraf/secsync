@@ -1174,6 +1174,16 @@ export const createSyncMachine = () => {
       };
     },
     actions: {
+      invokePendingChangesUpdatedCallback: ({ context, event }) => {
+        const allPendingChanges = [
+          ...context._pendingChangesQueue,
+          ...(context._snapshotInFlight?.changes || []),
+          ...context._updatesInFlight.reduce((accumulator, updateInFlight) => {
+            return [...accumulator, ...updateInFlight.changes];
+          }, [] as any[]),
+        ];
+        context.onPendingChangesUpdated?.(allPendingChanges);
+      },
       resetWebsocketRetries: assign({
         _websocketRetries: 0,
       }),
@@ -1293,10 +1303,10 @@ export const createSyncMachine = () => {
           if (castedEvent.output.handledQueue === "incoming") {
             return {
               _incomingQueue: context._incomingQueue.slice(1),
-              // because changes might have been add while processing the queue ans creating a
-              // snapshot or update we can't just overwrite the _pendingChangesQueue
-              // instead we need to track how many to remove from the beginning of the list
-              // and of some should be restored also add them to the list
+              // Because changes might have been added while processing the queue and therefor
+              // creating a snapshot or update we can't just overwrite the _pendingChangesQueue.
+              // Instead we need to track how many to remove from the beginning of the list
+              // and of some should be restored also add them to the list.
               _pendingChangesQueue:
                 castedEvent.output.pendingChangesToPrepend.concat(
                   context._pendingChangesQueue.slice(
@@ -1321,10 +1331,10 @@ export const createSyncMachine = () => {
           } else if (castedEvent.output.handledQueue === "customMessage") {
             return {
               _customMessageQueue: context._customMessageQueue.slice(1),
-              // because changes might have been add while processing the queue ans creating a
-              // snapshot or update we can't just overwrite the _pendingChangesQueue
-              // instead we need to track how many to remove from the beginning of the list
-              // and of some should be restored also add them to the list
+              // Because changes might have been added while processing the queue and therefor
+              // creating a snapshot or update we can't just overwrite the _pendingChangesQueue.
+              // Instead we need to track how many to remove from the beginning of the list
+              // and of some should be restored also add them to the list.
               _pendingChangesQueue:
                 castedEvent.output.pendingChangesToPrepend.concat(
                   context._pendingChangesQueue.slice(
@@ -1348,10 +1358,10 @@ export const createSyncMachine = () => {
             };
           } else if (castedEvent.output.handledQueue === "pending") {
             return {
-              // because changes might have been add while processing the queue ans creating a
-              // snapshot or update we can't just overwrite the _pendingChangesQueue
-              // instead we need to track how many to remove from the beginning of the list
-              // and of some should be restored also add them to the list
+              // Because changes might have been added while processing the queue and therefor
+              // creating a snapshot or update we can't just overwrite the _pendingChangesQueue.
+              // Instead we need to track how many to remove from the beginning of the list
+              // and of some should be restored also add them to the list.
               _pendingChangesQueue:
                 castedEvent.output.pendingChangesToPrepend.concat(
                   context._pendingChangesQueue.slice(
@@ -1406,6 +1416,9 @@ export const createSyncMachine = () => {
       shouldReconnect: ({ context }) => {
         return context._websocketShouldReconnect;
       },
+      hasActiveWebsocket: ({ context }) => {
+        return Boolean(context._websocketActor);
+      },
     },
   }).createMachine({
     context: ({ input }) => {
@@ -1438,7 +1451,7 @@ export const createSyncMachine = () => {
           _snapshotInFlight: null, // it is needed so the the snapshotInFlight can be applied as the activeSnapshot once the server confirmed that it has been saved
           _incomingQueue: [],
           _customMessageQueue: [],
-          _pendingChangesQueue: [],
+          _pendingChangesQueue: input.pendingChanges || [],
           _snapshotInfosWithUpdateClocks: [],
           _websocketShouldReconnect: false,
           _websocketRetries: 0,
@@ -1457,9 +1470,11 @@ export const createSyncMachine = () => {
     initial: "connecting",
     on: {
       SEND: {
+        guard: "hasActiveWebsocket",
         actions: forwardTo("websocketActor"),
       },
       ADD_EPHEMERAL_MESSAGE: {
+        guard: "hasActiveWebsocket",
         actions: sendTo("websocketActor", ({ context, event }) => {
           return {
             type: "SEND_EPHEMERAL_MESSAGE",
@@ -1510,7 +1525,10 @@ export const createSyncMachine = () => {
             target: "connected",
           },
           ADD_CHANGES: {
-            actions: ["addToPendingUpdatesQueue"],
+            actions: [
+              "addToPendingUpdatesQueue",
+              "invokePendingChangesUpdatedCallback",
+            ],
           },
         },
       },
@@ -1528,7 +1546,10 @@ export const createSyncMachine = () => {
                 target: "processingQueues",
               },
               ADD_CHANGES: {
-                actions: ["addToPendingUpdatesQueue"],
+                actions: [
+                  "addToPendingUpdatesQueue",
+                  "invokePendingChangesUpdatedCallback",
+                ],
                 target: "processingQueues",
               },
             },
@@ -1542,7 +1563,10 @@ export const createSyncMachine = () => {
                 actions: ["addToCustomMessageQueue"],
               },
               ADD_CHANGES: {
-                actions: ["addToPendingUpdatesQueue"],
+                actions: [
+                  "addToPendingUpdatesQueue",
+                  "invokePendingChangesUpdatedCallback",
+                ],
               },
             },
             invoke: {
@@ -1574,27 +1598,36 @@ export const createSyncMachine = () => {
                       )
                     );
                   },
-                  actions: ["removeOldestItemFromQueueAndUpdateContext"],
+                  actions: [
+                    "removeOldestItemFromQueueAndUpdateContext",
+                    "invokePendingChangesUpdatedCallback",
+                  ],
                   target: "checkingForMoreQueueItems",
                 },
                 {
-                  actions: ["removeOldestItemFromQueueAndUpdateContext"],
+                  actions: [
+                    "removeOldestItemFromQueueAndUpdateContext",
+                    "invokePendingChangesUpdatedCallback",
+                  ],
                   target: "#syncMachine.disconnected",
                 },
               ],
               onError: {
-                actions: assign(({ context, event }) => {
-                  return {
-                    _documentDecryptionState:
-                      // @ts-expect-error documentDecryptionState is dynamically added to the error event
-                      event.error?.documentDecryptionState ||
-                      context._documentDecryptionState,
-                    _snapshotAndUpdateErrors: [
-                      event.error as Error,
-                      ...context._snapshotAndUpdateErrors,
-                    ],
-                  };
-                }),
+                actions: [
+                  assign(({ context, event }) => {
+                    return {
+                      _documentDecryptionState:
+                        // @ts-expect-error documentDecryptionState is dynamically added to the error event
+                        event.error?.documentDecryptionState ||
+                        context._documentDecryptionState,
+                      _snapshotAndUpdateErrors: [
+                        event.error as Error,
+                        ...context._snapshotAndUpdateErrors,
+                      ],
+                    };
+                  }),
+                  "invokePendingChangesUpdatedCallback",
+                ],
                 target: "#syncMachine.failed",
               },
             },
@@ -1645,7 +1678,10 @@ export const createSyncMachine = () => {
         },
         on: {
           ADD_CHANGES: {
-            actions: ["addToPendingUpdatesQueue"],
+            actions: [
+              "addToPendingUpdatesQueue",
+              "invokePendingChangesUpdatedCallback",
+            ],
           },
           CONNECT: {
             target: "connecting",

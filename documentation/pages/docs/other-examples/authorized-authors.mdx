@@ -1,0 +1,24 @@
+## Authorized Authors Example
+
+This example demonstrates how to only allow a fixed set of authors. It leverages the `isValidClient` callback which will be invoked vor every update. In case all `snapshots`, `updates` and `ephemeralMessages` pass the `isValidClient` callback and `true` is returned all changes are accepted. In case `isValidClient` returns `false` or an error is thrown the change is rejected. Depending on the case it's simply ignored or the document ends up in a broken stage. More details can be found at [Error Handling](/docs/error-handling).
+
+Example:
+
+1. Select the first authorized author and add an item in the list
+2. Open another tab and select the first non-authorized author and add an item in the list
+
+The entry will not be synced to the first tab and in the `DevTool` box below you can see the errors. You can also refresh and see how the document is reconstructed (except the last update was a snapshot). In this case the previous snapshot could be loaded, but that case is not handled in this example.
+
+NOTE: Choosing the same author in multiple clients will result in errors when trying to create update in parallel.
+
+import SimpleExampleWrapper from "../../../components/SimpleExampleWrapper";
+import { AuthorizedAuthorsExample } from "../../../components/AuthorizedAuthorsExample/AuthorizedAuthorsExample";
+
+<SimpleExampleWrapper
+  component={AuthorizedAuthorsExample}
+  generateDocumentKey={false}
+/>
+
+## Code
+
+The code for this example is located [here](https://github.com/serenity-kit/secsync/blob/main/documentation/components/AuthorizedAuthorsExample/AuthorizedAuthorsExample.tsx).

@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- added `onPendingChangesUpdated` callback
+- added `pendingChanges` config
+
+### Fixed
+
+- fix sync crashing due sending events to remove websocket actor
+
 ## [0.4.0] - 2024-06-01
 
 ### Changed

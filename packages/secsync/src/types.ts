@@ -154,9 +154,11 @@ export type SyncMachineConfig = {
     type: OnDocumentUpdatedEventType;
     knownSnapshotInfo: SnapshotInfoWithUpdateClocks;
   }) => void | Promise<void>;
+  onPendingChangesUpdated?: (allChanges: any[]) => void;
   onCustomMessage?: (message: any) => Promise<void> | void;
   loadDocumentParams?: LoadDocumentParams;
   additionalAuthenticationDataValidations?: AdditionalAuthenticationDataValidations;
+  pendingChanges?: any[];
   /** default: "off" */
   logging?: "off" | "error" | "debug";
 };

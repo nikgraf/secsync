@@ -229,6 +229,23 @@ The `knownSnapshotInfo` can be stored locally in order to provide it to `loadDoc
 }) => void | Promise<void>
 ```
 
+#### onPendingChangesUpdated
+
+Required: `false`
+
+A callback that is invoked every time the pending changes of a document are updated. It combines all unsynced changes, changes from a snapshot in flight and changes from updates in flight.
+
+```ts
+(pendingChanges: any[]) => void | Promise<void>
+```
+
+#### pendingChanges
+
+Required: `false`
+
+When initializing secsync `pendingChanges` can be passed in. These changes will be synced as soon as a connection is established. The pendingChanges can be
+received via the `onPendingChangesUpdated` callback.
+
 #### loadDocumentParams
 
 Required: `false`

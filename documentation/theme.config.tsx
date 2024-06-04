@@ -17,7 +17,7 @@ const config: DocsThemeConfig = {
   ),
   logo: (
     // wrapper needed so it looks vertically centered in header
-    <div style={{ marginBottom: -9 }}>
+    <div style={{ marginBottom: 12 }}>
       <Logo hoverEffect />
     </div>
   ),
