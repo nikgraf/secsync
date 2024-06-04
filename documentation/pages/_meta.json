@@ -2,6 +2,9 @@
   "index": {
     "title": "Secsync",
     "type": "page",
+    "theme": {
+      "typesetting": "article"
+    },
     "display": "hidden"
   },
   "docs": {
