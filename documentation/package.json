@@ -38,6 +38,7 @@
     "prosemirror-view": "^1.33.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-yjs": "^2.0.0",
     "secsync": "workspace:^",
     "secsync-react-automerge": "workspace:^",
     "secsync-react-devtool": "workspace:^",

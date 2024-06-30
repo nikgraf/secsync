@@ -1,15 +1,15 @@
 import React, { useRef, useState } from "react";
+import { useY } from "react-yjs";
 import * as Yjs from "yjs";
-import { useYArray } from "../../hooks/useYArray";
 
 export const YjsUnsyncedTodosExample: React.FC = () => {
   // initialize Yjs document
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   // get/define the array in the Yjs document
   const yTodos: Yjs.Array<string> = yDocRef.current.getArray("todos");
-  // the useYArray hook ensures React re-renders once
+  // the useY hook ensures React re-renders once
   // the array changes and returns the array
-  const todos = useYArray(yTodos);
+  const todos = useY(yTodos);
   // local state for the text of a new to-do
   const [newTodoText, setNewTodoText] = useState("");
 

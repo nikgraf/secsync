@@ -99,6 +99,9 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
+      react-yjs:
+        specifier: ^2.0.0
+        version: 2.0.0(react@18.3.1)(yjs@13.6.15)
       secsync:
         specifier: workspace:^
         version: link:../packages/secsync
@@ -5239,6 +5242,12 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-yjs@2.0.0:
+    resolution: {integrity: sha512-W6wGbiB7npWZlgv9Oi/j1LvxWrD6LzyaPgcWQjQuDNOG1nHe3NFU+uYGKjiazfysO54nFpyQ9VyTpDzlOSfpyQ==}
+    peerDependencies:
+      react: ^18 || ^19
+      yjs: ^13.6.15
 
   react@18.2.0:
     resolution: {integrity: sha512-/3IjMdb2L9QbBdWiW5e3P2/npwMBaU9mHCSCUzNln0ZCYbcfTsGbTJrU/kGemdH2IWmB2ioZ+zkxtmq6g09fGQ==}
@@ -11968,6 +11977,12 @@ snapshots:
       tslib: 2.6.2
     optionalDependencies:
       '@types/react': 18.3.3
+
+  react-yjs@2.0.0(react@18.3.1)(yjs@13.6.15):
+    dependencies:
+      lib0: 0.2.94
+      react: 18.3.1
+      yjs: 13.6.15
 
   react@18.2.0:
     dependencies:

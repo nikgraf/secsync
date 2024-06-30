@@ -1,9 +1,9 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import React, { useRef, useState } from "react";
+import { useY } from "react-yjs";
 import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import * as Yjs from "yjs";
-import { useYArray } from "../../hooks/useYArray";
 
 const websocketEndpoint =
   process.env.NODE_ENV === "development"
@@ -29,7 +29,7 @@ export const YjsTodosExample: React.FC<Props> = ({
 
   const yDocRef = useRef<Yjs.Doc>(new Yjs.Doc());
   const yTodos: Yjs.Array<string> = yDocRef.current.getArray("todos");
-  const todos = useYArray(yTodos);
+  const todos = useY(yTodos);
   const [newTodoText, setNewTodoText] = useState("");
 
   const [state, send] = useYjsSync({

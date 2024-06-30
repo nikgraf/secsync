@@ -1,9 +1,9 @@
 import sodium, { KeyPair } from "libsodium-wrappers";
 import React, { useEffect, useRef, useState } from "react";
+import { useY } from "react-yjs";
 import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import * as Yjs from "yjs";
-import { useYArray } from "../../hooks/useYArray";
 import { deserialize } from "./deserialize";
 import { serialize } from "./serialize";
 
@@ -97,7 +97,7 @@ export const YjsLocalFirstExample: React.FC<Props> = ({
   });
 
   const yTodos: Yjs.Array<string> = yDocRef.current.getArray("todos");
-  const todos = useYArray(yTodos);
+  const todos = useY(yTodos);
 
   return (
     <>
