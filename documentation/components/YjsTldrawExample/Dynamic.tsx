@@ -4,7 +4,7 @@ const ComponentWithNoSSR = dynamic(() => import("./YjsTldrawExample"), {
   ssr: false,
 });
 
-function Dynamic(props) {
+function Dynamic(props: any) {
   return <ComponentWithNoSSR {...props} />;
 }
 

@@ -12,7 +12,7 @@ import "../styles/y-prosemirror.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
-export default function App({ Component, pageProps }) {
+export default function App({ Component, pageProps }: any) {
   return (
     <>
       {/* additionally defines the font in <head> as elements like the theme-switch render outside of <main>

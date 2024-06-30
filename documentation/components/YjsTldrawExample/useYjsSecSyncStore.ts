@@ -119,7 +119,6 @@ export function useYjsSecSyncStore({
           case "add":
           case "update": {
             const record = yStore.get(id)!;
-            // @ts-expect-error
             toPut.push(record);
             break;
           }
