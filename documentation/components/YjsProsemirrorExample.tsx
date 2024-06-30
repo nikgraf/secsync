@@ -26,7 +26,7 @@ type Props = {
   documentKey: Uint8Array;
 };
 
-export const cursorBuilder = (user) => {
+export const cursorBuilder = (user: { publicKey: string }) => {
   const cursor = document.createElement("span");
   cursor.classList.add("ProseMirror-yjs-cursor");
   cursor.setAttribute("style", `border-color: #444`);
@@ -91,7 +91,9 @@ const YjsProsemirrorExample: React.FC<Props> = ({
   const initiateEditor = () => {
     const yXmlFragment = yDocRef.current.getXmlFragment("document");
 
-    editorRef.current.innerHTML = "";
+    if (editorRef.current) {
+      editorRef.current.innerHTML = "";
+    }
     let state = EditorState.create({
       schema,
       plugins: [

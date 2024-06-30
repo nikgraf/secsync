@@ -2,7 +2,12 @@ import Collaboration from "@tiptap/extension-collaboration";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import sodium, { KeyPair } from "libsodium-wrappers";
-import { useRef, useState } from "react";
+import {
+  ButtonHTMLAttributes,
+  DetailedHTMLProps,
+  useRef,
+  useState,
+} from "react";
 import { DevTool } from "secsync-react-devtool";
 import { useYjsSync } from "secsync-react-yjs";
 import { YAwarenessExtension } from "tiptap-extension-y-awareness";
@@ -18,7 +23,12 @@ type Props = {
   documentKey: Uint8Array;
 };
 
-const Button = (props) => {
+const Button = (
+  props: DetailedHTMLProps<
+    ButtonHTMLAttributes<HTMLButtonElement>,
+    HTMLButtonElement
+  >
+) => {
   return (
     <button
       {...props}
@@ -93,48 +103,48 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
     <>
       <div className="tiptap-toolbar">
         <Button
-          onClick={() => editor.chain().focus().toggleBold().run()}
+          onClick={() => editor?.chain().focus().toggleBold().run()}
           disabled={!editor?.can().chain().focus().toggleBold().run()}
           className={editor?.isActive("bold") ? "is-active" : ""}
         >
           bold
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleItalic().run()}
+          onClick={() => editor?.chain().focus().toggleItalic().run()}
           disabled={!editor?.can().chain().focus().toggleItalic().run()}
           className={editor?.isActive("italic") ? "is-active" : ""}
         >
           italic
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleStrike().run()}
+          onClick={() => editor?.chain().focus().toggleStrike().run()}
           disabled={!editor?.can().chain().focus().toggleStrike().run()}
           className={editor?.isActive("strike") ? "is-active" : ""}
         >
           strike
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleCode().run()}
+          onClick={() => editor?.chain().focus().toggleCode().run()}
           disabled={!editor?.can().chain().focus().toggleCode().run()}
           className={editor?.isActive("code") ? "is-active" : ""}
         >
           code
         </Button>
-        <Button onClick={() => editor.chain().focus().unsetAllMarks().run()}>
+        <Button onClick={() => editor?.chain().focus().unsetAllMarks().run()}>
           clear marks
         </Button>
-        <Button onClick={() => editor.chain().focus().clearNodes().run()}>
+        <Button onClick={() => editor?.chain().focus().clearNodes().run()}>
           clear nodes
         </Button>
         <Button
-          onClick={() => editor.chain().focus().setParagraph().run()}
+          onClick={() => editor?.chain().focus().setParagraph().run()}
           className={editor?.isActive("paragraph") ? "is-active" : ""}
         >
           paragraph
         </Button>
         <Button
           onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 1 }).run()
+            editor?.chain().focus().toggleHeading({ level: 1 }).run()
           }
           className={
             editor?.isActive("heading", { level: 1 }) ? "is-active" : ""
@@ -144,7 +154,7 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
         </Button>
         <Button
           onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 2 }).run()
+            editor?.chain().focus().toggleHeading({ level: 2 }).run()
           }
           className={
             editor?.isActive("heading", { level: 2 }) ? "is-active" : ""
@@ -154,7 +164,7 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
         </Button>
         <Button
           onClick={() =>
-            editor.chain().focus().toggleHeading({ level: 3 }).run()
+            editor?.chain().focus().toggleHeading({ level: 3 }).run()
           }
           className={
             editor?.isActive("heading", { level: 3 }) ? "is-active" : ""
@@ -163,45 +173,45 @@ const YjsTiptapExample: React.FC<Props> = ({ documentId, documentKey }) => {
           h3
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          onClick={() => editor?.chain().focus().toggleBulletList().run()}
           className={editor?.isActive("bulletList") ? "is-active" : ""}
         >
           bullet list
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
           className={editor?.isActive("orderedList") ? "is-active" : ""}
         >
           ordered list
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
           className={editor?.isActive("codeBlock") ? "is-active" : ""}
         >
           code block
         </Button>
         <Button
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          onClick={() => editor?.chain().focus().toggleBlockquote().run()}
           className={editor?.isActive("blockquote") ? "is-active" : ""}
         >
           blockquote
         </Button>
         <Button
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
+          onClick={() => editor?.chain().focus().setHorizontalRule().run()}
         >
           horizontal rule
         </Button>
-        <Button onClick={() => editor.chain().focus().setHardBreak().run()}>
+        <Button onClick={() => editor?.chain().focus().setHardBreak().run()}>
           hard break
         </Button>
         <Button
-          onClick={() => editor.chain().focus().undo().run()}
+          onClick={() => editor?.chain().focus().undo().run()}
           disabled={!editor?.can().chain().focus().undo().run()}
         >
           undo
         </Button>
         <Button
-          onClick={() => editor.chain().focus().redo().run()}
+          onClick={() => editor?.chain().focus().redo().run()}
           disabled={!editor?.can().chain().focus().redo().run()}
         >
           redo

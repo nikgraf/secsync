@@ -5,8 +5,8 @@ import { generateId } from "secsync";
 
 type Props = {
   component: React.ComponentType<{
-    documentId: string;
-    documentKey: Uint8Array;
+    documentId: string | null;
+    documentKey: Uint8Array | null;
   }>;
   generateDocumentKey: boolean;
 };
@@ -16,8 +16,8 @@ const SimpleExampleWrapper: React.FC<Props> = ({
   generateDocumentKey,
 }) => {
   const [isReady, setIsReady] = useState(false);
-  const documentKeyRef = useRef<Uint8Array>(null);
-  const documentIdRef = useRef<string>(null);
+  const documentKeyRef = useRef<Uint8Array | null>(null);
+  const documentIdRef = useRef<string | null>(null);
 
   const updateHashParams = () => {
     const paramsString = window.location.hash.slice(1);
@@ -41,6 +41,7 @@ const SimpleExampleWrapper: React.FC<Props> = ({
       const paramsString = window.location.hash.slice(1);
       const searchParams = new URLSearchParams(paramsString);
       const keyString = searchParams.get("key");
+      if (!keyString) throw new Error("No key found in URL params");
       documentKey = sodium.from_base64(keyString);
     } catch (err) {
     } finally {

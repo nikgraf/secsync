@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "ts:check": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -52,6 +53,9 @@
     "@svgr/webpack": "^8.1.0",
     "@types/libsodium-wrappers": "^0.7.14",
     "@types/node": "^20.13.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@types/uuid": "^9.0.8",
     "autoprefixer": "^10.4.19",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",

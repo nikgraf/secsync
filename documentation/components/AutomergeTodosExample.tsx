@@ -42,7 +42,7 @@ const AutomergeTodosExample: React.FC<Props> = ({
     websocketSessionKey: "your-secret-session-key",
     onDocumentUpdated: async ({ knownSnapshotInfo }) => {},
     getNewSnapshotData: async ({ id }) => {
-      const docState = Automerge.save(currentDoc);
+      const docState: Uint8Array = Automerge.save(currentDoc);
       return {
         data: docState,
         key: documentKey,

@@ -1,7 +1,7 @@
 import { useRef, useSyncExternalStore } from "react";
 import * as Yjs from "yjs";
 
-const serverArray = [];
+const serverArray: string[] = [];
 
 export const useYArray = (yArray: Yjs.Array<string>) => {
   const cachedMyListRef = useRef<string[]>([]);
