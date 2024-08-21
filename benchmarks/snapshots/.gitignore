@@ -1,3 +1,5 @@
 automerge.*.json
 yjs.*.json
 yjs2.*.json
+secsync.automerge*.json
+secsync.yjs2.*.json

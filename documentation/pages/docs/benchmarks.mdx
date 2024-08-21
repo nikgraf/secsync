@@ -72,7 +72,7 @@ When introducing Secsync the the impact is even larger. When combining Snapshots
   </tbody>
 </table>
 
-#### Raw Data
+**Raw Data**
 
 Recorded on an Macbook Pro M1, 2020, 16 GB Memory
 
@@ -93,6 +93,75 @@ Changes Base64: 27.473582983016968 milliseconds.
 Changes Doc: 62.76724994182587 milliseconds.
 Snapshot Base64: 1.2406660318374634 milliseconds.
 Snapshot Doc: 0.8804590702056885 milliseconds.
+```
+
+### 250k Changes
+
+<table>
+  <tbody>
+    <tr>
+      <th></th>
+      <th>Loading time (seconds)</th>
+      <th>Size (KB)</th>
+    </tr>
+    <tr>
+      <td>Yjs (Changes)</td>
+      <td>1615</td>
+      <td>11234</td>
+    </tr>
+    <tr>
+      <td>Secsync + Yjs (Changes)</td>
+      <td>29476</td>
+      <td>116317</td>
+    </tr>
+    <tr>
+      <td>Yjs (Snapshot of 249k changes + 1k changes)</td>
+      <td>151</td>
+      <td>252</td>
+    </tr>
+    <tr>
+      <td>Secsync + Yjs (Snapshot of 249k changes + 1k changes)</td>
+      <td>277</td>
+      <td>659</td>
+    </tr>
+    <tr>
+      <td>Yjs (Snapshot)</td>
+      <td>18</td>
+      <td>213</td>
+    </tr>
+    <tr>
+      <td>Secsync + Yjs (Snapshot)</td>
+      <td>35</td>
+      <td>214</td>
+    </tr>
+  </tbody>
+</table>
+
+**Raw Data**
+
+Recorded on an Macbook Pro M1, 2020, 16 GB Memory
+
+```
+> node loadYjs2.js
+
+Snapshot with 1000 Changes Base64: 23.62625002861023 milliseconds.
+Snapshot with 1000 Changes Doc: 151.11641597747803 milliseconds.
+Changes Base64: 718.525083065033 milliseconds.
+Changes Doc: 1615.3544169664383 milliseconds.
+Snapshot Base64: 15.500166058540344 milliseconds.
+Snapshot Doc: 18.124833941459656 milliseconds.
+
+> node loadSecsyncYjs2.js
+
+Snapshot + Updates Decryption: 125.45704102516174 milliseconds.
+Snapshot + Updates Doc: 151.64654195308685 milliseconds.
+Snapshot + Updates Decryption + Doc: 277.1035829782486 milliseconds.
+Changes Decryption: 27888.64362502098 milliseconds.
+Changes Decryption + Doc: 1587.4889999628067 milliseconds.
+Changes Decryption + Doc: 29476.132624983788 milliseconds.
+Snapshot Decryption: 3.7959580421447754 milliseconds.
+Snapshot Doc: 31.969749927520752 milliseconds.
+Snapshot Decryption + Doc: 35.76570796966553 milliseconds.
 ```
 
 ## Automerge
@@ -161,7 +230,7 @@ The results are similar to the Yjs benchmarks. The loading time of a snapshot is
   </tbody>
 </table>
 
-#### Raw Data
+**Raw Data**
 
 Recorded on an Macbook Pro M1, 2020, 16 GB Memory
 
@@ -182,6 +251,75 @@ Changes Base64: 4.018791913986206 milliseconds.
 Changes Doc: 67.62387502193451 milliseconds.
 Snapshot Base64: 0.031916022300720215 milliseconds.
 Snapshot Doc: 38.19574999809265 milliseconds.
+```
+
+### 250k Changes
+
+<table>
+  <tbody>
+    <tr>
+      <th></th>
+      <th>Loading time (seconds)</th>
+      <th>Size (KB)</th>
+    </tr>
+    <tr>
+      <td>Automerge (Changes)</td>
+      <td>1806</td>
+      <td>38725</td>
+    </tr>
+    <tr>
+      <td>Secsync + Automerge (Changes)</td>
+      <td>31119</td>
+      <td>143835</td>
+    </tr>
+    <tr>
+      <td>Automerge (Snapshot of 9k changes + 1k changes)</td>
+      <td>1115</td>
+      <td>323</td>
+    </tr>
+    <tr>
+      <td>Secsync + Automerge (Snapshot of 9k changes + 1k changes)</td>
+      <td>1233</td>
+      <td>729</td>
+    </tr>
+    <tr>
+      <td>Automerge (Snapshot)</td>
+      <td>1026</td>
+      <td>172</td>
+    </tr>
+    <tr>
+      <td>Secsync + Automerge (Snapshot)</td>
+      <td>1014</td>
+      <td>173</td>
+    </tr>
+  </tbody>
+</table>
+
+**Raw Data**
+
+Recorded on an Macbook Pro M1, 2020, 16 GB Memory
+
+```
+> node loadAutomerge.js
+
+Snapshot with 1000 Changes Base64: 0.8246250152587891 milliseconds.
+Snapshot with 1000 Changes Doc: 1115.5433340072632 milliseconds.
+Changes Base64: 67.34670794010162 milliseconds.
+Changes Doc: 1806.1128751039505 milliseconds.
+Snapshot Base64: 0.13020896911621094 milliseconds.
+Snapshot Doc: 1026.205708026886 milliseconds.
+
+> node loadSecsyncAutomerge.js
+
+Snapshot + Updates Decryption: 127.65812504291534 milliseconds.
+Snapshot + Updates Doc: 1105.7897909879684 milliseconds.
+Snapshot + Updates Decryption + Doc: 1233.4479160308838 milliseconds.
+Changes Decryption: 29083.603749990463 milliseconds.
+Changes Decryption + Doc: 2035.4658749103546 milliseconds.
+Changes Decryption + Doc: 31119.069624900818 milliseconds.
+Snapshot Decryption: 3.142209053039551 milliseconds.
+Snapshot Doc: 1011.0410829782486 milliseconds.
+Snapshot Decryption + Doc: 1014.1832920312881 milliseconds.
 ```
 
 ## Conclusion

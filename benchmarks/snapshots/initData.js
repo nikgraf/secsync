@@ -40,7 +40,7 @@ async function main() {
   const y2DocWithoutLastChanges = new y.Doc();
 
   // NOTE: reduce the amount of changes used
-  txns = txns.slice(0, 10000);
+  // txns = txns.slice(0, 10000);
 
   // // yjs
   // yDoc.on("update", function (updateMessage) {
