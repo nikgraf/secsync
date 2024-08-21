@@ -1,0 +1,474 @@
+# Setup Guide
+
+In this guide we will setup a Secsync server step by step. It is based on [https://github.com/serenity-kit/secsync/tree/main/examples/backend](https://github.com/serenity-kit/secsync/tree/main/examples/backend) and uses Prisma to connect to a Postgres database.
+
+Initially setup a new folder and add the following files from the example:
+
+```sh
+.env # copied from .env.example
+tsconfig.json
+```
+
+Add a package.json with the following content and run:
+
+```json
+{
+  "name": "backend",
+  "version": "1.0.0",
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^20.13.0",
+    "@types/uuid": "^9.0.8",
+    "@types/ws": "^8.5.10",
+    "@vercel/ncc": "^0.38.1",
+    "prettier": "^3.2.5",
+    "prisma": "^5.14.0",
+    "ts-node": "10.9.2",
+    "ts-node-dev": "^2.0.0"
+  },
+  "scripts": {
+    "dev": "ts-node-dev --transpile-only --no-notify ./src/index.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "libsodium-wrappers": "^0.7.13",
+    "make-promises-safe": "^5.1.0",
+    "secsync": "^0.5.0",
+    "secsync-server": "^0.5.0",
+    "uuid": "^9.0.1",
+    "ws": "^8.17.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+```
+
+Next up we need to setup Prisma. Therefor copy the [schema.prisma](https://github.com/serenity-kit/secsync/blob/main/examples/backend/prisma/schema.prisma) file from the example to `./prisma/schema.prisma`. It defines a model for a `Document`, `Snapshot` and `Update`. The models are define all necessary fields and relations to efficiently store and retrieve the data.
+
+The `Document` includes a `activeSnapshotId` field to make sure there only can be one active snapshot at a time and a transaction adding a conflicting snapshot that also updates the document will fail.
+
+The `Snapshot` has various fields which we will dive in later.
+
+The `Update` has a `snapshotId` field to reference the snapshot and a clock which must be unique for each snapshot in combination with the public key of the update author. This ensures the incrementing clock for updates is enforced als on a database level.
+
+---
+
+Next up with setup the Database including the schema. Add a file `docker-compose.yml` with the content:
+
+```yml
+version: "3"
+services:
+  postgres:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: prisma
+      POSTGRES_PASSWORD: prisma
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    # Make sure log colors show up correctly
+    tty: true
+volumes:
+  postgres:
+```
+
+Run the following commands:
+
+```sh
+docker-compose up
+# in anohter tab
+pnpm prisma migrate dev
+# name the migration "init"
+pnpm prisma generate
+```
+
+Now we can start implementing our server. We start with `./src/index.ts`. The code is quite standard except we use the `secsync-server` package to create a WebSocket server that handles the communication between clients and the server.
+
+```ts
+require("make-promises-safe"); // installs an 'unhandledRejection' handler
+import cors from "cors";
+import express from "express";
+import { createServer } from "http";
+import { createWebSocketConnection } from "secsync-server";
+import { WebSocketServer } from "ws";
+import { createSnapshot as createSnapshotDb } from "./database/createSnapshot";
+import { createUpdate as createUpdateDb } from "./database/createUpdate";
+import { getOrCreateDocument as getOrCreateDocumentDb } from "./database/getOrCreateDocument";
+
+async function main() {
+  const allowedOrigin = "*";
+  const corsOptions = { credentials: true, origin: allowedOrigin };
+
+  const app = express();
+  app.use(cors(corsOptions));
+
+  const server = createServer(app);
+
+  const webSocketServer = new WebSocketServer({ noServer: true });
+  webSocketServer.on(
+    "connection",
+    createWebSocketConnection({
+      getDocument: getOrCreateDocumentDb,
+      createSnapshot: createSnapshotDb,
+      createUpdate: createUpdateDb,
+      hasAccess: async () => true,
+      hasBroadcastAccess: async ({ websocketSessionKeys }) =>
+        websocketSessionKeys.map(() => true),
+      logging: "error",
+    })
+  );
+
+  server.on("upgrade", (request, socket, head) => {
+    // @ts-ignore
+    webSocketServer.handleUpgrade(request, socket, head, (ws) => {
+      webSocketServer.emit("connection", ws, request);
+    });
+  });
+
+  const port = process.env.PORT ? parseInt(process.env.PORT) : 4000;
+  server.listen(port, () => {
+    console.log(`🚀 App ready at http://localhost:${port}/`);
+    console.log(`🚀 Websocket service ready at ws://localhost:${port}`);
+  });
+}
+
+main();
+```
+
+---
+
+The database functions are the interesting piece of the puzzle. We start with `./src/database/createSnapshot.ts`. It creates a new snapshot in the database, but has a few checks to make sure the snapshot is valid:
+
+- The snapshot is based on the latest snapshot of the document. If not resulting in a `SecsyncSnapshotBasedOnOutdatedSnapshotError`
+- The snapshot includes all updates since the latest snapshot. If not resulting in a `SecsyncSnapshotMissesUpdatesError`
+
+```ts
+import sodium from "libsodium-wrappers";
+import {
+  CreateSnapshotParams,
+  SecsyncSnapshotBasedOnOutdatedSnapshotError,
+  SecsyncSnapshotMissesUpdatesError,
+  Snapshot,
+  compareUpdateClocks,
+  hash,
+} from "secsync";
+import { serializeSnapshot } from "../utils/serialize";
+import { Prisma, prisma } from "./prisma";
+
+export async function createSnapshot({ snapshot }: CreateSnapshotParams) {
+  const MAX_RETRIES = 5;
+  let retries = 0;
+  let result: Snapshot;
+
+  // use retries approach as described here: https://www.prisma.io/docs/concepts/components/prisma-client/transactions#transaction-timing-issues
+  while (retries < MAX_RETRIES) {
+    try {
+      result = await prisma.$transaction(
+        async (prisma) => {
+          const document = await prisma.document.findUniqueOrThrow({
+            where: { id: snapshot.publicData.docId },
+            select: {
+              activeSnapshot: true,
+            },
+          });
+
+          if (document.activeSnapshot) {
+            if (
+              snapshot.publicData.parentSnapshotId !== undefined &&
+              snapshot.publicData.parentSnapshotId !==
+                document.activeSnapshot.id
+            ) {
+              throw new SecsyncSnapshotBasedOnOutdatedSnapshotError(
+                "Snapshot is out of date."
+              );
+            }
+
+            const compareUpdateClocksResult = compareUpdateClocks(
+              // @ts-expect-error the values are parsed by the function
+              document.activeSnapshot.clocks,
+              snapshot.publicData.parentSnapshotUpdateClocks
+            );
+
+            if (!compareUpdateClocksResult.equal) {
+              throw new SecsyncSnapshotMissesUpdatesError(
+                "Snapshot does not include the latest changes."
+              );
+            }
+          }
+
+          const newSnapshot = await prisma.snapshot.create({
+            data: {
+              id: snapshot.publicData.snapshotId,
+              latestVersion: 0,
+              data: JSON.stringify(snapshot),
+              ciphertextHash: hash(snapshot.ciphertext, sodium),
+              activeSnapshotDocument: {
+                connect: { id: snapshot.publicData.docId },
+              },
+              document: { connect: { id: snapshot.publicData.docId } },
+              clocks: {},
+              parentSnapshotProof: snapshot.publicData.parentSnapshotProof,
+              parentSnapshotUpdateClocks:
+                snapshot.publicData.parentSnapshotUpdateClocks,
+            },
+          });
+
+          return serializeSnapshot(newSnapshot);
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        }
+      );
+      break;
+    } catch (error) {
+      if (error.code === "P2034") {
+        retries++;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return result;
+}
+```
+
+---
+
+The `./src/database/createUpdate.ts` function also needs to do a few checks to make sure the update is valid:
+
+- The update is based on the latest snapshot of the document.
+- The update clock is correct and increments by 1 for each update and also matches the `clocks` field of the referenced snapshot.
+
+```ts
+import { CreateUpdateParams, Update } from "secsync";
+import { Prisma } from "../../prisma/generated/output";
+import { serializeUpdate } from "../utils/serialize";
+import { prisma } from "./prisma";
+
+export async function createUpdate({ update }: CreateUpdateParams) {
+  const MAX_RETRIES = 5;
+  let retries = 0;
+  let result: Update;
+
+  // use retries approach as described here: https://www.prisma.io/docs/concepts/components/prisma-client/transactions#transaction-timing-issues
+  while (retries < MAX_RETRIES) {
+    try {
+      result = await prisma.$transaction(
+        async (prisma) => {
+          const snapshot = await prisma.snapshot.findUniqueOrThrow({
+            where: { id: update.publicData.refSnapshotId },
+            select: {
+              latestVersion: true,
+              clocks: true,
+              document: { select: { activeSnapshotId: true } },
+            },
+          });
+          if (
+            snapshot.document.activeSnapshotId !==
+            update.publicData.refSnapshotId
+          ) {
+            throw new Error("Update referencing an out of date snapshot.");
+          }
+
+          if (
+            snapshot.clocks &&
+            typeof snapshot.clocks === "object" &&
+            !Array.isArray(snapshot.clocks)
+          ) {
+            if (snapshot.clocks[update.publicData.pubKey] === undefined) {
+              if (update.publicData.clock !== 0) {
+                throw new Error(
+                  `Update clock incorrect. Clock: ${update.publicData.clock}, but should be 0`
+                );
+              }
+              // update the clock for the public key
+              snapshot.clocks[update.publicData.pubKey] =
+                update.publicData.clock;
+            } else {
+              const expectedClockValue =
+                // @ts-expect-error
+                snapshot.clocks[update.publicData.pubKey] + 1;
+              if (expectedClockValue !== update.publicData.clock) {
+                throw new Error(
+                  `Update clock incorrect. Clock: ${update.publicData.clock}, but should be ${expectedClockValue}`
+                );
+              }
+              // update the clock for the public key
+              snapshot.clocks[update.publicData.pubKey] =
+                update.publicData.clock;
+            }
+          }
+
+          await prisma.snapshot.update({
+            where: { id: update.publicData.refSnapshotId },
+            data: {
+              latestVersion: snapshot.latestVersion + 1,
+              clocks: snapshot.clocks as Prisma.JsonObject,
+            },
+          });
+
+          return serializeUpdate(
+            await prisma.update.create({
+              data: {
+                id: `${update.publicData.refSnapshotId}-${update.publicData.pubKey}-${update.publicData.clock}`,
+                data: JSON.stringify(update),
+                version: snapshot.latestVersion + 1,
+                snapshot: {
+                  connect: {
+                    id: update.publicData.refSnapshotId,
+                  },
+                },
+                clock: update.publicData.clock,
+                pubKey: update.publicData.pubKey,
+              },
+            })
+          );
+        },
+        {
+          isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+        }
+      );
+      break;
+    } catch (error) {
+      if (error.code === "P2034") {
+        retries++;
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  return result;
+}
+```
+
+---
+
+Next up is the `./src/database/getOrCreateDocument.ts` function. In this version a new document is created if it does not exist yet. In order setups you might want to create a document first with a dedicated endpoint.
+
+When returning a document in general it should return the latest snapshot and all updates since the last known snapshot.
+
+While just an optimization your server can also implement the `mode: "delta"` option to only return the updates since the last known snapshot.
+
+```ts
+import { GetDocumentParams } from "packages/secsync/src";
+import { serializeSnapshot, serializeUpdates } from "../utils/serialize";
+import { prisma } from "./prisma";
+
+export async function getOrCreateDocument({
+  documentId,
+  knownSnapshotId,
+  knownSnapshotUpdateClocks,
+  mode,
+}: GetDocumentParams) {
+  return prisma.$transaction(async (prisma) => {
+    const doc = await prisma.document.findUnique({
+      where: { id: documentId },
+      include: { activeSnapshot: { select: { id: true } } },
+    });
+
+    if (!doc) {
+      await prisma.document.create({
+        data: { id: documentId },
+      });
+      return {
+        updates: [],
+        snapshotProofChain: [],
+      };
+    }
+    if (!doc.activeSnapshot) {
+      return {
+        updates: [],
+        snapshotProofChain: [],
+      };
+    }
+
+    let snapshotProofChain: {
+      id: string;
+      parentSnapshotProof: string;
+      ciphertextHash: string;
+    }[] = [];
+
+    if (knownSnapshotId && knownSnapshotId !== doc.activeSnapshot.id) {
+      snapshotProofChain = await prisma.snapshot.findMany({
+        where: { documentId },
+        cursor: { id: knownSnapshotId },
+        skip: 1,
+        select: {
+          id: true,
+          parentSnapshotProof: true,
+          ciphertextHash: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" },
+      });
+    }
+
+    let lastKnownVersion: number | undefined = undefined;
+    // in case the last known snapshot is the current one, try to find the lastKnownVersion number
+    if (knownSnapshotId === doc.activeSnapshot.id) {
+      const updateIds = Object.entries(knownSnapshotUpdateClocks).map(
+        ([pubKey, clock]) => {
+          return `${knownSnapshotId}-${pubKey}-${clock}`;
+        }
+      );
+      const lastUpdate = await prisma.update.findFirst({
+        where: {
+          id: { in: updateIds },
+        },
+        orderBy: { version: "desc" },
+      });
+      if (lastUpdate) {
+        lastKnownVersion = lastUpdate.version;
+      }
+    }
+
+    // fetch the active snapshot with
+    // - all updates after the last known version if there is one and
+    // - all updates if there is none
+    const activeSnapshot = await prisma.snapshot.findUnique({
+      where: { id: doc.activeSnapshot.id },
+      include: {
+        updates:
+          lastKnownVersion !== undefined
+            ? {
+                orderBy: { version: "asc" },
+                where: {
+                  version: { gt: lastKnownVersion },
+                },
+              }
+            : {
+                orderBy: { version: "asc" },
+              },
+      },
+    });
+
+    if (mode === "delta" && knownSnapshotId === activeSnapshot.id) {
+      return {
+        updates: serializeUpdates(activeSnapshot.updates),
+      };
+    }
+
+    return {
+      snapshot: serializeSnapshot(activeSnapshot),
+      updates: serializeUpdates(activeSnapshot.updates),
+      snapshotProofChain: snapshotProofChain.map((snapshotProofChainEntry) => {
+        return {
+          snapshotId: snapshotProofChainEntry.id,
+          parentSnapshotProof: snapshotProofChainEntry.parentSnapshotProof,
+          snapshotCiphertextHash: snapshotProofChainEntry.ciphertextHash,
+        };
+      }),
+    };
+  });
+}
+```
+
+Finally you need to copy the `./src/utils/serialize.ts` and `./src/database/prisma.ts` files from the example to your project.
+
+Now your own Secsync server is ready to go. You can start it with `pnpm dev` and connect to it with the Secsync client.
