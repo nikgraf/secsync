@@ -2,6 +2,8 @@
   "name": "snapshots-benchmark",
   "version": "0.0.1",
   "scripts": {
+    "load:secsync:automerge": "node loadSecsyncAutomerge.js",
+    "load:secsync:yjs2": "node loadSecsyncYjs2.js",
     "load:automerge": "node loadAutomerge.js",
     "load:yjs": "node loadYjs.js",
     "load:yjs2": "node loadYjs2.js",
@@ -12,6 +14,8 @@
   },
   "dependencies": {
     "@automerge/automerge": "^2.2.2",
+    "libsodium-wrappers": "^0.7.13",
+    "secsync": "^0.5.0",
     "yjs": "^13.6.15"
   }
 }
