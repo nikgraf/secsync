@@ -4,9 +4,9 @@ const y = require("yjs");
 async function snapshot() {
   const fileResult = JSON.parse(fs.readFileSync("./yjs2.snapshot.json"));
   const t0 = performance.now();
-  const yDoc = new y.Doc();
   const result = Uint8Array.from(atob(fileResult.doc), (c) => c.charCodeAt(0));
   const t1 = performance.now();
+  const yDoc = new y.Doc();
   y.applyUpdateV2(yDoc, result);
   const t2 = performance.now();
   console.log(`Snapshot Base64: ${t1 - t0} milliseconds.`);
@@ -15,12 +15,12 @@ async function snapshot() {
 
 async function changes() {
   const fileResult = JSON.parse(fs.readFileSync("./yjs2.changes.json"));
-  const yDoc = new y.Doc();
   const t0 = performance.now();
   const result = fileResult.changes.map((change) => {
     return Uint8Array.from(atob(change), (c) => c.charCodeAt(0));
   });
   const t1 = performance.now();
+  const yDoc = new y.Doc();
   result.forEach((change) => {
     y.applyUpdateV2(yDoc, change);
   });
@@ -34,7 +34,6 @@ async function snapshotWithChanges() {
     fs.readFileSync("./yjs2.snapshot-with-changes.json")
   );
   const t0 = performance.now();
-  const yDoc = new y.Doc();
   const resultDoc = Uint8Array.from(atob(fileResult.doc), (c) =>
     c.charCodeAt(0)
   );
@@ -42,6 +41,7 @@ async function snapshotWithChanges() {
     return Uint8Array.from(atob(change), (c) => c.charCodeAt(0));
   });
   const t1 = performance.now();
+  const yDoc = new y.Doc();
   y.applyUpdateV2(yDoc, resultDoc);
   changes.forEach((change) => {
     y.applyUpdateV2(yDoc, change);

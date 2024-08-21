@@ -1,31 +1,202 @@
-## Benchmarking ideas
+# Benchmarks
 
-What matters are three factors:
+The benchmarks demonstrate the loading performance and sizes of raw CRDT documents (Automerge & Yjs) compared to Secsync snapshot and updates.
 
-- How much time does it take to resolve the data on the server?
-- How much time does it take to download the data?
-- How much time does it take to decrypt and apply the data?
+The secsync version use encryption/decryption and don't do any of the optional signature checks. The raw CRDT documents are base64 encoded which adds about 30% to the size of the document compared to storing a binary document. This was chosen since often this data is transferred over the network and encoded using base64.
 
-The focus should be on two scenarios:
+## Yjs
 
-- Mobile device
-- Desktop
+### 10k Changes
 
-For the mobile device a 3 Mbit/s (average 3G connection) should be simulated and the processor throttled to match a medium Android device.
-For the desktop device a 20 Mbit/s (slow cable connection) should be simulated.
+This benchmark uses a document with 10k changes and the results show 3 different scenarios:
 
-There would be several test scenarios e.g.
+1. The whole document as separate changes
+2. 9k changes as a snapshot and 1k changes as a separate changes
+3. The whole document as a snapshot
 
-- Load the Automerge paper recording of Martin Kleppmann https://github.com/josephg/diamond-types/tree/master/benchmark_data
-- Load the blog post recording of Martin Kleppmann https://github.com/josephg/diamond-types/tree/master/benchmark_data
-- Load 1 page document created by 1 client
-- Load 10 page document created by 1 client
-- Load 50 page document created by 1 client
-- Load 1 page document created by 10 clients (two versions with and without simultaneous writes)
-- Load 10 page document created by 10 clients (two versions with and without simultaneous writes)
-- Load 50 page document created by 10 clients (two versions with and without simultaneous writes)
-- Load 1 page document created by 100 clients (two versions with and without simultaneous writes)
-- Load 10 page document created by 100 clients (two versions with and without simultaneous writes)
-- Load 50 page document created by 100 clients (two versions with and without simultaneous writes)
+The results demonstrate that only encrypting changes increases the loading times of a Yjs document and also due the lost compression the size of the document increases. The loading time of a snapshot is significantly faster than loading changes and the size of the document is smaller.
 
-A test would run multiple times and the median would be used for the result.
+When introducing Secsync the the impact is even larger. When combining Snapshots with Updates it's possible to get to acceptable loading times and sizes.
+
+<img
+  src="/yjs_loading_time_comparison.png"
+  width="800"
+  height="533"
+  alt="Yjs Loading time comparison"
+/>
+
+<img
+  src="/yjs_size_comparison.png"
+  width="800"
+  height="533"
+  alt="Yjs Size comparison"
+/>
+
+<table>
+  <tbody>
+    <tr>
+      <th></th>
+      <th>Loading time (seconds)</th>
+      <th>Size (KB)</th>
+    </tr>
+    <tr>
+      <td>Yjs (Changes)</td>
+      <td>63</td>
+      <td>421</td>
+    </tr>
+    <tr>
+      <td>Secsync + Yjs (Changes)</td>
+      <td>1130</td>
+      <td>4451</td>
+    </tr>
+    <tr>
+      <td>Yjs (Snapshot of 9k changes + 1k changes)</td>
+      <td>250</td>
+      <td>55</td>
+    </tr>
+    <tr>
+      <td>Secsync + Yjs (Snapshot of 9k changes + 1k changes)</td>
+      <td>370</td>
+      <td>459</td>
+    </tr>
+    <tr>
+      <td>Yjs (Snapshot)</td>
+      <td>0.8</td>
+      <td>12.9</td>
+    </tr>
+    <tr>
+      <td>Secsync + Yjs (Snapshot)</td>
+      <td>1.5</td>
+      <td>13.4</td>
+    </tr>
+  </tbody>
+</table>
+
+#### Raw Data
+
+Recorded on an Macbook Pro M1, 2020, 16 GB Memory
+
+```
+Snapshot + Updates Decryption: 116.48012506961823 milliseconds.
+Snapshot + Updates Doc: 253.57566595077515 milliseconds.
+Snapshot + Updates Decryption + Doc: 370.0557910203934 milliseconds.
+Changes Decryption: 1072.7890410423279 milliseconds.
+Changes Decryption + Doc: 57.17595899105072 milliseconds.
+Changes Decryption + Doc: 1129.9650000333786 milliseconds.
+Snapshot Decryption: 0.4355419874191284 milliseconds.
+Snapshot Doc: 1.0230000019073486 milliseconds.
+Snapshot Decryption + Doc: 1.458541989326477 milliseconds.
+---
+Snapshot with 1000 Changes Base64: 8.481458067893982 milliseconds.
+Snapshot with 1000 Changes Doc: 250.2777919769287 milliseconds.
+Changes Base64: 27.473582983016968 milliseconds.
+Changes Doc: 62.76724994182587 milliseconds.
+Snapshot Base64: 1.2406660318374634 milliseconds.
+Snapshot Doc: 0.8804590702056885 milliseconds.
+```
+
+## Automerge
+
+### 10k Changes
+
+This benchmark uses a document with 10k changes and the results show 3 different scenarios:
+
+1. The whole document as separate changes
+2. 9k changes as a snapshot and 1k changes as a separate changes
+3. The whole document as a snapshot
+
+The results are similar to the Yjs benchmarks. The loading time of a snapshot is significantly faster than loading changes and the size of the document is smaller.
+
+<img
+  src="/automerge_loading_time_comparison.png"
+  width="800"
+  height="533"
+  alt="Automerge Loading time comparison"
+/>
+
+<img
+  src="/automerge_size_comparison.png"
+  width="800"
+  height="533"
+  alt="Automerge Size comparison"
+/>
+
+<table>
+  <tbody>
+    <tr>
+      <th></th>
+      <th>Loading time (seconds)</th>
+      <th>Size (KB)</th>
+    </tr>
+    <tr>
+      <td>Automerge (Changes)</td>
+      <td>68</td>
+      <td>1442</td>
+    </tr>
+    <tr>
+      <td>Secsync + Automerge (Changes)</td>
+      <td>1162</td>
+      <td>5471</td>
+    </tr>
+    <tr>
+      <td>Automerge (Snapshot of 9k changes + 1k changes)</td>
+      <td>72</td>
+      <td>152</td>
+    </tr>
+    <tr>
+      <td>Secsync + Automerge (Snapshot of 9k changes + 1k changes)</td>
+      <td>188</td>
+      <td>557</td>
+    </tr>
+    <tr>
+      <td>Automerge (Snapshot)</td>
+      <td>39.9</td>
+      <td>9.3</td>
+    </tr>
+    <tr>
+      <td>Secsync + Automerge (Snapshot)</td>
+      <td>38.2</td>
+      <td>9.8</td>
+    </tr>
+  </tbody>
+</table>
+
+#### Raw Data
+
+Recorded on an Macbook Pro M1, 2020, 16 GB Memory
+
+```
+Snapshot + Updates Decryption: 120.0347501039505 milliseconds.
+Snapshot + Updates Doc: 68.33024990558624 milliseconds.
+Snapshot + Updates Decryption + Doc: 188.36500000953674 milliseconds.
+Changes Decryption: 1095.1798330545425 milliseconds.
+Changes Decryption + Doc: 67.0505839586258 milliseconds.
+Changes Decryption + Doc: 1162.2304170131683 milliseconds.
+Snapshot Decryption: 0.36016595363616943 milliseconds.
+Snapshot Doc: 39.89745903015137 milliseconds.
+Snapshot Decryption + Doc: 40.25762498378754 milliseconds.
+---
+Snapshot with 1000 Changes Base64: 0.6732079982757568 milliseconds.
+Snapshot with 1000 Changes Doc: 71.84425008296967 milliseconds.
+Changes Base64: 4.018791913986206 milliseconds.
+Changes Doc: 67.62387502193451 milliseconds.
+Snapshot Base64: 0.031916022300720215 milliseconds.
+Snapshot Doc: 38.19574999809265 milliseconds.
+```
+
+## Conclusion
+
+The benchmarks show that the impact of Secsync on loading times and sizes of a document is insignificant when using snapshots. The more CRDT document changes are stored as separate Secsync updates the larger the impact by the CRDT libraries Yjs and Automerge, but even more so by Secsync.
+
+Having up to 1000 changes per snapshot still lead to reasonable numbers for loading times and sizes, but a lower number like 200-500 changes would be even better and is recommended.
+
+## Running the benchmarks
+
+The source code for the benchmarks is available at [https://github.com/serenity-kit/secsync/tree/main/benchmarks/snapshots](https://github.com/serenity-kit/secsync/tree/main/benchmarks/snapshots)
+
+The [README.md](https://github.com/serenity-kit/secsync/blob/main/benchmarks/snapshots/README.md) in this directory contains further details on the setup and how to run the benchmarks yourself.
+
+## Further ideas for Benchmarking
+
+- Benchmarking the Secsync sync engine and analyse the impact of the state machine
+- Benchmarking a real editor integration e.g. Prosemirror (loading the document, write performance)
