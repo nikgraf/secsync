@@ -6,7 +6,7 @@ Secsync is defining a contract between a central backend service and clients. Th
 
 - Client/server communication: Websocket
 - CRDT: Yjs or Automerge
-- Backend language: JavaScript
+- Server language: JavaScript
 - Client rendering: React
 
 Secsync is not bound to these technologies and all utitlies are exposed to implement different technologies. If you are looking for a different combination please reach out.
@@ -184,9 +184,9 @@ import { YjsTodosExample } from "../../components/YjsTodosExample/YjsTodosExampl
 
 <SimpleExampleWrapper component={YjsTodosExample} generateDocumentKey={false} />
 
-## Setup your own backend
+## Setup your own server
 
-Secsync ships with a backend utility that handles a Websocket connection including validations and handling expected error cases e.g. trying to send snapshot without having synced first. It requires 5 callbacks to be defined:
+Secsync ships with a server utility that handles a Websocket connection including validations and handling expected error cases e.g. trying to send snapshot without having synced first. It requires 5 callbacks to be defined:
 
 - getDocument
 - createSnaphot
@@ -261,6 +261,6 @@ export type HasBroadcastAccessParams = {
 };
 ```
 
-### Documentation Example Backend
+### Documentation Example Server
 
-A fully functional backend can be found here [https://github.com/serenity-kit/secsync/tree/main/examples/backend](https://github.com/serenity-kit/secsync/tree/main/examples/backend). Keep in mind that it accepts any client and does not verify the Websocket session key/token.
+A fully functional server can be found here [https://github.com/serenity-kit/secsync/tree/main/examples/backend](https://github.com/serenity-kit/secsync/tree/main/examples/backend). Keep in mind that it accepts any client and does not verify the Websocket session key/token.
