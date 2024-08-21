@@ -1,43 +1,53 @@
-# Server API
+# Introduction
+
+Secsync requires a centralized server to ensure the correct order of snapshots and updates. It should reject invalid updates and snapshots.
+
+While ideally secsync would have been designed to be decentralized, this would have resulted in various trade-offs that were not desired.
+
+Secsync ships with a server utility that handles a Websocket connection including validations and handling expected error cases e.g. trying to send snapshot without having synced first. This is mean as a helfpul utility to simplify development, but of course you can implement your own replicating the logic.
+
+## secsync-server utilities
+
+The `secsync-server` package exports `createWebSocketConnection` which requires 5 callbacks to be defined:
+
+- getDocument
+- createSnaphot
+- createUpdate
+- hasAccess
+- hasBroadcastAccess
+
+```tsx
+import { createWebSocketConnection } from "secsync-server";
+import { WebSocketServer } from "ws";
+
+const webSocketServer = new WebSocketServer();
+webSocketServer.on(
+  "connection",
+  createWebSocketConnection({
+    createSnapshot,
+    createUpdate,
+    getDocument,
+    hasAccess,
+    hasBroadcastAccess,
+  })
+);
+```
+
+### Callbacks
 
 #### createSnapshot
 
 A callback that receives an object containing the `snapshot` structure sent by clients. The Snapshot should be persistet to a database. In case persisting fails an error should be thrown.
 
-```ts
-export type CreateSnapshotParams = {
-  snapshot: SnapshotWithClientData;
-};
-```
-
 #### createUpdate
 
 A callback that receives an object containing the `update` structure sent by clients. The Update should be persistet to a database. In case persisting fails an error should be thrown.
-
-```ts
-export type CreateUpdateParams = {
-  update: Update;
-};
-```
 
 #### getDocument
 
 A callback that should return the necessary document information. The simples implementation would just return the latest snapshot, the proofs for snapshot ancestor chain and all related updates.
 
 A more advanced implementation should take into account if the full document or just a delta was requested and idenitfy if and if so which updates are necessary to send and only return those.
-
-```ts
-export type GetDocumentMode = "complete" | "delta";
-
-export type GetDocumentParams = {
-  documentId: string;
-  knownSnapshotId?: string;
-  knownSnapshotUpdateClocks?: SnapshotUpdateClocks;
-  mode: GetDocumentMode;
-};
-```
-
-Note: Depending on the application the `getDocument` can be a `getOrCreateDocument` and it creates a document if the ID has not seen before.
 
 #### hasAccess
 
@@ -72,10 +82,6 @@ export type HasBroadcastAccessParams = {
   websocketSessionKeys: string[];
 };
 ```
-
-## additionalAuthenticationDataValidations
-
-Must be identical to the supported `additionalAuthenticationDataValidations` on the client for data parsing to function correctly.
 
 ### Documentation Example Server
 
